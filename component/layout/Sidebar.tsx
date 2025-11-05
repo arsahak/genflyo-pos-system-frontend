@@ -54,7 +54,10 @@ const getMenuItems = (language: string): MenuItem[] => [
         label: getTranslation("categories", language),
         path: "/products/categories",
       },
-      { label: getTranslation("addProduct", language), path: "/products/add" },
+      {
+        label: getTranslation("addProduct", language),
+        path: "/products/add-new-product",
+      },
     ],
   },
   {
