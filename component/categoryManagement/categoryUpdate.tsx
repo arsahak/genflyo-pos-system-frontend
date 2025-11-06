@@ -2,8 +2,8 @@
 
 import api from "@/lib/api";
 import { useStore } from "@/lib/store";
-import { useRouter, useParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { MdClose, MdImage, MdSave } from "react-icons/md";
 
@@ -23,8 +23,13 @@ export default function CategoryUpdate() {
   const [fetching, setFetching] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-  const [existingImage, setExistingImage] = useState<any>(null);
-  const [parentCategories, setParentCategories] = useState<ParentCategory[]>([]);
+  const [existingImage, setExistingImage] = useState<{
+    url: string;
+    publicId?: string;
+  } | null>(null);
+  const [parentCategories, setParentCategories] = useState<ParentCategory[]>(
+    []
+  );
 
   const [formData, setFormData] = useState({
     name: "",
@@ -51,9 +56,14 @@ export default function CategoryUpdate() {
     try {
       const response = await api.get("/categories?limit=100");
       if (response.data.categories) {
-        // Filter out the current category to prevent self-parenting
+        // Only show root categories (categories without a parent) as parent options
+        // This prevents creating sub-categories under sub-categories
+        // Also filter out the current category to prevent self-parenting
         setParentCategories(
-          response.data.categories.filter((cat: any) => cat._id !== categoryId)
+          response.data.categories.filter(
+            (cat: ParentCategory & { parentCategory?: string }) =>
+              !cat.parentCategory && cat._id !== categoryId
+          )
         );
       }
     } catch (error) {
@@ -226,6 +236,7 @@ export default function CategoryUpdate() {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Enter category name"
               />
             </div>
 
@@ -239,12 +250,13 @@ export default function CategoryUpdate() {
                 onChange={handleChange}
                 rows={3}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Category description"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Parent Category
+                Parent Category (Main Categories Only)
               </label>
               <select
                 name="parentCategory"
@@ -252,7 +264,7 @@ export default function CategoryUpdate() {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
-                <option value="">None (Root Category)</option>
+                <option value="">None (Main Category)</option>
                 {parentCategories.map((cat) => (
                   <option key={cat._id} value={cat._id}>
                     {cat.name}
@@ -260,7 +272,9 @@ export default function CategoryUpdate() {
                 ))}
               </select>
               <p className="mt-2 text-sm text-gray-500">
-                💡 Select a parent category to make this a sub-category, or leave as "None" for a root category
+                💡 Select a main category to make this a sub-category, or leave
+                as &quot;None&quot; for a main category. Note: Sub-categories
+                cannot have their own sub-categories.
               </p>
             </div>
 
@@ -274,6 +288,7 @@ export default function CategoryUpdate() {
                 value={formData.order}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="0"
               />
             </div>
 
@@ -310,12 +325,12 @@ export default function CategoryUpdate() {
                 <img
                   src={existingImage.url}
                   alt="Current"
-                  className="w-48 h-48 object-cover rounded-lg border-2 border-gray-300"
+                  className="w-48 h-48 object-cover rounded-lg border-4 border-indigo-500"
                 />
                 <button
                   type="button"
                   onClick={removeExistingImage}
-                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
                 >
                   <MdClose size={20} />
                 </button>
@@ -324,19 +339,29 @@ export default function CategoryUpdate() {
           )}
 
           <div className="space-y-4">
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-              <MdImage className="w-8 h-8 mb-2 text-gray-400" />
-              <p className="text-xs text-gray-500">
-                {existingImage ? "Change image" : "Add image"}
-              </p>
-              <input
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={handleImageChange}
-              />
-            </label>
+            <div className="flex items-center justify-center w-full">
+              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-indigo-300 border-dashed rounded-lg cursor-pointer bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <MdImage className="w-10 h-10 mb-3 text-indigo-400" />
+                  <p className="mb-2 text-sm text-indigo-600 font-semibold">
+                    {existingImage
+                      ? "Change Category Image"
+                      : "Upload Category Image"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, GIF, WebP up to 5MB
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
+              </label>
+            </div>
 
+            {/* New Image Preview */}
             {imagePreview && (
               <div className="mt-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">
@@ -345,13 +370,13 @@ export default function CategoryUpdate() {
                 <div className="relative inline-block">
                   <img
                     src={imagePreview}
-                    alt="New"
+                    alt="New Preview"
                     className="w-48 h-48 object-cover rounded-lg border-4 border-indigo-500"
                   />
                   <button
                     type="button"
                     onClick={removeNewImage}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
                   >
                     <MdClose size={20} />
                   </button>
@@ -364,7 +389,7 @@ export default function CategoryUpdate() {
         {/* SEO Settings */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            SEO Settings
+            SEO Settings (Optional)
           </h2>
 
           <div className="space-y-4">
@@ -378,6 +403,7 @@ export default function CategoryUpdate() {
                 value={formData.metaTitle}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="SEO title"
               />
             </div>
 
@@ -391,12 +417,13 @@ export default function CategoryUpdate() {
                 onChange={handleChange}
                 rows={2}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="SEO description"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Meta Keywords
+                Meta Keywords (comma-separated)
               </label>
               <input
                 type="text"
@@ -404,6 +431,7 @@ export default function CategoryUpdate() {
                 value={formData.metaKeywords}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="keyword1, keyword2, keyword3"
               />
             </div>
           </div>
@@ -414,14 +442,14 @@ export default function CategoryUpdate() {
           <button
             type="button"
             onClick={() => router.push("/products/categories")}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>

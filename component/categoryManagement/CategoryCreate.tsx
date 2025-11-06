@@ -3,7 +3,7 @@
 import api from "@/lib/api";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { MdClose, MdImage, MdSave } from "react-icons/md";
 
@@ -19,7 +19,9 @@ export default function CategoryCreate() {
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-  const [parentCategories, setParentCategories] = useState<ParentCategory[]>([]);
+  const [parentCategories, setParentCategories] = useState<ParentCategory[]>(
+    []
+  );
 
   const [formData, setFormData] = useState({
     name: "",
@@ -40,7 +42,12 @@ export default function CategoryCreate() {
     try {
       const response = await api.get("/categories?limit=100");
       if (response.data.categories) {
-        setParentCategories(response.data.categories);
+        // Only show root categories (categories without a parent) as parent options
+        // This prevents creating sub-categories under sub-categories
+        const rootCategories = response.data.categories.filter(
+          (cat: ParentCategory & { parentCategory?: string }) => !cat.parentCategory
+        );
+        setParentCategories(rootCategories);
       }
     } catch (error) {
       console.error("Failed to load parent categories:", error);
@@ -105,7 +112,7 @@ export default function CategoryCreate() {
       });
 
       toast.success("Category created successfully!");
-      router.push("/products/category");
+      router.push("/products/categories");
     } catch (error: unknown) {
       console.error("Error creating category:", error);
       const errorMessage =
@@ -142,9 +149,7 @@ export default function CategoryCreate() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Add New Category</h1>
-        <p className="text-gray-500 mt-1">
-          Create a new product category
-        </p>
+        <p className="text-gray-500 mt-1">Create a new product category</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -186,7 +191,7 @@ export default function CategoryCreate() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Parent Category
+                Parent Category (Main Categories Only)
               </label>
               <select
                 name="parentCategory"
@@ -194,7 +199,7 @@ export default function CategoryCreate() {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
-                <option value="">None (Root Category)</option>
+                <option value="">None (Main Category)</option>
                 {parentCategories.map((cat) => (
                   <option key={cat._id} value={cat._id}>
                     {cat.name}
@@ -202,7 +207,8 @@ export default function CategoryCreate() {
                 ))}
               </select>
               <p className="mt-2 text-sm text-gray-500">
-                💡 Select a parent category to create a sub-category, or leave as "None" to create a root category
+                💡 Select a main category to create a sub-category, or leave
+                as "None" to create a main category. Note: Sub-categories cannot have their own sub-categories.
               </p>
             </div>
 
