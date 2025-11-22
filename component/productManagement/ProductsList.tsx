@@ -15,6 +15,9 @@ import {
   MdNavigateBefore,
   MdNavigateNext,
   MdWarning,
+  MdFileDownload,
+  MdFileUpload,
+  MdDescription,
 } from "react-icons/md";
 
 interface Product {
@@ -95,6 +98,9 @@ export default function ProductsList() {
   const [brands, setBrands] = useState<string[]>([]);
   const [expiringCount, setExpiringCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const loadProducts = useCallback(async () => {
     try {
@@ -229,6 +235,273 @@ export default function ProductsList() {
   const canDeleteProducts =
     user?.role === "super_admin" || user?.permissions?.canDeleteProducts;
 
+  // CSV Export Function
+  const handleExportCSV = async () => {
+    try {
+      toast.loading("Exporting products...");
+      
+      // Build params for export (same as current filters)
+      const params = new URLSearchParams({
+        limit: "10000", // Get all products for export
+      });
+      
+      if (searchTerm) params.append("search", searchTerm);
+      if (categoryFilter) params.append("category", categoryFilter);
+      if (brandFilter) params.append("brand", brandFilter);
+      if (stockFilter === "low") params.append("lowStock", "true");
+      if (stockFilter === "out") params.append("inStock", "false");
+      if (stockFilter === "in") params.append("inStock", "true");
+
+      const response = await api.get(`/products?${params.toString()}`);
+      const exportProducts = response.data.products || response.data;
+
+      if (!exportProducts || exportProducts.length === 0) {
+        toast.dismiss();
+        toast.error("No products to export");
+        return;
+      }
+
+      // Convert to CSV
+      const csvHeaders = [
+        "Name",
+        "SKU",
+        "Barcode",
+        "Description",
+        "Category",
+        "SubCategory",
+        "Brand",
+        "Price",
+        "Cost",
+        "Stock",
+        "MinStock",
+        "ReorderLevel",
+        "Unit",
+        "HasExpiry",
+        "ExpiryDate",
+        "ExpiryAlertDays",
+        "IsFeatured",
+        "IsActive",
+      ];
+
+      const csvRows = exportProducts.map((product: Product) => [
+        `"${product.name || ""}"`,
+        `"${product.sku || ""}"`,
+        `"${product.barcode || ""}"`,
+        `"${product.description || ""}"`,
+        `"${product.category || ""}"`,
+        `"${product.subCategory || ""}"`,
+        `"${product.brand || ""}"`,
+        product.price || 0,
+        product.cost || 0,
+        product.stock || 0,
+        product.minStock || 0,
+        product.reorderLevel || 0,
+        `"${product.unit || "pcs"}"`,
+        product.hasExpiry ? "TRUE" : "FALSE",
+        `"${product.expiryDate || ""}"`,
+        product.expiryAlertDays || 0,
+        product.isFeatured ? "TRUE" : "FALSE",
+        product.isActive ? "TRUE" : "FALSE",
+      ]);
+
+      const csvContent = [
+        csvHeaders.join(","),
+        ...csvRows.map((row: (string | number)[]) => row.join(",")),
+      ].join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `products_export_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.dismiss();
+      toast.success(`Exported ${exportProducts.length} products successfully!`);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.dismiss();
+      toast.error("Failed to export products");
+    }
+  };
+
+  // CSV Template Download
+  const handleDownloadTemplate = () => {
+    const csvHeaders = [
+      "Name",
+      "SKU",
+      "Barcode",
+      "Description",
+      "Category",
+      "SubCategory",
+      "Brand",
+      "Price",
+      "Cost",
+      "Stock",
+      "MinStock",
+      "ReorderLevel",
+      "Unit",
+      "HasExpiry",
+      "ExpiryDate",
+      "ExpiryAlertDays",
+      "IsFeatured",
+      "IsActive",
+    ];
+
+    const sampleRow = [
+      "Sample Product",
+      "SKU001",
+      "1234567890123",
+      "Sample product description",
+      "Electronics",
+      "Phones",
+      "Samsung",
+      "499.99",
+      "350.00",
+      "100",
+      "10",
+      "20",
+      "pcs",
+      "FALSE",
+      "",
+      "0",
+      "FALSE",
+      "TRUE",
+    ];
+
+    const csvContent = [csvHeaders.join(","), sampleRow.join(",")].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "products_import_template.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("Template downloaded successfully!");
+  };
+
+  // CSV Import Function
+  const handleImportCSV = async () => {
+    if (!importFile) {
+      toast.error("Please select a CSV file");
+      return;
+    }
+
+    try {
+      setImporting(true);
+      toast.loading("Importing products...");
+
+      // Read and parse CSV file
+      const text = await importFile.text();
+      const rows = text.split("\n").map((row) => {
+        // Simple CSV parser (handles quoted fields)
+        const fields: string[] = [];
+        let field = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < row.length; i++) {
+          const char = row[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === "," && !inQuotes) {
+            fields.push(field.trim());
+            field = "";
+          } else {
+            field += char;
+          }
+        }
+        fields.push(field.trim());
+        return fields;
+      });
+
+      const headers = rows[0];
+      const dataRows = rows.slice(1).filter((row) => row.some((cell) => cell));
+
+      if (dataRows.length === 0) {
+        toast.dismiss();
+        toast.error("No data found in CSV file");
+        setImporting(false);
+        return;
+      }
+
+      // Convert CSV rows to product objects
+      const productsToImport = dataRows.map((row) => {
+        const product: any = {};
+        headers.forEach((header, index) => {
+          const value = row[index]?.replace(/^"|"$/g, ""); // Remove quotes
+          const headerLower = header.toLowerCase().trim();
+
+          if (headerLower === "name") product.name = value;
+          else if (headerLower === "sku") product.sku = value;
+          else if (headerLower === "barcode") product.barcode = value;
+          else if (headerLower === "description") product.description = value;
+          else if (headerLower === "category") product.category = value;
+          else if (headerLower === "subcategory") product.subCategory = value;
+          else if (headerLower === "brand") product.brand = value;
+          else if (headerLower === "price")
+            product.price = parseFloat(value) || 0;
+          else if (headerLower === "cost")
+            product.cost = parseFloat(value) || 0;
+          else if (headerLower === "stock")
+            product.stock = parseInt(value) || 0;
+          else if (headerLower === "minstock")
+            product.minStock = parseInt(value) || 0;
+          else if (headerLower === "reorderlevel")
+            product.reorderLevel = parseInt(value) || 0;
+          else if (headerLower === "unit") product.unit = value || "pcs";
+          else if (headerLower === "hasexpiry")
+            product.hasExpiry = value.toUpperCase() === "TRUE";
+          else if (headerLower === "expirydate" && value)
+            product.expiryDate = value;
+          else if (headerLower === "expiryalertdays")
+            product.expiryAlertDays = parseInt(value) || 0;
+          else if (headerLower === "isfeatured")
+            product.isFeatured = value.toUpperCase() === "TRUE";
+          else if (headerLower === "isactive")
+            product.isActive = value.toUpperCase() === "TRUE";
+        });
+        return product;
+      });
+
+      // Send to backend
+      const response = await api.post("/products/bulk-import", {
+        products: productsToImport,
+      });
+
+      toast.dismiss();
+      toast.success(
+        `Successfully imported ${
+          response.data.imported || productsToImport.length
+        } products!`
+      );
+
+      // Reload products and close modal
+      setShowImportModal(false);
+      setImportFile(null);
+      await Promise.all([loadProducts(), loadMetadata(), loadAlerts()]);
+    } catch (error: unknown) {
+      console.error("Import error:", error);
+      toast.dismiss();
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to import products";
+      toast.error(errorMessage);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -239,15 +512,48 @@ export default function ProductsList() {
           <h1 className="text-3xl font-bold text-gray-900">Products</h1>
           <p className="text-gray-500 mt-1">Manage your inventory</p>
         </div>
-        {canAddProducts && (
-          <Link
-            href="/products/add-new-product"
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-          >
-            <MdAdd size={20} />
-            <span>Add New Product</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          {/* CSV Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadTemplate}
+              className="bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              title="Download CSV Template"
+            >
+              <MdDescription size={20} />
+              <span className="hidden sm:inline">Template</span>
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              title="Export to CSV"
+            >
+              <MdFileDownload size={20} />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            {canAddProducts && (
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                title="Import from CSV"
+              >
+                <MdFileUpload size={20} />
+                <span className="hidden sm:inline">Import</span>
+              </button>
+            )}
+          </div>
+          
+          {/* Add Product Button */}
+          {canAddProducts && (
+            <Link
+              href="/products/add-new-product"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+            >
+              <MdAdd size={20} />
+              <span>Add Product</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Alert Cards */}
@@ -614,6 +920,172 @@ export default function ProductsList() {
           </>
         )}
       </div>
+
+      {/* CSV Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <MdFileUpload size={32} />
+                  <div>
+                    <h2 className="text-2xl font-bold">Import Products</h2>
+                    <p className="text-sm opacity-90 mt-1">
+                      Upload CSV file to bulk import products
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                  }}
+                  className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+                  disabled={importing}
+                >
+                  <span className="text-2xl">×</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <MdDescription size={20} />
+                  Instructions
+                </h3>
+                <ul className="text-sm text-blue-800 space-y-1 ml-6 list-disc">
+                  <li>Download the CSV template to see the required format</li>
+                  <li>Fill in your product data following the template structure</li>
+                  <li>Required fields: Name, Category, Price, Stock, Unit</li>
+                  <li>
+                    Use TRUE/FALSE for boolean fields (HasExpiry, IsFeatured,
+                    IsActive)
+                  </li>
+                  <li>Date format for ExpiryDate: YYYY-MM-DD</li>
+                  <li>Maximum file size: 5MB</li>
+                </ul>
+              </div>
+
+              {/* File Upload */}
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Select CSV File
+                </label>
+                <div className="flex items-center gap-3">
+                  <label className="flex-1 cursor-pointer">
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                        importFile
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-300 hover:border-indigo-500 hover:bg-gray-50"
+                      }`}
+                    >
+                      {importFile ? (
+                        <div className="space-y-2">
+                          <MdDescription className="mx-auto text-green-600 text-4xl" />
+                          <p className="text-sm font-medium text-green-700">
+                            {importFile.name}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            {(importFile.size / 1024).toFixed(2)} KB
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <MdFileUpload className="mx-auto text-gray-400 text-4xl" />
+                          <p className="text-sm text-gray-600">
+                            Click to select CSV file or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            CSV files only (max 5MB)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            toast.error("File size must be less than 5MB");
+                            return;
+                          }
+                          if (!file.name.endsWith(".csv")) {
+                            toast.error("Please select a CSV file");
+                            return;
+                          }
+                          setImportFile(file);
+                        }
+                      }}
+                      className="hidden"
+                      disabled={importing}
+                    />
+                  </label>
+                </div>
+
+                {importFile && (
+                  <button
+                    onClick={() => setImportFile(null)}
+                    className="text-sm text-red-600 hover:text-red-800 font-medium"
+                    disabled={importing}
+                  >
+                    Remove file
+                  </button>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2 text-sm"
+                  disabled={importing}
+                >
+                  <MdDescription size={18} />
+                  Download Template
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setShowImportModal(false);
+                      setImportFile(null);
+                    }}
+                    className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    disabled={importing}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleImportCSV}
+                    disabled={!importFile || importing}
+                    className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
+                  >
+                    {importing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <MdFileUpload size={18} />
+                        Import Products
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
