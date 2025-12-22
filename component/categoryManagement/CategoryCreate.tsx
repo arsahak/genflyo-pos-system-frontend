@@ -1,11 +1,15 @@
 "use client";
 
 import api from "@/lib/api";
+import { useLanguage } from "@/lib/LanguageContext";
+import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
+import { getTranslation } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { MdClose, MdImage, MdSave } from "react-icons/md";
+import { CategoryFormSkeleton } from "./components/CategoryFormSkeleton";
 
 interface ParentCategory {
   _id: string;
@@ -15,8 +19,14 @@ interface ParentCategory {
 
 export default function CategoryCreate() {
   const { user } = useStore();
+  const { isDarkMode } = useSidebar();
+  const { language } = useLanguage();
   const router = useRouter();
+  
+  const t = (key: string) => getTranslation(key, language);
+
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [parentCategories, setParentCategories] = useState<ParentCategory[]>(
@@ -40,10 +50,9 @@ export default function CategoryCreate() {
 
   const loadParentCategories = async () => {
     try {
+      setFetching(true);
       const response = await api.get("/categories?limit=100");
       if (response.data.categories) {
-        // Only show root categories (categories without a parent) as parent options
-        // This prevents creating sub-categories under sub-categories
         const rootCategories = response.data.categories.filter(
           (cat: ParentCategory & { parentCategory?: string }) => !cat.parentCategory
         );
@@ -51,6 +60,8 @@ export default function CategoryCreate() {
       }
     } catch (error) {
       console.error("Failed to load parent categories:", error);
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -93,12 +104,10 @@ export default function CategoryCreate() {
     try {
       const submitData = new FormData();
 
-      // Append image
       if (imageFile) {
         submitData.append("image", imageFile);
       }
 
-      // Append form fields
       Object.entries(formData).forEach(([key, value]) => {
         if (value !== "" && value !== null && value !== undefined) {
           submitData.append(key, value.toString());
@@ -134,243 +143,295 @@ export default function CategoryCreate() {
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <h2 className="text-xl font-semibold text-red-800 mb-2">
-            Access Denied
+            {t("accessDenied")}
           </h2>
           <p className="text-red-600">
-            You do not have permission to create categories.
+            {t("noPermissionCategory")}
           </p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Add New Category</h1>
-        <p className="text-gray-500 mt-1">Create a new product category</p>
+  if (fetching) {
+    return (
+      <div className={`min-h-screen p-6 transition-colors duration-300 ${
+        isDarkMode ? "bg-gray-950" : "bg-slate-50"
+      }`}>
+        <CategoryFormSkeleton isDarkMode={isDarkMode} />
       </div>
+    );
+  }
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Basic Information
-          </h2>
+  const inputClass = `w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+    isDarkMode 
+      ? "bg-gray-900 border-gray-700 text-gray-100 focus:ring-indigo-500/20" 
+      : "bg-white border-gray-300 text-gray-900"
+  }`;
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Enter category name"
-              />
-            </div>
+  const labelClass = `block text-sm font-semibold mb-2 ${
+    isDarkMode ? "text-gray-300" : "text-gray-700"
+  }`;
 
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Category description"
-              />
-            </div>
+  const cardClass = `rounded-2xl shadow-sm p-6 ${
+    isDarkMode ? "bg-gray-800 shadow-lg shadow-gray-900/20" : "bg-white shadow-xl shadow-slate-200/50"
+  }`;
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Parent Category (Main Categories Only)
-              </label>
-              <select
-                name="parentCategory"
-                value={formData.parentCategory}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              >
-                <option value="">None (Main Category)</option>
-                {parentCategories.map((cat) => (
-                  <option key={cat._id} value={cat._id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-2 text-sm text-gray-500">
-                💡 Select a main category to create a sub-category, or leave
-                as "None" to create a main category. Note: Sub-categories cannot have their own sub-categories.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Display Order
-              </label>
-              <input
-                type="number"
-                name="order"
-                value={formData.order}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="0"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="isFeatured"
-                  checked={formData.isFeatured}
-                  onChange={handleChange}
-                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                />
-                <span className="ml-2 text-sm text-gray-700">
-                  Mark as featured category
-                </span>
-              </label>
-            </div>
-          </div>
+  return (
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      isDarkMode ? "bg-gray-950" : "bg-slate-50"
+    }`}>
+      <div className="max-w-full mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className={`text-3xl font-bold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+            {t("addNewCategory")}
+          </h1>
+          <p className={`mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+            {t("createNewCategory")}
+          </p>
         </div>
 
-        {/* Category Image */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Category Image
-          </h2>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Basic Information */}
+            <div className={cardClass}>
+              <h2 className={`text-xl font-bold mb-6 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+                {t("basicInformation")}
+              </h2>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-center w-full">
-              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-indigo-300 border-dashed rounded-lg cursor-pointer bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <MdImage className="w-10 h-10 mb-3 text-indigo-400" />
-                  <p className="mb-2 text-sm text-indigo-600 font-semibold">
-                    Category Image
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    PNG, JPG, GIF, WebP up to 5MB
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className={labelClass}>
+                    {t("categoryName")} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className={inputClass}
+                    placeholder={t("categoryName")}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className={labelClass}>
+                    {t("description")}
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    rows={4}
+                    className={inputClass}
+                    placeholder={t("description")}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>
+                    {t("parentCategoryLabel")}
+                  </label>
+                  <select
+                    name="parentCategory"
+                    value={formData.parentCategory}
+                    onChange={handleChange}
+                    className={inputClass}
+                  >
+                    <option value="">None (Main Category)</option>
+                    {parentCategories.map((cat) => (
+                      <option key={cat._id} value={cat._id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className={`mt-2 text-xs ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
+                    {t("parentCategoryHelp")}
                   </p>
                 </div>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </label>
-            </div>
 
-            {/* Image Preview */}
-            {imagePreview && (
-              <div className="mt-4">
-                <div className="relative inline-block">
-                  <img
-                    src={imagePreview}
-                    alt="Category Preview"
-                    className="w-48 h-48 object-cover rounded-lg border-4 border-indigo-500"
+                <div>
+                  <label className={labelClass}>
+                    {t("displayOrder")}
+                  </label>
+                  <input
+                    type="number"
+                    name="order"
+                    value={formData.order}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="0"
                   />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-                  >
-                    <MdClose size={20} />
-                  </button>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="flex items-center cursor-pointer group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        name="isFeatured"
+                        checked={formData.isFeatured}
+                        onChange={handleChange}
+                        className="peer sr-only"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                    </div>
+                    <span className={`ml-3 text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+                      {t("markFeatured")}
+                    </span>
+                  </label>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* SEO Settings */}
+            <div className={cardClass}>
+              <h2 className={`text-xl font-bold mb-6 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+                {t("seoSettings")} <span className={`text-sm font-normal ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>{t("optional")}</span>
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className={labelClass}>
+                    {t("metaTitle")}
+                  </label>
+                  <input
+                    type="text"
+                    name="metaTitle"
+                    value={formData.metaTitle}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder={t("metaTitle")}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>
+                    {t("metaDescription")}
+                  </label>
+                  <textarea
+                    name="metaDescription"
+                    value={formData.metaDescription}
+                    onChange={handleChange}
+                    rows={3}
+                    className={inputClass}
+                    placeholder={t("metaDescription")}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>
+                    {t("metaKeywords")}
+                  </label>
+                  <input
+                    type="text"
+                    name="metaKeywords"
+                    value={formData.metaKeywords}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="keyword1, keyword2, keyword3"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* SEO Settings */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            SEO Settings (Optional)
-          </h2>
+          {/* Right Column */}
+          <div className="space-y-8">
+            {/* Category Image */}
+            <div className={cardClass}>
+              <h2 className={`text-xl font-bold mb-6 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+                {t("categoryImage")}
+              </h2>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Meta Title
-              </label>
-              <input
-                type="text"
-                name="metaTitle"
-                value={formData.metaTitle}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="SEO title"
-              />
-            </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-center w-full">
+                  <label className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                    isDarkMode 
+                      ? "border-gray-700 bg-gray-900/50 hover:bg-gray-800 hover:border-indigo-500/50" 
+                      : "border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-400"
+                  }`}>
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <div className={`p-4 rounded-full mb-3 ${isDarkMode ? "bg-indigo-900/20" : "bg-indigo-100"}`}>
+                        <MdImage className={`w-8 h-8 ${isDarkMode ? "text-indigo-400" : "text-indigo-500"}`} />
+                      </div>
+                      <p className={`mb-2 text-sm font-semibold ${isDarkMode ? "text-gray-300" : "text-indigo-900"}`}>
+                        {t("clickToUpload")}
+                      </p>
+                      <p className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
+                        {t("imageFormatHelp")}
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                  </label>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Meta Description
-              </label>
-              <textarea
-                name="metaDescription"
-                value={formData.metaDescription}
-                onChange={handleChange}
-                rows={2}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="SEO description"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Meta Keywords (comma-separated)
-              </label>
-              <input
-                type="text"
-                name="metaKeywords"
-                value={formData.metaKeywords}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="keyword1, keyword2, keyword3"
-              />
+                {/* Image Preview */}
+                {imagePreview && (
+                  <div className="mt-6 flex justify-center">
+                    <div className="relative inline-block group">
+                      <img
+                        src={imagePreview}
+                        alt="Category Preview"
+                        className="w-full h-64 object-cover rounded-2xl shadow-lg border-4 border-white dark:border-gray-700"
+                      />
+                      <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                         <button
+                          type="button"
+                          onClick={removeImage}
+                          className="bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg transform hover:scale-110"
+                        >
+                          <MdClose size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Form Actions */}
-        <div className="flex items-center justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => router.push("/products/category")}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Creating...</span>
-              </>
-            ) : (
-              <>
-                <MdSave size={20} />
-                <span>Create Category</span>
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+          {/* Form Actions */}
+          <div className="lg:col-span-3 flex items-center justify-end gap-4 pb-10 border-t border-gray-200 dark:border-gray-800 pt-6">
+            <button
+              type="button"
+              onClick={() => router.push("/products/categories")}
+              className={`px-6 py-3 rounded-xl font-medium transition-colors ${
+                isDarkMode 
+                  ? "bg-gray-800 text-gray-300 hover:bg-gray-700" 
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl shadow-indigo-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>{t("creating")}</span>
+                </>
+              ) : (
+                <>
+                  <MdSave size={20} />
+                  <span>{t("createCategory")}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

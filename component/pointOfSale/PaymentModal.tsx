@@ -157,19 +157,24 @@ export const PaymentModal = ({
                             : "hover:bg-slate-50 border-b border-slate-100 last:border-0"
                         }`}
                       >
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p
-                            className={`font-medium ${
+                            className={`font-medium truncate ${
                               isDarkMode ? "text-gray-200" : "text-gray-900"
                             }`}
                           >
-                            {cust.name}
+                            {cust.name || "No Name"}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 truncate">
                             {cust.phone}
                           </p>
+                          {cust.email && (
+                            <p className="text-xs text-gray-400 truncate mt-0.5">
+                              {cust.email}
+                            </p>
+                          )}
                         </div>
-                        <span className="text-xs px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 font-bold">
+                        <span className="text-xs px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 font-bold ml-2 flex-shrink-0">
                           Select
                         </span>
                       </button>
@@ -177,12 +182,12 @@ export const PaymentModal = ({
                   </div>
                 )}
 
-                {/* New Customer Fields */}
-                {customerPhone.length >= 10 && (
+                {/* New Customer Fields - Show when phone entered but no customer selected */}
+                {customerPhone.length >= 3 && !selectedCustomer && (
                   <div className="grid grid-cols-2 gap-3 mt-3 animate-in fade-in slide-in-from-top-2">
                     <input
                       type="text"
-                      placeholder={t("customerName")}
+                      placeholder={`${t("customerName")} (Optional)`}
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       className={`px-4 py-3 rounded-xl border outline-none ${

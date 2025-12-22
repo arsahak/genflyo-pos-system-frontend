@@ -276,7 +276,7 @@ export default function UpdateProduct() {
   if (!user) return null;
 
   const canEditProducts =
-    user.role === "super_admin" || user.permissions?.canEditProducts;
+    user.role === "super_admin" || user.permissions?.canEditProducts || false;
 
   if (!canEditProducts) {
     return (
@@ -295,10 +295,55 @@ export default function UpdateProduct() {
 
   if (fetching) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="ml-4 text-gray-600">Loading product...</p>
+      <div className="p-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="mb-6">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+        </div>
+
+        <div className="space-y-6">
+          {/* Basic Information Skeleton */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="h-6 bg-gray-200 rounded w-1/5 mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i}>
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                  <div className="h-10 bg-gray-200 rounded w-full"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Expiration Details Skeleton */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="h-6 bg-gray-200 rounded w-1/5 mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i}>
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                  <div className="h-10 bg-gray-200 rounded w-full"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Images Skeleton */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="h-6 bg-gray-200 rounded w-1/5 mb-6"></div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+
+          {/* Form Actions Skeleton */}
+          <div className="flex items-center justify-end gap-4">
+            <div className="h-12 bg-gray-200 rounded-lg w-24"></div>
+            <div className="h-12 bg-gray-200 rounded-lg w-32"></div>
+          </div>
         </div>
       </div>
     );

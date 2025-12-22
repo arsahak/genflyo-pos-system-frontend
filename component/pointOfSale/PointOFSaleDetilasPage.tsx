@@ -286,26 +286,31 @@ const PointOFSaleDetilasPage = () => {
 
   // ==================== HANDLERS ====================
 
-  const searchCustomers = useCallback(async (query: string) => {
-    if (!query || query.length < 3) {
+  const searchCustomers = useCallback(async (phone: string): Promise<Customer[]> => {
+    if (!phone || phone.length < 3) {
       setCustomerSuggestions([]);
       setShowSuggestions(false);
-      return;
+      return [];
     }
 
     setIsSearchingCustomer(true);
     try {
-      const response = await api.get(`/customers?search=${query}`);
+      // Search by phone number specifically
+      const response = await api.get(`/customers?phone=${phone}`);
       if (response.data?.length > 0) {
-        setCustomerSuggestions(response.data.slice(0, 5));
+        const customers = response.data.slice(0, 10);
+        setCustomerSuggestions(customers);
         setShowSuggestions(true);
+        return customers;
       } else {
         setCustomerSuggestions([]);
         setShowSuggestions(false);
+        return [];
       }
     } catch {
       setCustomerSuggestions([]);
       setShowSuggestions(false);
+      return [];
     } finally {
       setIsSearchingCustomer(false);
     }
@@ -510,18 +515,49 @@ const PointOFSaleDetilasPage = () => {
       let customerId = selectedCustomer?._id || selectedCustomer?.id;
       let customerData = selectedCustomer;
 
-      if (!customerId && customerPhone.trim() && customerName.trim()) {
+      // Auto-create customer if phone exists but no customer selected
+      if (!customerId && customerPhone.trim()) {
         try {
-          const response = await api.post("/customers", {
-            name: customerName.trim(),
-            phone: customerPhone.trim(),
-            email: customerEmail.trim() || undefined,
-            membershipType: "regular",
-          });
-          customerId = response.data._id;
-          customerData = response.data;
+          // Check if customer already exists by phone
+          const checkResponse = await api.get(`/customers?phone=${customerPhone.trim()}`);
+          if (checkResponse.data && checkResponse.data.length > 0) {
+            // Customer exists, use it
+            const existingCustomer = checkResponse.data[0];
+            customerId = existingCustomer._id;
+            customerData = {
+              id: existingCustomer._id,
+              _id: existingCustomer._id,
+              name: existingCustomer.name || customerName.trim() || "Walk-in Customer",
+              phone: existingCustomer.phone || customerPhone.trim(),
+              email: existingCustomer.email || customerEmail.trim() || undefined,
+              membershipType: existingCustomer.membershipType || "regular",
+              loyaltyPoints: existingCustomer.loyaltyPoints || 0,
+              totalSpent: existingCustomer.totalSpent || 0,
+            };
+          } else {
+            // Create new customer with phone (name and email optional)
+            const response = await api.post("/customers", {
+              name: customerName.trim() || "Walk-in Customer",
+              phone: customerPhone.trim(),
+              email: customerEmail.trim() || undefined,
+              membershipType: "regular",
+            });
+            customerId = response.data._id;
+            customerData = {
+              id: response.data._id,
+              _id: response.data._id,
+              name: response.data.name || customerName.trim() || "Walk-in Customer",
+              phone: response.data.phone || customerPhone.trim(),
+              email: response.data.email || customerEmail.trim() || undefined,
+              membershipType: response.data.membershipType || "regular",
+              loyaltyPoints: response.data.loyaltyPoints || 0,
+              totalSpent: response.data.totalSpent || 0,
+            };
+            toast.success("New customer created");
+          }
         } catch (error) {
-          console.error("Error creating customer:", error);
+          console.error("Error handling customer:", error);
+          // Continue with sale even if customer creation fails
         }
       }
 

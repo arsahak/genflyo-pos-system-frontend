@@ -1,11 +1,13 @@
 "use client";
 
 import api from "@/lib/api";
+import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { MdClose, MdImage, MdSave } from "react-icons/md";
+import { ProductFormSkeleton } from "./components/ProductFormSkeleton";
 
 interface Category {
   _id: string;
@@ -19,8 +21,10 @@ interface Category {
 
 export default function AddNewProduct() {
   const { user } = useStore();
+  const { isDarkMode } = useSidebar();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [mainCategories, setMainCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<Category[]>([]);
@@ -131,6 +135,8 @@ export default function AddNewProduct() {
     } catch (error) {
       console.error("Error loading categories:", error);
       toast.error("Failed to load categories");
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -312,7 +318,7 @@ export default function AddNewProduct() {
   if (!user) return null;
 
   const canAddProducts =
-    user.role === "super_admin" || user.permissions?.canAddProducts;
+    user.role === "super_admin" || user.permissions?.canAddProducts || false;
 
   if (!canAddProducts) {
     return (
@@ -325,6 +331,14 @@ export default function AddNewProduct() {
             You do not have permission to add products.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (fetching) {
+    return (
+      <div className="p-6">
+        <ProductFormSkeleton isDarkMode={isDarkMode} />
       </div>
     );
   }
