@@ -1,5 +1,5 @@
 "use client";
-import api from "@/lib/api";
+import { getCustomerById, updateCustomer } from "@/app/actions/customers";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -59,26 +59,32 @@ const EditCustomerPage = ({ customerId }: EditCustomerPageProps) => {
     const fetchCustomer = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get(`/customers/${customerId}`);
-        const customerData = response.data;
-        setCustomer(customerData);
+        const result = await getCustomerById(customerId);
 
-        // Populate form
-        setFormData({
-          name: customerData.name || "",
-          phone: customerData.phone || "",
-          email: customerData.email || "",
-          street: customerData.address?.street || "",
-          city: customerData.address?.city || "",
-          state: customerData.address?.state || "",
-          zipCode: customerData.address?.zipCode || "",
-          country: customerData.address?.country || "",
-          membershipType: customerData.membershipType || "regular",
-          notes: customerData.notes || "",
-        });
+        if (result.success && result.data) {
+          const customerData = result.data;
+          setCustomer(customerData);
+
+          // Populate form
+          setFormData({
+            name: customerData.name || "",
+            phone: customerData.phone || "",
+            email: customerData.email || "",
+            street: customerData.address?.street || "",
+            city: customerData.address?.city || "",
+            state: customerData.address?.state || "",
+            zipCode: customerData.address?.zipCode || "",
+            country: customerData.address?.country || "",
+            membershipType: customerData.membershipType || "regular",
+            notes: customerData.notes || "",
+          });
+        } else {
+          toast.error(result.error || "Failed to load customer data");
+          router.push("/customers");
+        }
       } catch (error) {
         console.error("Error fetching customer:", error);
-        toast.error("Failed to load customer data");
+        toast.error("An unexpected error occurred");
         router.push("/customers");
       } finally {
         setIsLoading(false);
@@ -121,13 +127,20 @@ const EditCustomerPage = ({ customerId }: EditCustomerPageProps) => {
         notes: formData.notes.trim() || undefined,
       };
 
-      await api.put(`/customers/${customerId}`, customerData);
-      toast.success("Customer updated successfully!");
-      router.push("/customers");
+      const data = new FormData();
+      data.append("customerData", JSON.stringify(customerData));
+
+      const result = await updateCustomer(customerId, data);
+
+      if (result.success) {
+        toast.success(result.message || "Customer updated successfully!");
+        router.push("/customers");
+      } else {
+        toast.error(result.error || "Failed to update customer");
+      }
     } catch (error) {
       console.error("Error updating customer:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to update customer");
+      toast.error("An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
     }

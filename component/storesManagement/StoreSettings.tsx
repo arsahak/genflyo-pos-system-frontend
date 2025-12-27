@@ -1,6 +1,6 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
+import { getStoreById, updateStore } from "@/app/actions/stores";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -51,30 +51,34 @@ const StoreSettings = ({ storeId }: StoreSettingsProps) => {
   const fetchStore = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/stores/${storeId}`);
-      const store = response.data;
-      
-      setFormData({
-        name: store.name || "",
-        code: store.code || "",
-        type: store.type || "supershop",
-        street: store.address?.street || "",
-        city: store.address?.city || "",
-        state: store.address?.state || "",
-        zipCode: store.address?.zipCode || "",
-        country: store.address?.country || "",
-        phone: store.phone || "",
-        email: store.email || "",
-        timezone: store.timezone || "UTC",
-        currency: store.settings?.currency || "USD",
-        locale: store.settings?.locale || "",
-        receiptHeader: store.settings?.receiptHeader || "",
-        receiptFooter: store.settings?.receiptFooter || "",
-        isActive: store.isActive !== undefined ? store.isActive : true,
-      });
+      const result = await getStoreById(storeId);
+      if (result.success && result.data) {
+        const store = result.data;
+        setFormData({
+          name: store.name || "",
+          code: store.code || "",
+          type: store.type || "supershop",
+          street: store.address?.street || "",
+          city: store.address?.city || "",
+          state: store.address?.state || "",
+          zipCode: store.address?.zipCode || "",
+          country: store.address?.country || "",
+          phone: store.phone || "",
+          email: store.email || "",
+          timezone: store.timezone || "UTC",
+          currency: store.settings?.currency || "USD",
+          locale: store.settings?.locale || "",
+          receiptHeader: store.settings?.receiptHeader || "",
+          receiptFooter: store.settings?.receiptFooter || "",
+          isActive: store.isActive !== undefined ? store.isActive : true,
+        });
+      } else {
+        toast.error(result.error || "Failed to fetch store");
+        router.push("/stores");
+      }
     } catch (error: any) {
       console.error("Error fetching store:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch store");
+      toast.error("Failed to fetch store");
       router.push("/stores");
     } finally {
       setLoading(false);
@@ -83,7 +87,7 @@ const StoreSettings = ({ storeId }: StoreSettingsProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.type) {
       toast.error("Please fill all required fields");
       return;
@@ -91,35 +95,38 @@ const StoreSettings = ({ storeId }: StoreSettingsProps) => {
 
     setSaving(true);
     try {
-      const storeData = {
-        name: formData.name,
-        code: formData.code,
-        type: formData.type,
-        address: {
-          street: formData.street,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
-          country: formData.country,
-        },
-        phone: formData.phone,
-        email: formData.email,
-        timezone: formData.timezone,
-        settings: {
-          currency: formData.currency,
-          locale: formData.locale,
-          receiptHeader: formData.receiptHeader,
-          receiptFooter: formData.receiptFooter,
-        },
-        isActive: formData.isActive,
-      };
+      const submitData = new FormData();
+      submitData.append("name", formData.name);
+      submitData.append("code", formData.code);
+      submitData.append("type", formData.type);
+      submitData.append("address", JSON.stringify({
+        street: formData.street,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        country: formData.country,
+      }));
+      submitData.append("phone", formData.phone);
+      submitData.append("email", formData.email);
+      submitData.append("timezone", formData.timezone);
+      submitData.append("settings", JSON.stringify({
+        currency: formData.currency,
+        locale: formData.locale,
+        receiptHeader: formData.receiptHeader,
+        receiptFooter: formData.receiptFooter,
+      }));
+      submitData.append("isActive", String(formData.isActive));
 
-      await api.put(`/stores/${storeId}`, storeData);
-      toast.success("Store updated successfully!");
-      router.push("/stores");
+      const result = await updateStore(storeId, submitData);
+      if (result.success) {
+        toast.success(result.message || "Store updated successfully!");
+        router.push("/stores");
+      } else {
+        toast.error(result.error || "Failed to update store");
+      }
     } catch (error: any) {
       console.error("Error updating store:", error);
-      toast.error(error.response?.data?.message || "Failed to update store");
+      toast.error("Failed to update store");
     } finally {
       setSaving(false);
     }

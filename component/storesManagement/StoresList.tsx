@@ -1,6 +1,6 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
+import { getAllStores, deleteStore } from "@/app/actions/stores";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -58,11 +58,15 @@ const StoresList = () => {
   const fetchStores = async () => {
     setLoading(true);
     try {
-      const response = await api.get("/stores");
-      setStores(response.data || []);
+      const result = await getAllStores();
+      if (result.success && result.data) {
+        setStores(result.data.stores || []);
+      } else {
+        toast.error(result.error || "Failed to fetch stores");
+      }
     } catch (error: any) {
       console.error("Error fetching stores:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch stores");
+      toast.error("Failed to fetch stores");
     } finally {
       setLoading(false);
     }
@@ -70,13 +74,17 @@ const StoresList = () => {
 
   const handleDelete = async (storeId: string) => {
     try {
-      await api.delete(`/stores/${storeId}`);
-      toast.success("Store deleted successfully");
-      fetchStores();
-      setDeleteConfirm(null);
+      const result = await deleteStore(storeId);
+      if (result.success) {
+        toast.success(result.message || "Store deleted successfully");
+        fetchStores();
+        setDeleteConfirm(null);
+      } else {
+        toast.error(result.error || "Failed to delete store");
+      }
     } catch (error: any) {
       console.error("Error deleting store:", error);
-      toast.error(error.response?.data?.message || "Failed to delete store");
+      toast.error("Failed to delete store");
     }
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import api from "@/lib/api";
+import { getUserById, updateUser } from "@/app/actions/users";
 import { useStore } from "@/lib/store";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -102,28 +102,32 @@ export default function UserEdit({ userId }: UserEditProps) {
   const loadUser = async () => {
     try {
       setFetching(true);
-      const response = await api.get(`/users/${userId}`);
-      const userData = response.data;
+      const result = await getUserById(userId);
 
-      setFormData({
-        name: userData.name || "",
-        email: userData.email || "",
-        password: "",
-        confirmPassword: "",
-        role: userData.role || "cashier",
-        phone: userData.phone || "",
-        address: userData.address || "",
-        permissions: userData.permissions || formData.permissions,
-      });
+      if (result.success && result.data) {
+        const userData = result.data;
 
-      if (userData.profileImage) {
-        setImagePreview(userData.profileImage);
+        setFormData({
+          name: userData.name || "",
+          email: userData.email || "",
+          password: "",
+          confirmPassword: "",
+          role: userData.role || "cashier",
+          phone: userData.phone || "",
+          address: userData.address || "",
+          permissions: userData.permissions || formData.permissions,
+        });
+
+        if (userData.profileImage) {
+          setImagePreview(userData.profileImage);
+        }
+      } else {
+        toast.error(result.error || "Failed to load user");
+        router.push("/users");
       }
-    } catch (error: unknown) {
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to load user";
-      toast.error(errorMessage);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      toast.error("An unexpected error occurred");
       router.push("/users");
     } finally {
       setFetching(false);
@@ -193,18 +197,17 @@ export default function UserEdit({ userId }: UserEditProps) {
         submitData.append("profileImage", profileImage);
       }
 
-      await api.put(`/users/${userId}`, submitData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      toast.success("User updated successfully!");
-      router.push("/users");
-    } catch (error: unknown) {
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to update user";
-      toast.error(errorMessage);
+      const result = await updateUser(userId, submitData);
+
+      if (result.success) {
+        toast.success(result.message || "User updated successfully!");
+        router.push("/users");
+      } else {
+        toast.error(result.error || "Failed to update user");
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
     }

@@ -1,76 +1,160 @@
 "use client";
 
-import api from "@/lib/api";
+import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { MdClose, MdImage, MdSave } from "react-icons/md";
+import { getProductById, updateProduct } from "@/app/actions/product";
+import { getAllCategories } from "@/app/actions/categories";
+import { getAllBrands } from "@/app/actions/brands";
+import {
+  MdArrowBack,
+  MdAttachMoney,
+  MdCategory,
+  MdClose,
+  MdCloudUpload,
+  MdDateRange,
+  MdDescription,
+  MdInventory,
+  MdLabel,
+  MdLocalPharmacy,
+  MdPercent,
+  MdQrCode,
+  MdSave,
+  MdWarning,
+} from "react-icons/md";
+import { ProductFormSkeleton } from "./components/ProductFormSkeleton";
+
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+  parentCategory?: {
+    _id: string;
+    name: string;
+  };
+}
 
 export default function UpdateProduct() {
   const { user } = useStore();
+  const { isDarkMode } = useSidebar();
   const router = useRouter();
   const params = useParams();
   const productId = params.id as string;
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  // --- Data States ---
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [mainCategories, setMainCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<Category[]>([]);
+
+  // --- Image States ---
+  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
+  const [mainImagePreview, setMainImagePreview] = useState<string>("");
   const [existingImages, setExistingImages] = useState<any[]>([]);
 
+  // --- Form State ---
   const [formData, setFormData] = useState({
+    // Identity
     name: "",
+    genericName: "",
     sku: "",
     barcode: "",
-    description: "",
     category: "",
+    categoryId: "",
     subCategory: "",
+    subCategoryId: "",
     brand: "",
     manufacturer: "",
-    price: "",
-    cost: "",
-    wholesalePrice: "",
-    discountPrice: "",
-    discountPercentage: "",
-    stock: "0",
-    minStock: "10",
-    reorderLevel: "5",
-    unit: "pcs",
-    hasExpiry: false,
-    expiryDate: "",
-    manufacturingDate: "",
-    batchNumber: "",
-    expiryAlertDays: "30",
-    isPrescription: false,
-    isControlled: false,
-    genericName: "",
-    dosage: "",
-    strength: "",
-    isFood: false,
-    cuisine: "",
-    preparationTime: "",
-    ingredients: "",
-    allergens: "",
-    isVegetarian: false,
-    isVegan: false,
-    spiceLevel: "",
-    hasWarranty: false,
-    warrantyPeriod: "",
-    warrantyType: "",
+    rackLocation: "",
+
+    // Units & Pricing
+    purchaseUnit: "Box",
+    sellingUnit: "Strip",
+    conversionFactor: "10",
+    purchasePriceBox: "",
+    mrp: "",
+    salesPrice: "",
+    costPerUnit: "",
     taxRate: "0",
     hsnCode: "",
-    weight: "",
-    weightUnit: "kg",
-    tags: "",
-    isFeatured: false,
+    discountPercent: "0",
+
+    // Inventory & Batch
+    openingStockBoxes: "0",
+    stock: "0",
+    minStock: "10",
+    batchNumber: "",
+    expiryDate: "",
+    manufacturingDate: "",
+    expiryAlertDays: "90",
+
+    // Medical Details
+    drugForm: "Tablet",
+    strength: "",
+    packSize: "",
+    dosage: "",
+    sideEffects: "",
+
+    // Safety Flags
+    isPrescription: false,
+    isControlled: false,
+    requiresRefrigeration: false,
+    isAntibiotic: false,
+
+    // Meta
+    description: "",
     supplierName: "",
     supplierPhone: "",
-    supplierEmail: "",
-    supplierAddress: "",
-    notes: "",
+    isFeatured: false,
   });
 
+  // --- Logic Effects ---
+
+  // 1. Calculate Cost Per Strip automatically
+  useEffect(() => {
+    const boxPrice = parseFloat(formData.purchasePriceBox) || 0;
+    const factor = parseFloat(formData.conversionFactor) || 1;
+    if (boxPrice > 0 && factor > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        costPerUnit: (boxPrice / factor).toFixed(2),
+      }));
+    }
+  }, [formData.purchasePriceBox, formData.conversionFactor]);
+
+  // 2. Calculate Total Stock (Strips) from Boxes
+  useEffect(() => {
+    const boxes = parseFloat(formData.openingStockBoxes) || 0;
+    const factor = parseFloat(formData.conversionFactor) || 1;
+    setFormData((prev) => ({
+      ...prev,
+      stock: (boxes * factor).toString(),
+    }));
+  }, [formData.openingStockBoxes, formData.conversionFactor]);
+
+  // 3. Load Categories
+  useEffect(() => {
+    const loadCats = async () => {
+      try {
+        const res = await getAllCategories({ limit: 100 });
+        if (res.success && res.data?.categories) {
+          const all = res.data.categories;
+          setCategories(all);
+          setMainCategories(all.filter((c: Category) => !c.parentCategory));
+          setSubCategories(all.filter((c: Category) => c.parentCategory));
+        }
+      } catch (e) {
+        toast.error("Failed to load categories");
+      }
+    };
+    loadCats();
+  }, []);
+
+  // 4. Load Product
   useEffect(() => {
     if (!productId) {
       toast.error("Product ID is required");
@@ -83,7 +167,14 @@ export default function UpdateProduct() {
   const loadProduct = async () => {
     try {
       setFetching(true);
-      const response = await api.get(`/products/${productId}`);
+      const response = await getProductById(productId);
+
+      if (!response.success || !response.data) {
+        toast.error(response.error || "Failed to load product");
+        router.push("/products");
+        return;
+      }
+
       const product = response.data;
 
       // Format dates for input fields
@@ -92,70 +183,98 @@ export default function UpdateProduct() {
         return new Date(date).toISOString().split("T")[0];
       };
 
+      // Map unit back to selling unit
+      const unitMap: { [key: string]: string } = {
+        strip: "Strip",
+        pcs: "Piece",
+        bottle: "Bottle",
+        injection: "Ampoule",
+        box: "Box",
+        pack: "Pack",
+      };
+
+      // Extract location from location object
+      const rackLocation = product.location?.shelf
+        ? `${product.location.shelf}${product.location.bin ? "-" + product.location.bin : ""}`
+        : "";
+
       setFormData({
+        // Identity
         name: product.name || "",
+        genericName: product.genericName || "",
         sku: product.sku || "",
         barcode: product.barcode || "",
-        description: product.description || "",
         category: product.category || "",
+        categoryId: "",
         subCategory: product.subCategory || "",
+        subCategoryId: "",
         brand: product.brand || "",
         manufacturer: product.manufacturer || "",
-        price: product.price?.toString() || "",
-        cost: product.cost?.toString() || "",
-        wholesalePrice: product.wholesalePrice?.toString() || "",
-        discountPrice: product.discountPrice?.toString() || "",
-        discountPercentage: product.discountPercentage?.toString() || "",
-        stock: product.stock?.toString() || "0",
-        minStock: product.minStock?.toString() || "10",
-        reorderLevel: product.reorderLevel?.toString() || "5",
-        unit: product.unit || "pcs",
-        hasExpiry: product.hasExpiry || false,
-        expiryDate: formatDate(product.expiryDate),
-        manufacturingDate: formatDate(product.manufacturingDate),
-        batchNumber: product.batchNumber || "",
-        expiryAlertDays: product.expiryAlertDays?.toString() || "30",
-        isPrescription: product.isPrescription || false,
-        isControlled: product.isControlled || false,
-        genericName: product.genericName || "",
-        dosage: product.dosage || "",
-        strength: product.strength || "",
-        isFood: product.isFood || false,
-        cuisine: product.cuisine || "",
-        preparationTime: product.preparationTime?.toString() || "",
-        ingredients: product.ingredients?.join(", ") || "",
-        allergens: product.allergens?.join(", ") || "",
-        isVegetarian: product.isVegetarian || false,
-        isVegan: product.isVegan || false,
-        spiceLevel: product.spiceLevel || "",
-        hasWarranty: product.hasWarranty || false,
-        warrantyPeriod: product.warrantyPeriod?.toString() || "",
-        warrantyType: product.warrantyType || "",
+        rackLocation: rackLocation,
+
+        // Units & Pricing
+        purchaseUnit: "Box",
+        sellingUnit: unitMap[product.unit] || "Strip",
+        conversionFactor: "10",
+        purchasePriceBox: "",
+        mrp: product.wholesalePrice?.toString() || "",
+        salesPrice: product.price?.toString() || "",
+        costPerUnit: product.cost?.toString() || "",
         taxRate: product.taxRate?.toString() || "0",
         hsnCode: product.hsnCode || "",
-        weight: product.weight?.toString() || "",
-        weightUnit: product.weightUnit || "kg",
-        tags: product.tags?.join(", ") || "",
-        isFeatured: product.isFeatured || false,
+        discountPercent: product.discountPercentage?.toString() || "0",
+
+        // Inventory & Batch
+        openingStockBoxes: "0",
+        stock: product.stock?.toString() || "0",
+        minStock: product.minStock?.toString() || "10",
+        batchNumber: product.batchNumber || "",
+        expiryDate: formatDate(product.expiryDate),
+        manufacturingDate: formatDate(product.manufacturingDate),
+        expiryAlertDays: product.expiryAlertDays?.toString() || "90",
+
+        // Medical Details
+        drugForm: "Tablet",
+        strength: product.strength || "",
+        packSize: "",
+        dosage: product.dosage || "",
+        sideEffects: "",
+
+        // Safety Flags
+        isPrescription: product.isPrescription || false,
+        isControlled: product.isControlled || false,
+        requiresRefrigeration: false,
+        isAntibiotic: false,
+
+        // Meta
+        description: product.description || "",
         supplierName: product.supplier?.name || "",
         supplierPhone: product.supplier?.phone || "",
-        supplierEmail: product.supplier?.email || "",
-        supplierAddress: product.supplier?.address || "",
-        notes: product.notes || "",
+        isFeatured: product.isFeatured || false,
       });
+
+      // Set main image if exists
+      if (product.images && product.images.length > 0) {
+        const imageUrl = product.images[0].url || product.images[0].thumbUrl || product.images[0];
+        if (imageUrl) {
+          setMainImagePreview(imageUrl);
+        }
+      } else if (product.image) {
+        // Fallback to single image field if it exists
+        setMainImagePreview(product.image);
+      }
 
       setExistingImages(product.images || []);
     } catch (error: unknown) {
       console.error("Failed to load product:", error);
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to load product";
-      toast.error(errorMessage);
+      toast.error(error instanceof Error ? error.message : "Failed to load product");
       router.push("/products");
     } finally {
       setFetching(false);
     }
   };
+
+  // --- Handlers ---
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -164,46 +283,52 @@ export default function UpdateProduct() {
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-
-    if (files.length + imageFiles.length + existingImages.length > 5) {
-      toast.error("Maximum 5 images allowed");
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    const cat = categories.find((c) => c._id === selectedId);
+    if (!cat) {
+      setFormData((prev) => ({
+        ...prev,
+        category: "",
+        categoryId: "",
+        subCategory: "",
+        subCategoryId: "",
+      }));
       return;
     }
+    if (!cat.parentCategory) {
+      setFormData((prev) => ({
+        ...prev,
+        category: cat.name,
+        categoryId: cat._id,
+        subCategory: "",
+        subCategoryId: "",
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        category: cat.parentCategory?.name || "",
+        categoryId: cat.parentCategory?._id || "",
+        subCategory: cat.name,
+        subCategoryId: cat._id,
+      }));
+    }
+  };
 
-    const newPreviews: string[] = [];
-    files.forEach((file) => {
+  const handleMainImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMainImageFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        newPreviews.push(reader.result as string);
-        if (newPreviews.length === files.length) {
-          setImagePreviews([...imagePreviews, ...newPreviews]);
-        }
-      };
+      reader.onloadend = () => setMainImagePreview(reader.result as string);
       reader.readAsDataURL(file);
-    });
-
-    setImageFiles([...imageFiles, ...files]);
-  };
-
-  const removeNewImage = (index: number) => {
-    setImageFiles(imageFiles.filter((_, i) => i !== index));
-    setImagePreviews(imagePreviews.filter((_, i) => i !== index));
-  };
-
-  const removeExistingImage = (index: number) => {
-    setExistingImages(existingImages.filter((_, i) => i !== index));
-    toast("Image will be removed when you save the product", {
-      icon: "ℹ️",
-    });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -211,63 +336,121 @@ export default function UpdateProduct() {
     setLoading(true);
 
     try {
-      const submitData = new FormData();
+      const data = new FormData();
 
-      // Append new images only if there are new images
-      if (imageFiles.length > 0) {
-        imageFiles.forEach((file) => {
-          submitData.append("images", file);
-        });
+      // Upload main image if changed
+      if (mainImageFile) {
+        data.append("mainImage", mainImageFile);
       }
 
-      // Append form fields
-      Object.entries(formData).forEach(([key, value]) => {
-        if (
-          key === "supplierName" ||
-          key === "supplierPhone" ||
-          key === "supplierEmail" ||
-          key === "supplierAddress"
-        ) {
-          return;
-        }
+      // Basic Information
+      data.append("name", formData.name);
+      if (formData.sku) data.append("sku", formData.sku);
+      if (formData.barcode) data.append("barcode", formData.barcode);
+      if (formData.description) data.append("description", formData.description);
+      if (formData.genericName) data.append("genericName", formData.genericName);
+      if (formData.brand) data.append("brand", formData.brand);
+      if (formData.manufacturer) data.append("manufacturer", formData.manufacturer);
 
-        if (value !== "" && value !== null && value !== undefined) {
-          submitData.append(key, value.toString());
-        }
-      });
+      // Category (required)
+      if (formData.category) data.append("category", formData.category);
+      if (formData.subCategory) data.append("subCategory", formData.subCategory);
 
-      // Add supplier object
-      if (
-        formData.supplierName ||
-        formData.supplierPhone ||
-        formData.supplierEmail ||
-        formData.supplierAddress
-      ) {
-        submitData.append(
-          "supplier",
-          JSON.stringify({
-            name: formData.supplierName,
-            phone: formData.supplierPhone,
-            email: formData.supplierEmail,
-            address: formData.supplierAddress,
-          })
-        );
+      // Pricing - Map frontend fields to backend fields
+      if (formData.salesPrice) data.append("price", formData.salesPrice);
+      if (formData.costPerUnit) data.append("cost", formData.costPerUnit);
+      if (formData.mrp) data.append("wholesalePrice", formData.mrp);
+      if (formData.discountPercent) data.append("discountPercentage", formData.discountPercent);
+      if (formData.taxRate) data.append("taxRate", formData.taxRate);
+      if (formData.hsnCode) data.append("hsnCode", formData.hsnCode);
+
+      // Stock Management
+      if (formData.stock) data.append("stock", formData.stock);
+      if (formData.minStock) data.append("minStock", formData.minStock);
+      if (formData.minStock) data.append("reorderLevel", formData.minStock);
+
+      // Unit - Map sellingUnit to backend unit enum
+      const unitMap: { [key: string]: string } = {
+        Strip: "strip",
+        Piece: "pcs",
+        Bottle: "bottle",
+        Ampoule: "injection",
+        Box: "box",
+        Carton: "box",
+        Jar: "bottle",
+        Pack: "pack",
+      };
+      const backendUnit = unitMap[formData.sellingUnit] || "pcs";
+      data.append("unit", backendUnit);
+
+      // Expiry Management
+      const hasExpiry = !!formData.expiryDate;
+      data.append("hasExpiry", hasExpiry.toString());
+      if (formData.expiryDate) {
+        data.append("expiryDate", formData.expiryDate);
+      }
+      if (formData.manufacturingDate) {
+        data.append("manufacturingDate", formData.manufacturingDate);
+      }
+      if (formData.batchNumber) {
+        data.append("batchNumber", formData.batchNumber);
+      }
+      if (formData.expiryAlertDays) {
+        data.append("expiryAlertDays", formData.expiryAlertDays);
       }
 
-      await api.put(`/products/${productId}`, submitData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // Pharmacy Specific
+      data.append("isPrescription", formData.isPrescription.toString());
+      data.append("isControlled", formData.isControlled.toString());
+      if (formData.strength) data.append("strength", formData.strength);
+      if (formData.dosage) data.append("dosage", formData.dosage);
 
-      toast.success("Product updated successfully!");
-      router.push("/products");
-    } catch (error: unknown) {
-      console.error("Error updating product:", error);
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to update product";
-      toast.error(errorMessage);
+      // Additional medical details - store in notes or description
+      const medicalNotes = [];
+      if (formData.drugForm) medicalNotes.push(`Form: ${formData.drugForm}`);
+      if (formData.packSize) medicalNotes.push(`Pack Size: ${formData.packSize}`);
+      if (formData.sideEffects) medicalNotes.push(`Side Effects: ${formData.sideEffects}`);
+      if (formData.requiresRefrigeration) medicalNotes.push("Requires Refrigeration");
+      if (formData.isAntibiotic) medicalNotes.push("Full Course Alert (Antibiotic)");
+
+      // Location - Map rackLocation to location object
+      if (formData.rackLocation) {
+        const locationParts = formData.rackLocation.split(/[-_\/]/);
+        const locationObj = {
+          shelf: locationParts[0] || formData.rackLocation,
+          bin: locationParts[1] || "",
+          aisle: locationParts[2] || "",
+        };
+        data.append("location", JSON.stringify(locationObj));
+      }
+
+      // Supplier
+      if (formData.supplierName || formData.supplierPhone) {
+        const supplierObj: { name?: string; phone?: string } = {};
+        if (formData.supplierName) supplierObj.name = formData.supplierName;
+        if (formData.supplierPhone) supplierObj.phone = formData.supplierPhone;
+        data.append("supplier", JSON.stringify(supplierObj));
+      }
+
+      // Status
+      data.append("isFeatured", formData.isFeatured.toString());
+      data.append("isActive", "true");
+
+      // Notes - Store additional medical details in notes field
+      if (medicalNotes.length > 0) {
+        data.append("notes", medicalNotes.join("\n"));
+      }
+
+      const result = await updateProduct(productId, data);
+
+      if (result.success) {
+        toast.success(result.message || "Product updated successfully!");
+        router.push("/products");
+      } else {
+        toast.error(result.error || "Failed to update product");
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update product");
     } finally {
       setLoading(false);
     }
@@ -295,343 +478,1124 @@ export default function UpdateProduct() {
 
   if (fetching) {
     return (
-      <div className="p-6 animate-pulse">
-        {/* Header Skeleton */}
-        <div className="mb-6">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-        </div>
-
-        <div className="space-y-6">
-          {/* Basic Information Skeleton */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="h-6 bg-gray-200 rounded w-1/5 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[...Array(8)].map((_, i) => (
-                <div key={i}>
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                  <div className="h-10 bg-gray-200 rounded w-full"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Expiration Details Skeleton */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="h-6 bg-gray-200 rounded w-1/5 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i}>
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                  <div className="h-10 bg-gray-200 rounded w-full"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Images Skeleton */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="h-6 bg-gray-200 rounded w-1/5 mb-6"></div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
-              ))}
-            </div>
-          </div>
-
-          {/* Form Actions Skeleton */}
-          <div className="flex items-center justify-end gap-4">
-            <div className="h-12 bg-gray-200 rounded-lg w-24"></div>
-            <div className="h-12 bg-gray-200 rounded-lg w-32"></div>
-          </div>
-        </div>
+      <div className="p-6">
+        <ProductFormSkeleton isDarkMode={isDarkMode} />
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Update Product</h1>
-        <p className="text-gray-500 mt-1">Edit product information</p>
+    <div
+      className={`min-h-screen pb-20 ${
+        isDarkMode ? "bg-gray-950 text-gray-100" : "bg-slate-50 text-gray-900"
+      }`}
+    >
+      {/* Header */}
+      <div
+        className={`sticky top-0 z-30 py-4 shadow-sm border-b transition-colors ${
+          isDarkMode
+            ? "bg-gray-900/95 border-gray-800 backdrop-blur-md"
+            : "bg-white/95 border-slate-200 backdrop-blur-md"
+        }`}
+      >
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left Section - Back Button + Title */}
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+              <button
+                onClick={() => router.back()}
+                className={`p-2 rounded-full transition-colors shrink-0 ${
+                  isDarkMode
+                    ? "hover:bg-gray-800 text-gray-400"
+                    : "hover:bg-slate-100 text-slate-500"
+                }`}
+              >
+                <MdArrowBack size={24} />
+              </button>
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div
+                  className={`p-2 rounded-xl shrink-0 ${
+                    isDarkMode ? "bg-indigo-900/50" : "bg-indigo-50"
+                  }`}
+                >
+                  <MdLocalPharmacy
+                    className={`${
+                      isDarkMode ? "text-indigo-400" : "text-indigo-600"
+                    }`}
+                    size={24}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h1
+                    className={`text-xl sm:text-2xl font-bold ${
+                      isDarkMode ? "text-gray-100" : "text-slate-900"
+                    }`}
+                  >
+                    Update Product
+                  </h1>
+                  <p
+                    className={`text-xs sm:text-sm mt-0.5 hidden sm:block ${
+                      isDarkMode ? "text-gray-400" : "text-slate-500"
+                    }`}
+                  >
+                    Edit product information and inventory details.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Section - Action Buttons */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className={`px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg transition-colors border ${
+                  isDarkMode
+                    ? "border-gray-700 hover:bg-gray-800 text-gray-300"
+                    : "border-slate-300 hover:bg-slate-50 text-slate-700"
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 disabled:opacity-70 flex items-center gap-1.5 sm:gap-2 transition-all transform active:scale-95"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Updating...</span>
+                  </>
+                ) : (
+                  <>
+                    <MdSave size={18} /> <span>Update Product</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Use the same structure as AddNewProduct but with formData pre-filled */}
-        {/* Basic Information */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Basic Information
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Product Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                SKU
-              </label>
-              <input
-                type="text"
-                name="sku"
-                value={formData.sku}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Barcode
-              </label>
-              <input
-                type="text"
-                name="barcode"
-                value={formData.barcode}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Brand
-              </label>
-              <input
-                type="text"
-                name="brand"
-                value={formData.brand}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Stock <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="stock"
-                value={formData.stock}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Unit
-              </label>
-              <select
-                name="unit"
-                value={formData.unit}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+      <div className="py-6">
+        <div className="max-w-[1600px] mx-auto px-6">
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+          >
+            {/* ================= LEFT COLUMN (MAIN CONTENT) ================= */}
+            <div className="lg:col-span-8 space-y-6">
+              {/* 1. Basic Information Card */}
+              <section
+                className={`rounded-2xl shadow-sm border p-6 ${
+                  isDarkMode
+                    ? "bg-gray-900 border-gray-800"
+                    : "bg-white border-slate-200"
+                }`}
               >
-                <option value="pcs">Pieces</option>
-                <option value="kg">Kilogram</option>
-                <option value="g">Gram</option>
-                <option value="l">Liter</option>
-                <option value="ml">Milliliter</option>
-                <option value="box">Box</option>
-                <option value="pack">Pack</option>
-                <option value="bottle">Bottle</option>
-                <option value="strip">Strip</option>
-                <option value="tablet">Tablet</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Expiration */}
-        {formData.hasExpiry && (
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Expiration Details
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Expiry Date
-                </label>
-                <input
-                  type="date"
-                  name="expiryDate"
-                  value={formData.expiryDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Batch Number
-                </label>
-                <input
-                  type="text"
-                  name="batchNumber"
-                  value={formData.batchNumber}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Alert Days
-                </label>
-                <input
-                  type="number"
-                  name="expiryAlertDays"
-                  value={formData.expiryAlertDays}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Images */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Product Images
-          </h2>
-
-          {/* Existing Images */}
-          {existingImages.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
-                Current Images
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {existingImages.map((img, index) => (
-                  <div key={index} className="relative">
-                    <img
-                      src={img.url || img.thumbUrl}
-                      alt="Product"
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeExistingImage(index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                <h2
+                  className={`text-lg font-bold mb-6 flex items-center gap-2 pb-3 border-b ${
+                    isDarkMode
+                      ? "text-gray-100 border-gray-800"
+                      : "text-slate-800 border-slate-100"
+                  }`}
+                >
+                  <MdInventory className="text-indigo-500 text-xl" /> Product
+                  Identity
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label
+                      className={`block text-sm font-medium mb-1.5 ${
+                        isDarkMode ? "text-gray-300" : "text-slate-700"
+                      }`}
                     >
-                      <MdClose size={16} />
-                    </button>
+                      Product Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className={`w-full h-11 px-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                          : "bg-white border-slate-300 text-slate-900 placeholder-slate-400"
+                      }`}
+                      placeholder="e.g. Napa Extra 500mg"
+                    />
                   </div>
-                ))}
+                  <div className="md:col-span-2">
+                    <label
+                      className={`block text-sm font-medium mb-1.5 ${
+                        isDarkMode ? "text-gray-300" : "text-slate-700"
+                      }`}
+                    >
+                      Generic Name (Salt){" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <MdLabel
+                        className={`absolute left-3.5 top-3.5 text-lg ${
+                          isDarkMode ? "text-gray-500" : "text-slate-400"
+                        }`}
+                      />
+                      <input
+                        type="text"
+                        name="genericName"
+                        value={formData.genericName}
+                        onChange={handleChange}
+                        required
+                        className={`w-full h-11 pl-10 pr-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
+                          isDarkMode
+                            ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                            : "bg-indigo-50/30 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white"
+                        }`}
+                        placeholder="e.g. Paracetamol + Caffeine"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1.5 ${
+                        isDarkMode ? "text-gray-300" : "text-slate-700"
+                      }`}
+                    >
+                      Brand / Manufacturer
+                    </label>
+                    <input
+                      type="text"
+                      name="manufacturer"
+                      value={formData.manufacturer}
+                      onChange={handleChange}
+                      className={`w-full h-11 px-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white"
+                          : "bg-white border-slate-300 text-slate-900"
+                      }`}
+                      placeholder="e.g. Beximco Pharma"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1.5 ${
+                        isDarkMode ? "text-gray-300" : "text-slate-700"
+                      }`}
+                    >
+                      SKU / Code
+                    </label>
+                    <input
+                      type="text"
+                      name="sku"
+                      value={formData.sku}
+                      onChange={handleChange}
+                      className={`w-full h-11 px-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white"
+                          : "bg-white border-slate-300 text-slate-900"
+                      }`}
+                      placeholder="Auto-generated if empty"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label
+                      className={`block text-sm font-medium mb-1.5 ${
+                        isDarkMode ? "text-gray-300" : "text-slate-700"
+                      }`}
+                    >
+                      Description
+                    </label>
+                    <div className="relative">
+                      <MdDescription
+                        className={`absolute left-3.5 top-3.5 text-lg ${
+                          isDarkMode ? "text-gray-500" : "text-slate-400"
+                        }`}
+                      />
+                      <textarea
+                        name="description"
+                        rows={3}
+                        value={formData.description}
+                        onChange={handleChange}
+                        className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all resize-none ${
+                          isDarkMode
+                            ? "bg-gray-800 border-gray-700 text-white"
+                            : "bg-white border-slate-300 text-slate-900"
+                        }`}
+                        placeholder="Add detailed product description..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* 2. Pricing Engine Card */}
+              <section
+                className={`rounded-2xl shadow-sm border p-6 overflow-hidden relative ${
+                  isDarkMode
+                    ? "bg-gray-900 border-gray-800"
+                    : "bg-white border-slate-200"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-100 dark:border-gray-800">
+                  <h2
+                    className={`text-lg font-bold flex items-center gap-2 ${
+                      isDarkMode ? "text-gray-100" : "text-slate-800"
+                    }`}
+                  >
+                    <MdAttachMoney className="text-emerald-500 text-xl" /> Units
+                    & Pricing Logic
+                  </h2>
+                  <span
+                    className={`text-xs px-2 py-1 rounded font-medium ${
+                      isDarkMode
+                        ? "bg-emerald-900/30 text-emerald-400"
+                        : "bg-emerald-50 text-emerald-600"
+                    }`}
+                  >
+                    Auto-Calculation Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                  {/* Unit Logic */}
+                  <div
+                    className={`md:col-span-5 p-5 rounded-xl border ${
+                      isDarkMode
+                        ? "bg-gray-800 border-gray-700"
+                        : "bg-slate-50 border-slate-200"
+                    }`}
+                  >
+                    <h3
+                      className={`text-xs font-bold uppercase tracking-wider mb-4 ${
+                        isDarkMode ? "text-gray-400" : "text-slate-500"
+                      }`}
+                    >
+                      Unit Configuration
+                    </h3>
+
+                    <div className="flex flex-col gap-4">
+                      <div className="grid grid-cols-1 gap-1">
+                        <label
+                          className={`text-xs font-medium ${
+                            isDarkMode ? "text-gray-400" : "text-slate-500"
+                          }`}
+                        >
+                          Purchase Unit (Buy In)
+                        </label>
+                        <select
+                          name="purchaseUnit"
+                          value={formData.purchaseUnit}
+                          onChange={handleChange}
+                          className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                            isDarkMode
+                              ? "bg-gray-900 border-gray-600 text-white"
+                              : "bg-white border-slate-300 text-slate-900"
+                          }`}
+                        >
+                          <option>Box</option>
+                          <option>Carton</option>
+                          <option>Jar</option>
+                          <option>Pack</option>
+                        </select>
+                      </div>
+
+                      <div className="relative flex items-center py-2">
+                        <div
+                          className={`flex-grow h-px ${
+                            isDarkMode ? "bg-gray-700" : "bg-slate-300"
+                          }`}
+                        ></div>
+                        <span
+                          className={`flex-shrink-0 px-3 text-[10px] font-bold uppercase rounded-full border ${
+                            isDarkMode
+                              ? "bg-gray-900 text-gray-500 border-gray-700"
+                              : "bg-white text-slate-400 border-slate-300"
+                          }`}
+                        >
+                          1 {formData.purchaseUnit} Contains
+                        </span>
+                        <div
+                          className={`flex-grow h-px ${
+                            isDarkMode ? "bg-gray-700" : "bg-slate-300"
+                          }`}
+                        ></div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label
+                            className={`text-xs font-medium block mb-1 ${
+                              isDarkMode ? "text-gray-400" : "text-slate-500"
+                            }`}
+                          >
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            name="conversionFactor"
+                            value={formData.conversionFactor}
+                            onChange={handleChange}
+                            className={`w-full h-10 px-3 border rounded-lg text-center font-bold focus:ring-2 focus:ring-indigo-500 ${
+                              isDarkMode
+                                ? "bg-gray-900 border-gray-600 text-indigo-400"
+                                : "bg-white border-slate-300 text-indigo-600"
+                            }`}
+                          />
+                        </div>
+                        <div>
+                          <label
+                            className={`text-xs font-medium block mb-1 ${
+                              isDarkMode ? "text-gray-400" : "text-slate-500"
+                            }`}
+                          >
+                            Selling Unit
+                          </label>
+                          <select
+                            name="sellingUnit"
+                            value={formData.sellingUnit}
+                            onChange={handleChange}
+                            className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                              isDarkMode
+                                ? "bg-gray-900 border-gray-600 text-white"
+                                : "bg-white border-slate-300 text-slate-900"
+                            }`}
+                          >
+                            <option>Strip</option>
+                            <option>Piece</option>
+                            <option>Bottle</option>
+                            <option>Ampoule</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Price Calculations */}
+                  <div className="md:col-span-7 space-y-5">
+                    <div className="grid grid-cols-2 gap-5">
+                      <div>
+                        <label
+                          className={`block text-xs font-bold uppercase mb-1.5 ${
+                            isDarkMode ? "text-gray-400" : "text-slate-500"
+                          }`}
+                        >
+                          Purchase Price (Box)
+                        </label>
+                        <div className="relative">
+                          <span
+                            className={`absolute left-3 top-2.5 ${
+                              isDarkMode ? "text-gray-500" : "text-slate-400"
+                            }`}
+                          >
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            name="purchasePriceBox"
+                            value={formData.purchasePriceBox}
+                            onChange={handleChange}
+                            className={`w-full h-11 pl-7 pr-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 ${
+                              isDarkMode
+                                ? "bg-gray-800 border-gray-700 text-white"
+                                : "bg-white border-slate-300 text-slate-900"
+                            }`}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs font-bold uppercase mb-1.5 ${
+                            isDarkMode ? "text-gray-400" : "text-slate-500"
+                          }`}
+                        >
+                          Cost Per {formData.sellingUnit}
+                        </label>
+                        <div className="relative">
+                          <span
+                            className={`absolute left-3 top-2.5 ${
+                              isDarkMode ? "text-gray-500" : "text-slate-400"
+                            }`}
+                          >
+                            $
+                          </span>
+                          <input
+                            type="text"
+                            value={formData.costPerUnit}
+                            readOnly
+                            disabled
+                            className={`w-full h-11 pl-7 pr-3 rounded-lg border cursor-not-allowed ${
+                              isDarkMode
+                                ? "bg-gray-800/50 border-gray-700 text-gray-400"
+                                : "bg-slate-100 border-slate-200 text-slate-500"
+                            }`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`p-5 rounded-xl border grid grid-cols-2 md:grid-cols-3 gap-5 ${
+                        isDarkMode
+                          ? "bg-emerald-900/10 border-emerald-900/30"
+                          : "bg-emerald-50/50 border-emerald-100"
+                      }`}
+                    >
+                      <div className="col-span-2 md:col-span-1">
+                        <label
+                          className={`block text-xs font-bold uppercase mb-1.5 ${
+                            isDarkMode ? "text-emerald-400" : "text-emerald-700"
+                          }`}
+                        >
+                          Sale Price <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <span
+                            className={`absolute left-3 top-2.5 z-10 ${
+                              isDarkMode
+                                ? "text-emerald-500/70"
+                                : "text-emerald-600/70"
+                            }`}
+                          >
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            name="salesPrice"
+                            value={formData.salesPrice}
+                            onChange={handleChange}
+                            required
+                            className={`w-full h-10 pl-7 pr-3 rounded-lg border font-bold focus:ring-2 focus:ring-emerald-500 ${
+                              isDarkMode
+                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800"
+                                : "bg-white border-emerald-300 text-emerald-800"
+                            }`}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label
+                          className={`block text-xs font-bold uppercase mb-1.5 ${
+                            isDarkMode ? "text-gray-400" : "text-emerald-700"
+                          }`}
+                        >
+                          MRP
+                        </label>
+                        <div className="relative">
+                          <span
+                            className={`absolute left-3 top-2.5 ${
+                              isDarkMode
+                                ? "text-gray-500"
+                                : "text-emerald-600/50"
+                            }`}
+                          >
+                            $
+                          </span>
+                          <input
+                            type="number"
+                            name="mrp"
+                            value={formData.mrp}
+                            onChange={handleChange}
+                            className={`w-full h-10 pl-7 pr-3 rounded-lg border focus:ring-2 focus:ring-emerald-500 ${
+                              isDarkMode
+                                ? "bg-gray-800 border-gray-700 text-white"
+                                : "bg-white border-emerald-200 text-slate-900"
+                            }`}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="hidden md:block">
+                        <label
+                          className={`block text-xs font-bold uppercase mb-1.5 ${
+                            isDarkMode ? "text-gray-400" : "text-slate-500"
+                          }`}
+                        >
+                          Tax %
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            name="taxRate"
+                            value={formData.taxRate}
+                            onChange={handleChange}
+                            className={`w-full h-10 pl-3 pr-8 rounded-lg border focus:ring-2 focus:ring-indigo-500 ${
+                              isDarkMode
+                                ? "bg-gray-800 border-gray-700 text-white"
+                                : "bg-white border-slate-300 text-slate-900"
+                            }`}
+                            placeholder="0"
+                          />
+                          <MdPercent
+                            className={`absolute right-3 top-3 ${
+                              isDarkMode ? "text-gray-500" : "text-slate-400"
+                            }`}
+                            size={14}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* 3. Clinical & Batch Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Clinical */}
+                <section
+                  className={`rounded-2xl shadow-sm border p-6 h-full ${
+                    isDarkMode
+                      ? "bg-gray-900 border-gray-800"
+                      : "bg-white border-slate-200"
+                  }`}
+                >
+                  <h2
+                    className={`text-lg font-bold mb-5 flex items-center gap-2 ${
+                      isDarkMode ? "text-gray-100" : "text-slate-800"
+                    }`}
+                  >
+                    <MdLocalPharmacy className="text-pink-500" /> Clinical
+                    Details
+                  </h2>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-sm font-medium mb-1 ${
+                            isDarkMode ? "text-gray-300" : "text-slate-600"
+                          }`}
+                        >
+                          Formulation
+                        </label>
+                        <select
+                          name="drugForm"
+                          value={formData.drugForm}
+                          onChange={handleChange}
+                          className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-pink-500 ${
+                            isDarkMode
+                              ? "bg-gray-800 border-gray-700 text-white"
+                              : "bg-white border-slate-300 text-slate-900"
+                          }`}
+                        >
+                          <option>Tablet</option>
+                          <option>Capsule</option>
+                          <option>Syrup</option>
+                          <option>Injection</option>
+                          <option>Cream</option>
+                          <option>Drops</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-sm font-medium mb-1 ${
+                            isDarkMode ? "text-gray-300" : "text-slate-600"
+                          }`}
+                        >
+                          Strength
+                        </label>
+                        <input
+                          type="text"
+                          name="strength"
+                          value={formData.strength}
+                          onChange={handleChange}
+                          className={`w-full h-10 px-3 border rounded-lg focus:ring-2 focus:ring-pink-500 ${
+                            isDarkMode
+                              ? "bg-gray-800 border-gray-700 text-white"
+                              : "bg-white border-slate-300 text-slate-900"
+                          }`}
+                          placeholder="500mg"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        className={`block text-sm font-medium mb-1 ${
+                          isDarkMode ? "text-gray-300" : "text-slate-600"
+                        }`}
+                      >
+                        Dosage / Usage
+                      </label>
+                      <input
+                        type="text"
+                        name="dosage"
+                        value={formData.dosage}
+                        onChange={handleChange}
+                        className={`w-full h-10 px-3 border rounded-lg focus:ring-2 focus:ring-pink-500 ${
+                          isDarkMode
+                            ? "bg-gray-800 border-gray-700 text-white"
+                            : "bg-white border-slate-300 text-slate-900"
+                        }`}
+                        placeholder="e.g. 1+0+1 After meal"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className={`block text-sm font-medium mb-1 ${
+                          isDarkMode ? "text-gray-300" : "text-slate-600"
+                        }`}
+                      >
+                        Side Effects
+                      </label>
+                      <textarea
+                        name="sideEffects"
+                        value={formData.sideEffects}
+                        onChange={handleChange}
+                        rows={2}
+                        className={`w-full p-3 border rounded-lg text-sm resize-none focus:ring-2 focus:ring-pink-500 ${
+                          isDarkMode
+                            ? "bg-gray-800 border-gray-700 text-white"
+                            : "bg-white border-slate-300 text-slate-900"
+                        }`}
+                        placeholder="Any known side effects..."
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Batch & Inventory */}
+                <section
+                  className={`rounded-2xl shadow-sm border p-6 h-full ${
+                    isDarkMode
+                      ? "bg-gray-900 border-gray-800"
+                      : "bg-white border-slate-200"
+                  }`}
+                >
+                  <h2
+                    className={`text-lg font-bold mb-5 flex items-center gap-2 ${
+                      isDarkMode ? "text-gray-100" : "text-slate-800"
+                    }`}
+                  >
+                    <MdDateRange className="text-orange-500" /> Batch &
+                    Inventory
+                  </h2>
+                  <div className="space-y-4">
+                    <div
+                      className={`p-4 rounded-xl border ${
+                        isDarkMode
+                          ? "bg-orange-900/10 border-orange-900/30"
+                          : "bg-orange-50 border-orange-100"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <label
+                          className={`text-sm font-bold ${
+                            isDarkMode ? "text-orange-400" : "text-orange-800"
+                          }`}
+                        >
+                          Opening Stock (Boxes)
+                        </label>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded border uppercase ${
+                            isDarkMode
+                              ? "bg-gray-800 border-gray-700 text-gray-400"
+                              : "bg-white border-slate-200 text-slate-500"
+                          }`}
+                        >
+                          Auto-calc
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        name="openingStockBoxes"
+                        value={formData.openingStockBoxes}
+                        onChange={handleChange}
+                        className={`w-full h-10 px-3 border rounded-lg focus:ring-2 focus:ring-orange-500 ${
+                          isDarkMode
+                            ? "bg-gray-800 border-orange-900/50 text-white"
+                            : "bg-white border-orange-200 text-slate-900"
+                        }`}
+                        placeholder="0"
+                      />
+                      <div
+                        className={`mt-2 text-xs flex justify-between ${
+                          isDarkMode ? "text-orange-400/80" : "text-orange-700"
+                        }`}
+                      >
+                        <span>Total Strips in DB:</span>
+                        <span className="font-bold text-base">
+                          {formData.stock}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          className={`block text-xs font-bold uppercase mb-1 ${
+                            isDarkMode ? "text-gray-400" : "text-slate-500"
+                          }`}
+                        >
+                          Batch #
+                        </label>
+                        <input
+                          type="text"
+                          name="batchNumber"
+                          value={formData.batchNumber}
+                          onChange={handleChange}
+                          className={`w-full h-9 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500 ${
+                            isDarkMode
+                              ? "bg-gray-800 border-gray-700 text-white"
+                              : "bg-white border-slate-300 text-slate-900"
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          className={`block text-xs font-bold uppercase mb-1 ${
+                            isDarkMode ? "text-gray-400" : "text-slate-500"
+                          }`}
+                        >
+                          Expiry Date
+                        </label>
+                        <input
+                          type="date"
+                          name="expiryDate"
+                          value={formData.expiryDate}
+                          onChange={handleChange}
+                          className={`w-full h-9 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500 ${
+                            isDarkMode
+                              ? "bg-gray-800 border-gray-700 text-white"
+                              : "bg-white border-slate-300 text-slate-900"
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
-          )}
 
-          {/* New Images */}
-          <div className="space-y-4">
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-              <MdImage className="w-8 h-8 mb-2 text-gray-400" />
-              <p className="text-xs text-gray-500">Add more images</p>
-              <input
-                type="file"
-                className="hidden"
-                accept="image/*"
-                multiple
-                onChange={handleImageChange}
-              />
-            </label>
-
-            {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative">
-                    <img
-                      src={preview}
-                      alt={`New ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeNewImage(index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                    >
-                      <MdClose size={16} />
-                    </button>
-                  </div>
-                ))}
+            {/* ================= RIGHT COLUMN (SIDEBAR) ================= */}
+            <div className="lg:col-span-4 space-y-6">
+              {/* 1. Images */}
+              <div
+                className={`rounded-2xl shadow-sm border p-5 ${
+                  isDarkMode
+                    ? "bg-gray-900 border-gray-800"
+                    : "bg-white border-slate-200"
+                }`}
+              >
+                <h3
+                  className={`font-bold mb-4 text-sm uppercase tracking-wide ${
+                    isDarkMode ? "text-gray-300" : "text-slate-800"
+                  }`}
+                >
+                  Product Image
+                </h3>
+                <div
+                  className={`w-full aspect-square border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition relative overflow-hidden group ${
+                    isDarkMode
+                      ? "bg-gray-800/50 border-gray-700 hover:bg-gray-800 hover:border-gray-500"
+                      : "bg-slate-50 border-slate-300 hover:bg-slate-100 hover:border-slate-400"
+                  }`}
+                >
+                  {mainImagePreview ? (
+                    <>
+                      <img
+                        src={mainImagePreview}
+                        className="w-full h-full object-contain p-2"
+                        alt="Preview"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMainImageFile(null);
+                          setMainImagePreview("");
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MdClose size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                      <div
+                        className={`p-4 rounded-full mb-3 ${
+                          isDarkMode ? "bg-gray-700" : "bg-white shadow-sm"
+                        }`}
+                      >
+                        <MdCloudUpload
+                          className={`text-3xl ${
+                            isDarkMode ? "text-indigo-400" : "text-indigo-500"
+                          }`}
+                        />
+                      </div>
+                      <span
+                        className={`text-sm font-medium ${
+                          isDarkMode ? "text-gray-300" : "text-slate-600"
+                        }`}
+                      >
+                        Click to upload image
+                      </span>
+                      <span
+                        className={`text-xs mt-1 ${
+                          isDarkMode ? "text-gray-500" : "text-slate-400"
+                        }`}
+                      >
+                        SVG, PNG, JPG or GIF
+                      </span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleMainImage}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Form Actions */}
-        <div className="flex items-center justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => router.push("/products")}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 flex items-center gap-2 disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Updating...</span>
-              </>
-            ) : (
-              <>
-                <MdSave size={20} />
-                <span>Update Product</span>
-              </>
-            )}
-          </button>
+              {/* 2. Category & Location */}
+              <div
+                className={`rounded-2xl shadow-sm border p-5 ${
+                  isDarkMode
+                    ? "bg-gray-900 border-gray-800"
+                    : "bg-white border-slate-200"
+                }`}
+              >
+                <h3
+                  className={`font-bold mb-4 text-sm uppercase tracking-wide ${
+                    isDarkMode ? "text-gray-300" : "text-slate-800"
+                  }`}
+                >
+                  Organization
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1.5 flex items-center gap-1 ${
+                        isDarkMode ? "text-gray-400" : "text-slate-600"
+                      }`}
+                    >
+                      <MdCategory
+                        className={
+                          isDarkMode ? "text-gray-500" : "text-slate-400"
+                        }
+                      />{" "}
+                      Category
+                    </label>
+                    <select
+                      value={formData.subCategoryId || formData.categoryId}
+                      onChange={handleCategoryChange}
+                      className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white"
+                          : "bg-white border-slate-300 text-slate-900"
+                      }`}
+                    >
+                      <option value="">Select Category</option>
+                      {mainCategories.map((cat) => (
+                        <optgroup key={cat._id} label={cat.name}>
+                          <option value={cat._id}>{cat.name}</option>
+                          {subCategories
+                            .filter((s) => s.parentCategory?._id === cat._id)
+                            .map((s) => (
+                              <option key={s._id} value={s._id}>
+                                -- {s.name}
+                              </option>
+                            ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1.5 flex items-center gap-1 ${
+                        isDarkMode ? "text-gray-400" : "text-slate-600"
+                      }`}
+                    >
+                      <MdQrCode
+                        className={
+                          isDarkMode ? "text-gray-500" : "text-slate-400"
+                        }
+                      />{" "}
+                      Barcode
+                    </label>
+                    <input
+                      type="text"
+                      name="barcode"
+                      value={formData.barcode}
+                      onChange={handleChange}
+                      className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white"
+                          : "bg-white border-slate-300 text-slate-900"
+                      }`}
+                      placeholder="Scan Code"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1.5 flex items-center gap-1 ${
+                        isDarkMode ? "text-gray-400" : "text-slate-600"
+                      }`}
+                    >
+                      <MdInventory
+                        className={
+                          isDarkMode ? "text-gray-500" : "text-slate-400"
+                        }
+                      />{" "}
+                      Shelf / Rack
+                    </label>
+                    <input
+                      type="text"
+                      name="rackLocation"
+                      value={formData.rackLocation}
+                      onChange={handleChange}
+                      className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 transition ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white focus:bg-gray-800"
+                          : "bg-yellow-50/50 border-slate-300 text-slate-900 focus:bg-white"
+                      }`}
+                      placeholder="e.g. Rack A-12"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Safety Flags */}
+              <div
+                className={`rounded-2xl shadow-sm border p-5 ${
+                  isDarkMode
+                    ? "bg-gray-900 border-gray-800"
+                    : "bg-white border-slate-200"
+                }`}
+              >
+                <h3
+                  className={`font-bold mb-4 text-sm uppercase tracking-wide flex items-center gap-2 ${
+                    isDarkMode ? "text-gray-300" : "text-slate-800"
+                  }`}
+                >
+                  <MdWarning className="text-amber-500" /> Compliance
+                </h3>
+                <div className="space-y-1">
+                  <ToggleSwitch
+                    label="Rx Required"
+                    name="isPrescription"
+                    checked={formData.isPrescription}
+                    onChange={handleChange}
+                    colorClass="bg-indigo-600"
+                    isDarkMode={isDarkMode}
+                  />
+                  <ToggleSwitch
+                    label="Narcotic / Controlled"
+                    name="isControlled"
+                    checked={formData.isControlled}
+                    onChange={handleChange}
+                    colorClass="bg-red-600"
+                    isDarkMode={isDarkMode}
+                  />
+                  <ToggleSwitch
+                    label="Fridge Item ❄️"
+                    name="requiresRefrigeration"
+                    checked={formData.requiresRefrigeration}
+                    onChange={handleChange}
+                    colorClass="bg-blue-500"
+                    isDarkMode={isDarkMode}
+                  />
+                  <ToggleSwitch
+                    label="Full Course Alert"
+                    name="isAntibiotic"
+                    checked={formData.isAntibiotic}
+                    onChange={handleChange}
+                    colorClass="bg-orange-500"
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+              </div>
+
+              {/* 4. Supplier */}
+              <div
+                className={`rounded-2xl shadow-sm border p-5 ${
+                  isDarkMode
+                    ? "bg-gray-900 border-gray-800"
+                    : "bg-white border-slate-200"
+                }`}
+              >
+                <h3
+                  className={`font-bold mb-4 text-sm uppercase tracking-wide ${
+                    isDarkMode ? "text-gray-300" : "text-slate-800"
+                  }`}
+                >
+                  Supplier
+                </h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    name="supplierName"
+                    value={formData.supplierName}
+                    onChange={handleChange}
+                    className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                      isDarkMode
+                        ? "bg-gray-800 border-gray-700 text-white"
+                        : "bg-white border-slate-300 text-slate-900"
+                    }`}
+                    placeholder="Supplier Name"
+                  />
+                  <input
+                    type="text"
+                    name="supplierPhone"
+                    value={formData.supplierPhone}
+                    onChange={handleChange}
+                    className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
+                      isDarkMode
+                        ? "bg-gray-800 border-gray-700 text-white"
+                        : "bg-white border-slate-300 text-slate-900"
+                    }`}
+                    placeholder="Contact Phone"
+                  />
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
+  );
+}
+
+// Helper Component for Toggles
+function ToggleSwitch({
+  label,
+  name,
+  checked,
+  onChange,
+  colorClass,
+  isDarkMode,
+}: any) {
+  return (
+    <label
+      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition border border-transparent ${
+        isDarkMode ? "hover:bg-gray-800" : "hover:bg-slate-50"
+      }`}
+    >
+      <span
+        className={`text-sm font-medium ${
+          isDarkMode ? "text-gray-300" : "text-slate-700"
+        }`}
+      >
+        {label}
+      </span>
+      <div className="relative inline-flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          name={name}
+          checked={checked}
+          onChange={onChange}
+          className="sr-only peer"
+        />
+        <div
+          className={`w-11 h-6 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+            isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-200"
+          } ${checked ? colorClass : ""}`}
+        ></div>
+      </div>
+    </label>
   );
 }

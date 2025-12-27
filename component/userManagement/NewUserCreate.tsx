@@ -1,6 +1,6 @@
 "use client";
 
-import api from "@/lib/api";
+import { createUser } from "@/app/actions/users";
 import { useStore } from "@/lib/store";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -141,18 +141,17 @@ export default function NewUserCreate() {
         submitData.append("profileImage", profileImage);
       }
 
-      await api.post("/users", submitData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      toast.success("User created successfully!");
-      router.push("/users");
-    } catch (error: unknown) {
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to create user";
-      toast.error(errorMessage);
+      const result = await createUser(submitData);
+
+      if (result.success) {
+        toast.success(result.message || "User created successfully!");
+        router.push("/users");
+      } else {
+        toast.error(result.error || "Failed to create user");
+      }
+    } catch (error) {
+      console.error("Error creating user:", error);
+      toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,8 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
-import { useEffect, useState } from "react";
+import { getAllStores } from "@/app/actions/stores";
+import { getSalesReport } from "@/app/actions/reports";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -50,60 +51,66 @@ const SalesReport = () => {
   const [dateTo, setDateTo] = useState("");
   const [groupBy, setGroupBy] = useState("day");
 
+  const setDefaultDates = () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
+    setDateFrom(thirtyDaysAgo.toISOString().split("T")[0]);
+    setDateTo(today.toISOString().split("T")[0]);
+  };
+
+  const fetchStores = useCallback(async () => {
+    try {
+      const result = await getAllStores({ limit: 1000 });
+
+      if (result.success && result.data) {
+        setStores(result.data.stores || []);
+      }
+    } catch (error) {
+      console.error("Error fetching stores:", error);
+    }
+  }, []);
+
+  const fetchReport = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getSalesReport({
+        from: dateFrom,
+        to: dateTo,
+        groupBy,
+        storeId: selectedStore || undefined,
+      });
+
+      if (result.success && result.data) {
+        setReportData(result.data);
+      } else {
+        toast.error(result.error || "Failed to fetch report");
+      }
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  }, [dateFrom, dateTo, groupBy, selectedStore]);
+
   useEffect(() => {
     fetchStores();
     setDefaultDates();
-  }, []);
+  }, [fetchStores]);
 
   useEffect(() => {
     if (dateFrom && dateTo) {
       fetchReport();
     }
-  }, [selectedStore, dateFrom, dateTo, groupBy]);
+  }, [dateFrom, dateTo, fetchReport]);
 
-  const setDefaultDates = () => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    setDateFrom(thirtyDaysAgo.toISOString().split("T")[0]);
-    setDateTo(today.toISOString().split("T")[0]);
-  };
-
-  const fetchStores = async () => {
-    try {
-      const response = await api.get("/stores");
-      setStores(response.data || []);
-    } catch (error) {
-      console.error("Error fetching stores:", error);
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+      return "$0.00";
     }
-  };
-
-  const fetchReport = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        from: dateFrom,
-        to: dateTo,
-        groupBy,
-      });
-      
-      if (selectedStore) {
-        params.append("storeId", selectedStore);
-      }
-
-      const response = await api.get(`/reports/sales?${params.toString()}`);
-      setReportData(response.data);
-    } catch (error: any) {
-      console.error("Error fetching report:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch report");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2)}`;
+    return `$${Number(amount).toFixed(2)}`;
   };
 
   const exportReport = () => {

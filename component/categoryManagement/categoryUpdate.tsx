@@ -1,6 +1,5 @@
 "use client";
 
-import api from "@/lib/api";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
@@ -8,6 +7,7 @@ import { getTranslation } from "@/lib/translations";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { getAllCategories, getCategoryById, updateCategory } from "@/app/actions/categories";
 import { MdClose, MdImage, MdSave } from "react-icons/md";
 import { CategoryFormSkeleton } from "./components/CategoryFormSkeleton";
 
@@ -62,10 +62,10 @@ export default function CategoryUpdate() {
 
   const loadParentCategories = async () => {
     try {
-      const response = await api.get("/categories?limit=100");
-      if (response.data.categories) {
+      const result = await getAllCategories({ limit: 100 });
+      if (result.success && result.data?.categories) {
         setParentCategories(
-          response.data.categories.filter(
+          result.data.categories.filter(
             (cat: ParentCategory & { parentCategory?: string }) =>
               !cat.parentCategory && cat._id !== categoryId
           )
@@ -79,8 +79,15 @@ export default function CategoryUpdate() {
   const loadCategory = async () => {
     try {
       setFetching(true);
-      const response = await api.get(`/categories/${categoryId}`);
-      const category = response.data;
+      const result = await getCategoryById(categoryId);
+
+      if (!result.success || !result.data) {
+        toast.error(result.error || "Failed to load category");
+        router.push("/products/categories");
+        return;
+      }
+
+      const category = result.data;
 
       setFormData({
         name: category.name || "",
@@ -96,10 +103,7 @@ export default function CategoryUpdate() {
       setExistingImage(category.image);
     } catch (error: unknown) {
       console.error("Failed to load category:", error);
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to load category";
-      toast.error(errorMessage);
+      toast.error(error instanceof Error ? error.message : "Failed to load category");
       router.push("/products/categories");
     } finally {
       setFetching(false);
@@ -162,11 +166,13 @@ export default function CategoryUpdate() {
         }
       });
 
-      await api.put(`/categories/${categoryId}`, submitData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const result = await updateCategory(categoryId, submitData);
+
+      if (!result.success) {
+        toast.error(result.error || "Failed to update category");
+        setLoading(false);
+        return;
+      }
 
       toast.success("Category updated successfully!");
       router.push("/products/categories");

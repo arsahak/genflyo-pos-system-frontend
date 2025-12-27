@@ -1,8 +1,8 @@
 "use client";
-import api from "@/lib/api";
+import { getAllCustomers, deleteCustomer, updateCustomer } from "@/app/actions/customers";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
   MdAdd,
@@ -51,27 +51,37 @@ const CustomersDetials = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch customers
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await api.get("/customers");
-      setCustomers(response.data);
-      setFilteredCustomers(response.data);
-      toast.success(`${response.data.length} customers loaded`);
+      const result = await getAllCustomers({
+        limit: 1000,
+        search: searchQuery || undefined,
+      });
+
+      if (result.success && result.data) {
+        const customersList = result.data.customers || [];
+        setCustomers(customersList);
+        setFilteredCustomers(customersList);
+        toast.success(`${customersList.length} customers loaded`);
+      } else {
+        toast.error(result.error || "Failed to load customers");
+        setCustomers([]);
+        setFilteredCustomers([]);
+      }
     } catch (error) {
       console.error("Error fetching customers:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to load customers");
+      toast.error("An unexpected error occurred");
       setCustomers([]);
       setFilteredCustomers([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [fetchCustomers]);
 
   // Search functionality
   useEffect(() => {
@@ -92,21 +102,35 @@ const CustomersDetials = () => {
   const handleToggleBlock = async (customer: Customer) => {
     try {
       if (customer.isActive) {
-        // Block customer
-        await api.delete(`/customers/${customer._id}`);
-        toast.success(`${customer.name} has been blocked`);
+        // Block customer (set isActive to false)
+        const formData = new FormData();
+        formData.append("customerData", JSON.stringify({ isActive: false }));
+
+        const result = await updateCustomer(customer._id, formData);
+
+        if (result.success) {
+          toast.success(`${customer.name} has been blocked`);
+          fetchCustomers();
+        } else {
+          toast.error(result.error || "Failed to block customer");
+        }
       } else {
-        // Unblock customer
-        await api.put(`/customers/${customer._id}`, { isActive: true });
-        toast.success(`${customer.name} has been unblocked`);
+        // Unblock customer (set isActive to true)
+        const formData = new FormData();
+        formData.append("customerData", JSON.stringify({ isActive: true }));
+
+        const result = await updateCustomer(customer._id, formData);
+
+        if (result.success) {
+          toast.success(`${customer.name} has been unblocked`);
+          fetchCustomers();
+        } else {
+          toast.error(result.error || "Failed to unblock customer");
+        }
       }
-      fetchCustomers();
     } catch (error) {
       console.error("Error toggling customer status:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(
-        err.response?.data?.message || "Failed to update customer status"
-      );
+      toast.error("An unexpected error occurred");
     }
   };
 
@@ -121,13 +145,17 @@ const CustomersDetials = () => {
     }
 
     try {
-      await api.delete(`/customers/${customer._id}`);
-      toast.success(`${customer.name} has been deleted`);
-      fetchCustomers();
+      const result = await deleteCustomer(customer._id);
+
+      if (result.success) {
+        toast.success(result.message || `${customer.name} has been deleted`);
+        fetchCustomers();
+      } else {
+        toast.error(result.error || "Failed to delete customer");
+      }
     } catch (error) {
       console.error("Error deleting customer:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to delete customer");
+      toast.error("An unexpected error occurred");
     }
   };
 
@@ -479,7 +507,7 @@ const CustomersDetials = () => {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() =>
-                            router.push(`/customers/${customer._id}`)
+                            router.push(`/customers/view-customer/${customer._id}`)
                           }
                           className={`p-2 rounded-lg ${
                             isDarkMode

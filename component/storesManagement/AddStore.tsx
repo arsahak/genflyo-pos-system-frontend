@@ -1,6 +1,6 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
+import { createStore } from "@/app/actions/stores";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -38,7 +38,7 @@ const AddStore = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.type) {
       toast.error("Please fill all required fields");
       return;
@@ -46,34 +46,37 @@ const AddStore = () => {
 
     setLoading(true);
     try {
-      const storeData = {
-        name: formData.name,
-        code: formData.code,
-        type: formData.type,
-        address: {
-          street: formData.street,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
-          country: formData.country,
-        },
-        phone: formData.phone,
-        email: formData.email,
-        timezone: formData.timezone,
-        settings: {
-          currency: formData.currency,
-          locale: formData.locale,
-          receiptHeader: formData.receiptHeader,
-          receiptFooter: formData.receiptFooter,
-        },
-      };
+      const submitData = new FormData();
+      submitData.append("name", formData.name);
+      submitData.append("code", formData.code);
+      submitData.append("type", formData.type);
+      submitData.append("address", JSON.stringify({
+        street: formData.street,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        country: formData.country,
+      }));
+      submitData.append("phone", formData.phone);
+      submitData.append("email", formData.email);
+      submitData.append("timezone", formData.timezone);
+      submitData.append("settings", JSON.stringify({
+        currency: formData.currency,
+        locale: formData.locale,
+        receiptHeader: formData.receiptHeader,
+        receiptFooter: formData.receiptFooter,
+      }));
 
-      await api.post("/stores", storeData);
-      toast.success("Store created successfully!");
-      router.push("/stores");
+      const result = await createStore(submitData);
+      if (result.success) {
+        toast.success(result.message || "Store created successfully!");
+        router.push("/stores");
+      } else {
+        toast.error(result.error || "Failed to create store");
+      }
     } catch (error: any) {
       console.error("Error creating store:", error);
-      toast.error(error.response?.data?.message || "Failed to create store");
+      toast.error("Failed to create store");
     } finally {
       setLoading(false);
     }

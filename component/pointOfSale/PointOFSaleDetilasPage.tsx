@@ -1,5 +1,8 @@
 "use client";
-import api from "@/lib/api";
+import { createSale } from "@/app/actions/sales";
+import { getAllProducts } from "@/app/actions/product";
+import { getAllStores } from "@/app/actions/stores";
+import { getAllCustomers, createCustomer } from "@/app/actions/customers";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -137,14 +140,17 @@ const PointOFSaleDetilasPage = () => {
   useEffect(() => {
     const fetchStore = async () => {
       try {
-        const response = await api.get("/stores");
-        if (response.data?.length > 0) {
-          const store = response.data[0];
+        const result = await getAllStores({ limit: 1 });
+        if (result.success && result.data?.stores?.length > 0) {
+          const store = result.data.stores[0];
           setStoreId(store._id);
           setStoreName(store.name || "Pharmacy");
           toast.success(`Connected to ${store.name}`);
+        } else {
+          toast.error("Store not configured!");
         }
-      } catch {
+      } catch (error) {
+        console.error("Store fetch error:", error);
         toast.error("Failed to load store info");
       }
     };
@@ -156,9 +162,13 @@ const PointOFSaleDetilasPage = () => {
     const fetchProducts = async () => {
       try {
         setIsLoadingProducts(true);
-        const response = await api.get("/products?limit=500");
+        const result = await getAllProducts({ limit: 500 });
 
-        const transformedProducts = response.data.products.map(
+        if (!result.success || !result.data?.products) {
+          throw new Error("Failed to fetch products");
+        }
+
+        const transformedProducts = result.data.products.map(
           (p: Record<string, any>) => ({
             id: p._id,
             name: p.name,
@@ -296,9 +306,9 @@ const PointOFSaleDetilasPage = () => {
     setIsSearchingCustomer(true);
     try {
       // Search by phone number specifically
-      const response = await api.get(`/customers?phone=${phone}`);
-      if (response.data?.length > 0) {
-        const customers = response.data.slice(0, 10);
+      const result = await getAllCustomers({ search: phone, limit: 10 });
+      if (result.success && result.data?.customers?.length > 0) {
+        const customers = result.data!.customers;
         setCustomerSuggestions(customers);
         setShowSuggestions(true);
         return customers;
@@ -519,10 +529,10 @@ const PointOFSaleDetilasPage = () => {
       if (!customerId && customerPhone.trim()) {
         try {
           // Check if customer already exists by phone
-          const checkResponse = await api.get(`/customers?phone=${customerPhone.trim()}`);
-          if (checkResponse.data && checkResponse.data.length > 0) {
+          const checkResult = await getAllCustomers({ search: customerPhone.trim(), limit: 1 });
+          if (checkResult.success && checkResult.data?.customers?.length > 0) {
             // Customer exists, use it
-            const existingCustomer = checkResponse.data[0];
+            const existingCustomer = checkResult.data!.customers[0];
             customerId = existingCustomer._id;
             customerData = {
               id: existingCustomer._id,
@@ -536,24 +546,27 @@ const PointOFSaleDetilasPage = () => {
             };
           } else {
             // Create new customer with phone (name and email optional)
-            const response = await api.post("/customers", {
-              name: customerName.trim() || "Walk-in Customer",
-              phone: customerPhone.trim(),
-              email: customerEmail.trim() || undefined,
-              membershipType: "regular",
-            });
-            customerId = response.data._id;
-            customerData = {
-              id: response.data._id,
-              _id: response.data._id,
-              name: response.data.name || customerName.trim() || "Walk-in Customer",
-              phone: response.data.phone || customerPhone.trim(),
-              email: response.data.email || customerEmail.trim() || undefined,
-              membershipType: response.data.membershipType || "regular",
-              loyaltyPoints: response.data.loyaltyPoints || 0,
-              totalSpent: response.data.totalSpent || 0,
-            };
-            toast.success("New customer created");
+            const formData = new FormData();
+            formData.append("name", customerName.trim() || "Walk-in Customer");
+            formData.append("phone", customerPhone.trim());
+            if (customerEmail.trim()) formData.append("email", customerEmail.trim());
+            formData.append("loyaltyPoints", "0");
+
+            const createResult = await createCustomer(formData);
+            if (createResult.success && createResult.data) {
+              customerId = createResult.data._id;
+              customerData = {
+                id: createResult.data._id,
+                _id: createResult.data._id,
+                name: createResult.data.name || customerName.trim() || "Walk-in Customer",
+                phone: createResult.data.phone || customerPhone.trim(),
+                email: createResult.data.email || customerEmail.trim() || undefined,
+                membershipType: createResult.data.membershipType || "regular",
+                loyaltyPoints: createResult.data.loyaltyPoints || 0,
+                totalSpent: createResult.data.totalSpent || 0,
+              };
+              toast.success("New customer created");
+            }
           }
         } catch (error) {
           console.error("Error handling customer:", error);
@@ -566,7 +579,7 @@ const PointOFSaleDetilasPage = () => {
         return;
       }
 
-      // Create sale
+      // Create sale using server action
       const saleData = {
         storeId,
         customerId: customerId || undefined,
@@ -586,8 +599,21 @@ const PointOFSaleDetilasPage = () => {
         ],
       };
 
-      const response = await api.post("/sales", saleData);
-      const savedSale = response.data;
+      const formData = new FormData();
+      formData.append("saleData", JSON.stringify(saleData));
+
+      console.log("Creating sale with data:", saleData);
+      const saleResult = await createSale(formData);
+      console.log("Sale result:", saleResult);
+
+      if (!saleResult.success || !saleResult.data) {
+        const errorMsg = saleResult.error || "Failed to create sale";
+        console.error("Sale creation failed:", errorMsg, saleResult);
+        throw new Error(errorMsg);
+      }
+
+      const savedSale = saleResult.data;
+      console.log("Sale created successfully:", savedSale);
 
       // Create invoice
       const invoice: Invoice = {
@@ -632,7 +658,9 @@ const PointOFSaleDetilasPage = () => {
       setShowInvoiceModal(true);
       toast.success("Sale completed!");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Payment failed!");
+      console.error("Payment process error:", error);
+      const errorMessage = error.message || error.response?.data?.message || "Payment failed!";
+      toast.error(errorMessage);
     }
   };
 

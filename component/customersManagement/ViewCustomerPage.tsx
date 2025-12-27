@@ -1,5 +1,5 @@
 "use client";
-import api from "@/lib/api";
+import { getCustomerById, updateCustomer, deleteCustomer } from "@/app/actions/customers";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -55,11 +55,17 @@ const ViewCustomerPage = ({ customerId }: ViewCustomerPageProps) => {
     const fetchCustomer = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get(`/customers/${customerId}`);
-        setCustomer(response.data);
+        const result = await getCustomerById(customerId);
+
+        if (result.success && result.data) {
+          setCustomer(result.data);
+        } else {
+          toast.error(result.error || "Failed to load customer data");
+          router.push("/customers");
+        }
       } catch (error) {
         console.error("Error fetching customer:", error);
-        toast.error("Failed to load customer data");
+        toast.error("An unexpected error occurred");
         router.push("/customers");
       } finally {
         setIsLoading(false);
@@ -77,19 +83,41 @@ const ViewCustomerPage = ({ customerId }: ViewCustomerPageProps) => {
 
     try {
       if (customer.isActive) {
-        await api.delete(`/customers/${customer._id}`);
-        toast.success(`${customer.name} has been blocked`);
+        // Block customer (set isActive to false)
+        const formData = new FormData();
+        formData.append("customerData", JSON.stringify({ isActive: false }));
+
+        const result = await updateCustomer(customer._id, formData);
+
+        if (result.success) {
+          toast.success(`${customer.name} has been blocked`);
+        } else {
+          toast.error(result.error || "Failed to block customer");
+          return;
+        }
       } else {
-        await api.put(`/customers/${customer._id}`, { isActive: true });
-        toast.success(`${customer.name} has been unblocked`);
+        // Unblock customer (set isActive to true)
+        const formData = new FormData();
+        formData.append("customerData", JSON.stringify({ isActive: true }));
+
+        const result = await updateCustomer(customer._id, formData);
+
+        if (result.success) {
+          toast.success(`${customer.name} has been unblocked`);
+        } else {
+          toast.error(result.error || "Failed to unblock customer");
+          return;
+        }
       }
+
       // Refresh customer data
-      const response = await api.get(`/customers/${customerId}`);
-      setCustomer(response.data);
+      const refreshResult = await getCustomerById(customerId);
+      if (refreshResult.success && refreshResult.data) {
+        setCustomer(refreshResult.data);
+      }
     } catch (error) {
       console.error("Error toggling customer status:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to update customer status");
+      toast.error("An unexpected error occurred");
     }
   };
 
@@ -106,13 +134,17 @@ const ViewCustomerPage = ({ customerId }: ViewCustomerPageProps) => {
     }
 
     try {
-      await api.delete(`/customers/${customer._id}`);
-      toast.success(`${customer.name} has been deleted`);
-      router.push("/customers");
+      const result = await deleteCustomer(customer._id);
+
+      if (result.success) {
+        toast.success(result.message || `${customer.name} has been deleted`);
+        router.push("/customers");
+      } else {
+        toast.error(result.error || "Failed to delete customer");
+      }
     } catch (error) {
       console.error("Error deleting customer:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to delete customer");
+      toast.error("An unexpected error occurred");
     }
   };
 

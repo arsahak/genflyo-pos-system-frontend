@@ -1,6 +1,5 @@
 "use client";
 
-import api from "@/lib/api";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
@@ -8,6 +7,7 @@ import { getTranslation } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { getAllCategories, deleteCategory } from "@/app/actions/categories";
 import { CategoryFilters } from "./components/CategoryFilters";
 import { CategoryListHeader } from "./components/CategoryListHeader";
 import { CategoryListSkeleton } from "./components/CategoryListSkeleton";
@@ -39,22 +39,24 @@ export default function CategoryList() {
     try {
       setLoading(true);
 
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: "100", // Increased to load more for hierarchical display
+      const result = await getAllCategories({
+        page: currentPage,
+        limit: 100, // Increased to load more for hierarchical display
+        search: searchTerm || undefined,
       });
 
-      if (searchTerm) {
-        params.append("search", searchTerm);
-      }
-
-      const response = await api.get(`/categories?${params.toString()}`);
-
-      if (response.data.categories) {
-        setCategories(response.data.categories);
-        setPagination(response.data.pagination);
+      if (result.success && result.data?.categories) {
+        setCategories(result.data.categories);
+        setPagination(result.data.pagination || {
+          total: result.data.categories.length,
+          page: currentPage,
+          limit: 100,
+          totalPages: Math.ceil(result.data.categories.length / 100),
+          hasMore: false,
+        });
       } else {
-        setCategories(Array.isArray(response.data) ? response.data : []);
+        toast.error(result.error || "Failed to load categories");
+        setCategories([]);
       }
     } catch (error: unknown) {
       console.error("Failed to load categories:", error);
@@ -89,14 +91,16 @@ export default function CategoryList() {
       return;
 
     try {
-      await api.delete(`/categories/${categoryId}`);
-      toast.success("Category deleted successfully");
-      loadCategories();
+      const result = await deleteCategory(categoryId);
+
+      if (result.success) {
+        toast.success(result.message || "Category deleted successfully");
+        loadCategories();
+      } else {
+        toast.error(result.error || "Failed to delete category");
+      }
     } catch (error: unknown) {
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to delete category";
-      toast.error(errorMessage);
+      toast.error(error instanceof Error ? error.message : "Failed to delete category");
     }
   };
 

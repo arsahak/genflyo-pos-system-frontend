@@ -1,6 +1,6 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
+import { getSaleById } from "@/app/actions/sales";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -37,11 +37,17 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
   const fetchSaleDetails = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/sales/${saleId}`);
-      setSale(response.data);
-    } catch (error: any) {
+      const result = await getSaleById(saleId);
+
+      if (result.success && result.data) {
+        setSale(result.data);
+      } else {
+        toast.error(result.error || "Failed to fetch sale details");
+        router.push("/sales");
+      }
+    } catch (error) {
       console.error("Error fetching sale details:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch sale details");
+      toast.error("An unexpected error occurred");
       router.push("/sales");
     } finally {
       setLoading(false);

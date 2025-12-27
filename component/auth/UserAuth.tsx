@@ -1,150 +1,67 @@
 "use client";
 
-import api from "@/lib/api";
+import { userSignIn } from "@/app/actions/auth";
 import { useLanguage } from "@/lib/LanguageContext";
-import { useStore } from "@/lib/store";
 import { getTranslation } from "@/lib/translations";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { IoMdAlert, IoMdEye, IoMdEyeOff, IoMdLock } from "react-icons/io";
 
-interface LoginError {
-  message: string;
-  attemptsLeft?: number;
-  lockUntil?: string;
-}
-
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
-  const [lockUntil, setLockUntil] = useState<string | null>(null);
-  const { setUser, setTokens } = useStore();
   const { language } = useLanguage();
-
-  // Get device name (browser/OS info)
-  const getDeviceName = (): string => {
-    if (typeof window === "undefined") return "Unknown Device";
-
-    const userAgent = window.navigator.userAgent;
-    let deviceName = "Web Browser";
-
-    if (userAgent.includes("Chrome")) deviceName = "Chrome Browser";
-    else if (userAgent.includes("Safari")) deviceName = "Safari Browser";
-    else if (userAgent.includes("Firefox")) deviceName = "Firefox Browser";
-    else if (userAgent.includes("Edge")) deviceName = "Edge Browser";
-
-    return deviceName;
-  };
 
   useEffect(() => {
     // Clear any previous lock status on mount
     setIsLocked(false);
-    setAttemptsLeft(null);
+    setErrorMessage(null);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setAttemptsLeft(null); // Reset attempts left
+    setErrorMessage(null);
 
     try {
-      const deviceName = getDeviceName();
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-        deviceName,
-      });
+      // Call the NextAuth sign-in action
+      const result = await userSignIn(email, password);
 
-      const { user, accessToken, refreshToken, message } = response.data;
+      if (result.ok) {
+        // Success! Show message and redirect
+        toast.success(getTranslation("loginSuccessful", language));
 
-      // Set user and tokens in store
-      setUser(user);
-      setTokens(accessToken, refreshToken);
+        // Redirect to dashboard or specified URL
+        router.push(result.url || "/dashboard");
+        router.refresh(); // Refresh to get the session
+      } else {
+        // Handle error
+        const error = result.error || "Login failed";
+        setErrorMessage(error);
 
-      // Store tokens in localStorage
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-
-      // Show success message
-      toast.success(message || getTranslation("loginSuccessful", language));
-
-      // Reset error states
-      setIsLocked(false);
-      setAttemptsLeft(null);
-      setLockUntil(null);
-
-      // Optional: Log user role for debugging
-      console.log(`Logged in as ${user.role}:`, user.name);
-    } catch (error: unknown) {
-      const axiosError = error as {
-        response?: {
-          status?: number;
-          data?: LoginError;
-        };
-      };
-
-      const status = axiosError.response?.status;
-      const errorData = axiosError.response?.data;
-
-      // Handle account locked (423)
-      if (status === 423) {
-        setIsLocked(true);
-        setLockUntil(errorData?.lockUntil || null);
-        toast.error(
-          errorData?.message || "Account is locked. Please try again later.",
-          { duration: 5000 }
-        );
-      }
-      // Handle invalid credentials (401)
-      else if (status === 401) {
-        const attemptsRemaining = errorData?.attemptsLeft;
-        if (attemptsRemaining !== undefined) {
-          setAttemptsLeft(attemptsRemaining);
-          if (attemptsRemaining > 0) {
-            toast.error(
-              `${
-                errorData?.message || "Invalid credentials"
-              }. ${attemptsRemaining} attempt(s) remaining.`,
-              { duration: 4000 }
-            );
-          } else {
-            toast.error("Account will be locked. Please try again later.", {
-              duration: 5000,
-            });
-          }
+        // Check for specific error types
+        if (error.includes("locked")) {
+          setIsLocked(true);
+          toast.error(error, { duration: 5000 });
+        } else if (error.includes("Invalid email or password")) {
+          toast.error(error, { duration: 4000 });
+        } else if (error.includes("Unable to connect")) {
+          toast.error(error, { duration: 5000 });
         } else {
-          toast.error(errorData?.message || "Invalid credentials");
+          toast.error(error);
         }
       }
-      // Handle account deactivated (403)
-      else if (status === 403) {
-        toast.error(
-          errorData?.message || "Account deactivated. Contact administrator.",
-          { duration: 5000 }
-        );
-      }
-      // Handle validation errors (400)
-      else if (status === 400) {
-        toast.error(
-          errorData?.message || "Invalid input. Please check your credentials."
-        );
-      }
-      // Handle rate limiting (429)
-      else if (status === 429) {
-        toast.error("Too many login attempts. Please try again later.", {
-          duration: 5000,
-        });
-      }
-      // Handle other errors
-      else {
-        const errorMessage =
-          errorData?.message || getTranslation("loginFailed", language);
-        toast.error(errorMessage);
-      }
+    } catch (error) {
+      console.error("Unexpected login error:", error);
+      const errorMsg = error instanceof Error ? error.message : "An unexpected error occurred";
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -192,29 +109,19 @@ export default function LoginPage() {
               Your account has been temporarily locked due to multiple failed
               login attempts. Please try again later.
             </p>
-            {lockUntil && (
-              <p className="text-xs text-red-500 mt-1">
-                Lock expires: {new Date(lockUntil).toLocaleString()}
-              </p>
-            )}
           </div>
         </div>
       )}
 
-      {/* Attempts Remaining Warning */}
-      {attemptsLeft !== null && attemptsLeft > 0 && (
+      {/* Error Message Display */}
+      {errorMessage && !isLocked && (
         <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
           <IoMdAlert className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-yellow-800">
-              Warning: {attemptsLeft} Attempt{attemptsLeft !== 1 ? "s" : ""}{" "}
-              Remaining
+              Authentication Error
             </p>
-            <p className="text-xs text-yellow-600 mt-1">
-              Your account will be locked after {attemptsLeft} more failed
-              attempt
-              {attemptsLeft !== 1 ? "s" : ""}.
-            </p>
+            <p className="text-xs text-yellow-600 mt-1">{errorMessage}</p>
           </div>
         </div>
       )}

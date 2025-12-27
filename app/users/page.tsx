@@ -1,6 +1,6 @@
 "use client";
 
-import api from "@/lib/api";
+import { getAllUsers, deleteUser } from "@/app/actions/users";
 import { useStore } from "@/lib/store";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -58,63 +58,42 @@ export default function UsersPage() {
     try {
       setLoading(true);
 
-      // Build query parameters
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: "10",
-        sortBy,
-        sortOrder,
+      const result = await getAllUsers({
+        page: currentPage,
+        limit: 10,
+        search: searchTerm || undefined,
+        role: roleFilter || undefined,
       });
 
-      if (searchTerm) {
-        params.append("search", searchTerm);
-      }
-
-      if (roleFilter) {
-        params.append("role", roleFilter);
-      }
-
-      const response = await api.get(`/users?${params.toString()}`);
-
-      // Handle paginated response
-      if (response.data.users) {
-        setUsers(response.data.users);
-        setPagination(response.data.pagination);
-      } else {
-        // Fallback for non-paginated response
-        const usersData = Array.isArray(response.data) ? response.data : [];
-        setUsers(usersData);
-        setPagination({
-          total: usersData.length,
-          page: 1,
-          limit: usersData.length,
-          totalPages: 1,
-          hasMore: false,
-        });
-      }
-    } catch (error: unknown) {
-      console.error("Failed to load users:", error);
-
-      if (error && typeof error === "object" && "response" in error) {
-        const axiosError = error as {
-          response?: {
-            status?: number;
-          };
-        };
-
-        if (axiosError.response?.status === 401) {
-          toast.error("Session expired. Please login again.");
-          router.push("/");
-          return;
+      if (result.success && result.data) {
+        // Handle paginated response
+        if (result.data.users) {
+          setUsers(result.data.users);
+          setPagination(result.data.pagination);
+        } else {
+          // Fallback for non-paginated response
+          const usersData = Array.isArray(result.data) ? result.data : [];
+          setUsers(usersData);
+          setPagination({
+            total: usersData.length,
+            page: 1,
+            limit: usersData.length,
+            totalPages: 1,
+            hasMore: false,
+          });
         }
+      } else {
+        toast.error(result.error || "Failed to load users");
+        setUsers([]);
       }
-
-      toast.error("Failed to load users");
+    } catch (error) {
+      console.error("Failed to load users:", error);
+      toast.error("An unexpected error occurred while loading users");
       setUsers([]);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, roleFilter, sortBy, sortOrder]);
+  }, [currentPage, searchTerm, roleFilter]);
 
   useEffect(() => {
     if (!user) {
@@ -144,14 +123,17 @@ export default function UsersPage() {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      await api.delete(`/users/${userId}`);
-      toast.success("User deleted successfully");
-      loadUsers();
-    } catch (error: unknown) {
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to delete user";
-      toast.error(errorMessage);
+      const result = await deleteUser(userId);
+
+      if (result.success) {
+        toast.success(result.message || "User deleted successfully");
+        loadUsers();
+      } else {
+        toast.error(result.error || "Failed to delete user");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast.error("An unexpected error occurred while deleting user");
     }
   };
 

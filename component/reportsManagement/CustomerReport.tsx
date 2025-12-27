@@ -1,7 +1,7 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
-import { useEffect, useState } from "react";
+import { getCustomerReport } from "@/app/actions/reports";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -39,6 +39,36 @@ const CustomerReport = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const setDefaultDates = () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
+    setDateFrom(thirtyDaysAgo.toISOString().split("T")[0]);
+    setDateTo(today.toISOString().split("T")[0]);
+  };
+
+  const fetchReport = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getCustomerReport({
+        from: dateFrom,
+        to: dateTo,
+      });
+
+      if (result.success && result.data) {
+        setReportData(result.data);
+      } else {
+        toast.error(result.error || "Failed to fetch customer report");
+      }
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      toast.error("An unexpected error occurred while fetching report");
+    } finally {
+      setLoading(false);
+    }
+  }, [dateFrom, dateTo]);
+
   useEffect(() => {
     setDefaultDates();
   }, []);
@@ -47,37 +77,13 @@ const CustomerReport = () => {
     if (dateFrom && dateTo) {
       fetchReport();
     }
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, fetchReport]);
 
-  const setDefaultDates = () => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    setDateFrom(thirtyDaysAgo.toISOString().split("T")[0]);
-    setDateTo(today.toISOString().split("T")[0]);
-  };
-
-  const fetchReport = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        from: dateFrom,
-        to: dateTo,
-      });
-
-      const response = await api.get(`/reports/customers?${params.toString()}`);
-      setReportData(response.data);
-    } catch (error: any) {
-      console.error("Error fetching report:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch report");
-    } finally {
-      setLoading(false);
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+      return "$0.00";
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2)}`;
+    return `$${Number(amount).toFixed(2)}`;
   };
 
   return (

@@ -1,7 +1,8 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
-import { useEffect, useState } from "react";
+import { getInventoryReport } from "@/app/actions/reports";
+import { getAllStores } from "@/app/actions/stores";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -47,47 +48,59 @@ const InventoryReport = () => {
   const [stores, setStores] = useState<any[]>([]);
   const [selectedStore, setSelectedStore] = useState("");
 
-  useEffect(() => {
-    fetchStores();
-  }, []);
-
-  useEffect(() => {
-    fetchReport();
-  }, [selectedStore]);
-
-  const fetchStores = async () => {
+  const fetchStores = useCallback(async () => {
     try {
-      const response = await api.get("/stores");
-      setStores(response.data || []);
-      if (response.data && response.data.length > 0) {
-        setSelectedStore(response.data[0]._id);
+      const result = await getAllStores({ limit: 1000 });
+      if (result.success && result.data) {
+        const storesList = result.data.stores || [];
+        setStores(storesList);
+        if (storesList.length > 0) {
+          setSelectedStore(storesList[0]._id);
+        }
+      } else {
+        toast.error(result.error || "Failed to fetch stores");
       }
     } catch (error) {
       console.error("Error fetching stores:", error);
+      toast.error("An unexpected error occurred while fetching stores");
     }
-  };
+  }, []);
 
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
     if (!selectedStore) return;
-    
+
     setLoading(true);
     try {
-      const params = new URLSearchParams({
+      const result = await getInventoryReport({
         storeId: selectedStore,
       });
 
-      const response = await api.get(`/reports/inventory?${params.toString()}`);
-      setReportData(response.data);
-    } catch (error: any) {
+      if (result.success && result.data) {
+        setReportData(result.data);
+      } else {
+        toast.error(result.error || "Failed to fetch inventory report");
+      }
+    } catch (error) {
       console.error("Error fetching report:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch report");
+      toast.error("An unexpected error occurred while fetching report");
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedStore]);
 
-  const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2)}`;
+  useEffect(() => {
+    fetchStores();
+  }, [fetchStores]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
+
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+      return "$0.00";
+    }
+    return `$${Number(amount).toFixed(2)}`;
   };
 
   return (

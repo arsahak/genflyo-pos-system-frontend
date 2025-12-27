@@ -1,6 +1,14 @@
 "use client";
 
-import api from "@/lib/api";
+import {
+  getAllProducts,
+  getProductCategories,
+  getProductBrands,
+  getExpiringProducts,
+  getLowStockProducts,
+  deleteProduct,
+  bulkImportProducts,
+} from "@/app/actions/product";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
@@ -41,30 +49,33 @@ export default function ProductsList() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
 
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: "20",
+      const result = await getAllProducts({
+        page: currentPage,
+        limit: 20,
+        search: searchTerm || undefined,
+        category: categoryFilter || undefined,
+        brand: brandFilter || undefined,
+        status: stockFilter || undefined,
       });
 
-      if (searchTerm) params.append("search", searchTerm);
-      if (categoryFilter) params.append("category", categoryFilter);
-      if (brandFilter) params.append("brand", brandFilter);
-      if (stockFilter === "low") params.append("lowStock", "true");
-      if (stockFilter === "out") params.append("inStock", "false");
-      if (stockFilter === "in") params.append("inStock", "true");
-
-      const response = await api.get(`/products?${params.toString()}`);
-
-      if (response.data.products) {
-        setProducts(response.data.products);
-        setPagination(response.data.pagination);
+      if (result.success && result.data?.products) {
+        setProducts(result.data.products);
+        setPagination(result.data.pagination || {
+          total: result.data.products.length,
+          page: currentPage,
+          limit: 20,
+          totalPages: Math.ceil(result.data.products.length / 20),
+          hasMore: false,
+        });
       } else {
-        setProducts(Array.isArray(response.data) ? response.data : []);
+        toast.error(result.error || "Failed to load products");
+        setProducts([]);
       }
     } catch (error: unknown) {
       console.error("Failed to load products:", error);
@@ -78,12 +89,16 @@ export default function ProductsList() {
   const loadMetadata = useCallback(async () => {
     try {
       const [categoriesRes, brandsRes] = await Promise.all([
-        api.get("/products/meta/categories"),
-        api.get("/products/meta/brands"),
+        getProductCategories(),
+        getProductBrands(),
       ]);
 
-      setCategories(categoriesRes.data.categories || []);
-      setBrands(brandsRes.data.brands || []);
+      if (categoriesRes.success && categoriesRes.data?.categories) {
+        setCategories(categoriesRes.data.categories);
+      }
+      if (brandsRes.success && brandsRes.data?.brands) {
+        setBrands(brandsRes.data.brands);
+      }
     } catch (error) {
       console.error("Failed to load metadata:", error);
     }
@@ -92,12 +107,16 @@ export default function ProductsList() {
   const loadAlerts = useCallback(async () => {
     try {
       const [expiringRes, lowStockRes] = await Promise.all([
-        api.get("/products/alerts/expiring"),
-        api.get("/products/alerts/low-stock"),
+        getExpiringProducts(),
+        getLowStockProducts(),
       ]);
 
-      setExpiringCount(expiringRes.data.count || 0);
-      setLowStockCount(lowStockRes.data.count || 0);
+      if (expiringRes.success && expiringRes.data) {
+        setExpiringCount(expiringRes.data.count || 0);
+      }
+      if (lowStockRes.success && lowStockRes.data) {
+        setLowStockCount(lowStockRes.data.count || 0);
+      }
     } catch (error) {
       console.error("Failed to load alerts:", error);
     }
@@ -148,24 +167,27 @@ export default function ProductsList() {
     }
   };
 
-  const handleDelete = async (productId: string, productName: string) => {
-    if (!confirm(`Are you sure you want to delete "${productName}"?`)) return;
-
+  const handleDelete = async (productId: string) => {
     try {
-      await api.delete(`/products/${productId}`);
-      toast.success("Product deleted successfully");
+      setDeleting(true);
+      const result = await deleteProduct(productId);
 
-      // Reload data after deletion
-      await Promise.all([
-        loadProducts(),
-        loadMetadata(),
-        loadAlerts()
-      ]);
+      if (result.success) {
+        toast.success(result.message || "Product deleted successfully");
+        // Reload data after deletion
+        await Promise.all([
+          loadProducts(),
+          loadMetadata(),
+          loadAlerts()
+        ]);
+      } else {
+        toast.error(result.error || "Failed to delete product");
+      }
     } catch (error: unknown) {
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to delete product";
-      toast.error(errorMessage);
+      console.error("Delete product error:", error);
+      toast.error("Failed to delete product");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -181,19 +203,23 @@ export default function ProductsList() {
     try {
       toast.loading("Exporting products...");
       
-      const params = new URLSearchParams({
-        limit: "10000",
+      const result = await getAllProducts({
+        page: 1,
+        limit: 10000,
+        search: searchTerm || undefined,
+        category: categoryFilter || undefined,
+        brand: brandFilter || undefined,
+        lowStock: stockFilter === "low" ? true : undefined,
+        inStock: stockFilter === "in" ? true : stockFilter === "out" ? false : undefined,
       });
-      
-      if (searchTerm) params.append("search", searchTerm);
-      if (categoryFilter) params.append("category", categoryFilter);
-      if (brandFilter) params.append("brand", brandFilter);
-      if (stockFilter === "low") params.append("lowStock", "true");
-      if (stockFilter === "out") params.append("inStock", "false");
-      if (stockFilter === "in") params.append("inStock", "true");
 
-      const response = await api.get(`/products?${params.toString()}`);
-      const exportProducts = response.data.products || response.data;
+      if (!result.success) {
+        toast.dismiss();
+        toast.error(result.error || "Failed to fetch products");
+        return;
+      }
+
+      const exportProducts = result.data?.products || [];
 
       if (!exportProducts || exportProducts.length === 0) {
         toast.dismiss();
@@ -351,23 +377,25 @@ export default function ProductsList() {
         return product;
       });
 
-      const response = await api.post("/products/bulk-import", {
-        products: productsToImport,
-      });
+      const formData = new FormData();
+      formData.append("products", JSON.stringify(productsToImport));
+
+      const result = await bulkImportProducts(formData);
 
       toast.dismiss();
-      toast.success(`Successfully imported ${response.data.imported || productsToImport.length} products!`);
 
-      setShowImportModal(false);
-      setImportFile(null);
-      await Promise.all([loadProducts(), loadMetadata(), loadAlerts()]);
+      if (result.success) {
+        toast.success(result.message || `Successfully imported ${productsToImport.length} products!`);
+        setShowImportModal(false);
+        setImportFile(null);
+        await Promise.all([loadProducts(), loadMetadata(), loadAlerts()]);
+      } else {
+        toast.error(result.error || "Failed to import products");
+      }
     } catch (error: unknown) {
       console.error("Import error:", error);
       toast.dismiss();
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to import products";
-      toast.error(errorMessage);
+      toast.error("Failed to import products");
     } finally {
       setImporting(false);
     }
@@ -390,7 +418,7 @@ export default function ProductsList() {
           handleDownloadTemplate={handleDownloadTemplate}
         />
 
-        {loading && products.length === 0 ? (
+        {(loading && products.length === 0) || deleting ? (
           <ProductListSkeleton isDarkMode={isDarkMode} />
         ) : (
           <>

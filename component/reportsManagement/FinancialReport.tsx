@@ -1,7 +1,8 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
-import { useEffect, useState } from "react";
+import { getFinancialReport } from "@/app/actions/reports";
+import { getAllStores } from "@/app/actions/stores";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -44,59 +45,67 @@ const FinancialReport = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const setDefaultDates = () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+
+    setDateFrom(thirtyDaysAgo.toISOString().split("T")[0]);
+    setDateTo(today.toISOString().split("T")[0]);
+  };
+
+  const fetchStores = useCallback(async () => {
+    try {
+      const result = await getAllStores({ limit: 1000 });
+      if (result.success && result.data) {
+        setStores(result.data.stores || []);
+      } else {
+        toast.error(result.error || "Failed to fetch stores");
+      }
+    } catch (error) {
+      console.error("Error fetching stores:", error);
+      toast.error("An unexpected error occurred while fetching stores");
+    }
+  }, []);
+
+  const fetchReport = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getFinancialReport({
+        from: dateFrom,
+        to: dateTo,
+        storeId: selectedStore || undefined,
+      });
+
+      if (result.success && result.data) {
+        setReportData(result.data);
+      } else {
+        toast.error(result.error || "Failed to fetch financial report");
+      }
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      toast.error("An unexpected error occurred while fetching report");
+    } finally {
+      setLoading(false);
+    }
+  }, [dateFrom, dateTo, selectedStore]);
+
   useEffect(() => {
     fetchStores();
     setDefaultDates();
-  }, []);
+  }, [fetchStores]);
 
   useEffect(() => {
     if (dateFrom && dateTo) {
       fetchReport();
     }
-  }, [selectedStore, dateFrom, dateTo]);
+  }, [selectedStore, dateFrom, dateTo, fetchReport]);
 
-  const setDefaultDates = () => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    setDateFrom(thirtyDaysAgo.toISOString().split("T")[0]);
-    setDateTo(today.toISOString().split("T")[0]);
-  };
-
-  const fetchStores = async () => {
-    try {
-      const response = await api.get("/stores");
-      setStores(response.data || []);
-    } catch (error) {
-      console.error("Error fetching stores:", error);
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+      return "$0.00";
     }
-  };
-
-  const fetchReport = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        from: dateFrom,
-        to: dateTo,
-      });
-      
-      if (selectedStore) {
-        params.append("storeId", selectedStore);
-      }
-
-      const response = await api.get(`/reports/financial?${params.toString()}`);
-      setReportData(response.data);
-    } catch (error: any) {
-      console.error("Error fetching report:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch report");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2)}`;
+    return `$${Number(amount).toFixed(2)}`;
   };
 
   return (

@@ -1,6 +1,5 @@
 "use client";
 
-import api from "@/lib/api";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
@@ -8,6 +7,7 @@ import { getTranslation } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { getAllCategories, createCategory } from "@/app/actions/categories";
 import { MdClose, MdImage, MdSave } from "react-icons/md";
 import { CategoryFormSkeleton } from "./components/CategoryFormSkeleton";
 
@@ -51,9 +51,9 @@ export default function CategoryCreate() {
   const loadParentCategories = async () => {
     try {
       setFetching(true);
-      const response = await api.get("/categories?limit=100");
-      if (response.data.categories) {
-        const rootCategories = response.data.categories.filter(
+      const result = await getAllCategories({ limit: 100 });
+      if (result.success && result.data?.categories) {
+        const rootCategories = result.data.categories.filter(
           (cat: ParentCategory & { parentCategory?: string }) => !cat.parentCategory
         );
         setParentCategories(rootCategories);
@@ -114,19 +114,17 @@ export default function CategoryCreate() {
         }
       });
 
-      await api.post("/categories", submitData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const result = await createCategory(submitData);
 
-      toast.success("Category created successfully!");
-      router.push("/products/categories");
+      if (result.success) {
+        toast.success(result.message || "Category created successfully!");
+        router.push("/products/categories");
+      } else {
+        toast.error(result.error || "Failed to create category");
+      }
     } catch (error: unknown) {
       console.error("Error creating category:", error);
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to create category";
+      const errorMessage = error instanceof Error ? error.message : "Failed to create category";
       toast.error(errorMessage);
     } finally {
       setLoading(false);

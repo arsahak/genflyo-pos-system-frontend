@@ -1,5 +1,5 @@
 "use client";
-import api from "@/lib/api";
+import { createCustomer } from "@/app/actions/customers";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -63,13 +63,20 @@ const CreateCustomerPage = () => {
         notes: formData.notes.trim() || undefined,
       };
 
-      await api.post("/customers", customerData);
-      toast.success("Customer created successfully!");
-      router.push("/customers");
+      const data = new FormData();
+      data.append("customerData", JSON.stringify(customerData));
+
+      const result = await createCustomer(data);
+
+      if (result.success) {
+        toast.success(result.message || "Customer created successfully!");
+        router.push("/customers");
+      } else {
+        toast.error(result.error || "Failed to create customer");
+      }
     } catch (error) {
       console.error("Error creating customer:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Failed to create customer");
+      toast.error("An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
     }

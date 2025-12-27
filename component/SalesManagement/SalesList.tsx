@@ -1,7 +1,7 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
-import { useEffect, useState } from "react";
+import { getAllSales, getSalesStats, deleteSale } from "@/app/actions/sales";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -77,55 +77,52 @@ const SalesList = () => {
     pages: 1,
   });
 
-  useEffect(() => {
-    fetchSales();
-    fetchStats();
-  }, [pagination.page, statusFilter, dateFrom, dateTo]);
-
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
+      const result = await getAllSales({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery || undefined,
+        startDate: dateFrom || undefined,
+        endDate: dateTo || undefined,
       });
 
-      if (statusFilter && statusFilter !== "all") {
-        params.append("status", statusFilter);
+      if (result.success && result.data) {
+        setSales(result.data.sales || []);
+        if (result.data.pagination) {
+          setPagination(result.data.pagination);
+        }
+      } else {
+        toast.error(result.error || "Failed to fetch sales");
       }
-      if (searchQuery) {
-        params.append("search", searchQuery);
-      }
-      if (dateFrom) {
-        params.append("from", dateFrom);
-      }
-      if (dateTo) {
-        params.append("to", dateTo);
-      }
-
-      const response = await api.get(`/sales?${params.toString()}`);
-      setSales(response.data.sales || []);
-      setPagination(response.data.pagination || pagination);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error fetching sales:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch sales");
+      toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit, searchQuery, dateFrom, dateTo]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      if (dateFrom) params.append("from", dateFrom);
-      if (dateTo) params.append("to", dateTo);
+      const result = await getSalesStats({
+        startDate: dateFrom || undefined,
+        endDate: dateTo || undefined,
+      });
 
-      const response = await api.get(`/sales/stats/summary?${params.toString()}`);
-      setStats(response.data);
+      if (result.success && result.data) {
+        setStats(result.data);
+      }
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
-  };
+  }, [dateFrom, dateTo]);
+
+  useEffect(() => {
+    fetchSales();
+    fetchStats();
+  }, [fetchSales, fetchStats]);
 
   const handleSearch = () => {
     setPagination({ ...pagination, page: 1 });
@@ -138,13 +135,18 @@ const SalesList = () => {
     }
 
     try {
-      await api.delete(`/sales/${id}`);
-      toast.success("Sale cancelled successfully");
-      fetchSales();
-      fetchStats();
-    } catch (error: any) {
+      const result = await deleteSale(id);
+
+      if (result.success) {
+        toast.success(result.message || "Sale cancelled successfully");
+        fetchSales();
+        fetchStats();
+      } else {
+        toast.error(result.error || "Failed to cancel sale");
+      }
+    } catch (error) {
       console.error("Error deleting sale:", error);
-      toast.error(error.response?.data?.message || "Failed to cancel sale");
+      toast.error("An unexpected error occurred");
     }
   };
 

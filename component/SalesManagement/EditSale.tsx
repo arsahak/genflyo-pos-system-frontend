@@ -1,6 +1,6 @@
 "use client";
 import { useSidebar } from "@/lib/SidebarContext";
-import api from "@/lib/api";
+import { getSaleById, updateSale } from "@/app/actions/sales";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -32,15 +32,21 @@ const EditSale = ({ saleId }: EditSaleProps) => {
   const fetchSaleDetails = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/sales/${saleId}`);
-      setSale(response.data);
-      setFormData({
-        status: response.data.status,
-        notes: response.data.notes || "",
-      });
-    } catch (error: any) {
+      const result = await getSaleById(saleId);
+
+      if (result.success && result.data) {
+        setSale(result.data);
+        setFormData({
+          status: result.data.status,
+          notes: result.data.notes || "",
+        });
+      } else {
+        toast.error(result.error || "Failed to fetch sale details");
+        router.push("/sales");
+      }
+    } catch (error) {
       console.error("Error fetching sale details:", error);
-      toast.error(error.response?.data?.message || "Failed to fetch sale details");
+      toast.error("An unexpected error occurred");
       router.push("/sales");
     } finally {
       setLoading(false);
@@ -52,12 +58,20 @@ const EditSale = ({ saleId }: EditSaleProps) => {
     setSaving(true);
 
     try {
-      await api.put(`/sales/${saleId}`, formData);
-      toast.success("Sale updated successfully");
-      router.push(`/sales/${saleId}`);
-    } catch (error: any) {
+      const data = new FormData();
+      data.append("saleData", JSON.stringify(formData));
+
+      const result = await updateSale(saleId, data);
+
+      if (result.success) {
+        toast.success(result.message || "Sale updated successfully");
+        router.push(`/sales/${saleId}`);
+      } else {
+        toast.error(result.error || "Failed to update sale");
+      }
+    } catch (error) {
       console.error("Error updating sale:", error);
-      toast.error(error.response?.data?.message || "Failed to update sale");
+      toast.error("An unexpected error occurred");
     } finally {
       setSaving(false);
     }
