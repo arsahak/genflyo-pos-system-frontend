@@ -1,11 +1,13 @@
 "use client";
 
 import { useLanguage } from "@/lib/LanguageContext";
+import { PermissionKey } from "@/lib/permissions";
 import { useSidebar } from "@/lib/SidebarContext";
+import { useStore } from "@/lib/store";
 import { getTranslation } from "@/lib/translations";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   IoIosArrowDown,
   IoMdAnalytics,
@@ -21,6 +23,7 @@ import {
   IoMdTrendingUp,
 } from "react-icons/io";
 import { MdStore } from "react-icons/md";
+import { FaTruck } from "react-icons/fa";
 import { RxDoubleArrowLeft } from "react-icons/rx";
 
 interface MenuItem {
@@ -28,8 +31,9 @@ interface MenuItem {
   label: string;
   path: string;
   expandable?: boolean;
-  subItems?: { label: string; path: string }[];
+  subItems?: { label: string; path: string; permission?: PermissionKey }[];
   badge?: string;
+  permission?: PermissionKey;
 }
 
 const getMenuItems = (language: string): MenuItem[] => [
@@ -37,30 +41,59 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <IoMdHome className="w-5 h-5" />,
     label: getTranslation("dashboard", language),
     path: "/",
+    permission: "canViewDashboard",
   },
   {
     icon: <IoMdCard className="w-5 h-5" />,
     label: getTranslation("pointOfSale", language),
     path: "/pos",
+    permission: "canCreateSales",
   },
   {
     icon: <IoMdCube className="w-5 h-5" />,
     label: getTranslation("products", language),
     path: "/products",
+    permission: "canViewProducts",
     expandable: true,
     subItems: [
-      { label: getTranslation("allProducts", language), path: "/products" },
+      {
+        label: getTranslation("allProducts", language),
+        path: "/products",
+        permission: "canViewProducts",
+      },
       {
         label: getTranslation("categories", language),
         path: "/products/categories",
+        permission: "canManageCategories",
       },
       {
         label: getTranslation("addProduct", language),
         path: "/products/add-new-product",
+        permission: "canAddProducts",
       },
       {
         label: getTranslation("brands", language),
         path: "/products/brands",
+        permission: "canManageCategories",
+      },
+    ],
+  },
+  {
+    icon: <FaTruck className="w-5 h-5" />,
+    label: getTranslation("suppliers", language),
+    path: "/suppliers",
+    permission: "canViewProducts",
+    expandable: true,
+    subItems: [
+      {
+        label: getTranslation("allSuppliers", language),
+        path: "/suppliers",
+        permission: "canViewProducts",
+      },
+      {
+        label: getTranslation("addSupplier", language),
+        path: "/suppliers/add",
+        permission: "canAddProducts",
       },
     ],
   },
@@ -68,19 +101,23 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <IoMdAnalytics className="w-5 h-5" />,
     label: getTranslation("inventory", language),
     path: "/inventory",
+    permission: "canViewInventory",
     expandable: true,
     subItems: [
       {
         label: getTranslation("stockLevels", language),
         path: "/inventory/stock",
+        permission: "canViewInventory",
       },
       {
         label: getTranslation("lowStock", language),
         path: "/inventory/low-stock",
+        permission: "canViewInventory",
       },
       {
         label: getTranslation("stockAdjustments", language),
         path: "/inventory/adjustments",
+        permission: "canAdjustStock",
       },
     ],
   },
@@ -88,13 +125,23 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <IoMdTrendingUp className="w-5 h-5" />,
     label: getTranslation("sales", language),
     path: "/sales",
+    permission: "canViewSales",
     expandable: true,
     subItems: [
-      { label: getTranslation("allSales", language), path: "/sales" },
-      { label: getTranslation("todaysSales", language), path: "/sales/today" },
+      {
+        label: getTranslation("allSales", language),
+        path: "/sales",
+        permission: "canViewSales",
+      },
+      {
+        label: getTranslation("todaysSales", language),
+        path: "/sales/today",
+        permission: "canViewSales",
+      },
       {
         label: getTranslation("salesHistory", language),
         path: "/sales/history",
+        permission: "canViewSales",
       },
     ],
   },
@@ -102,16 +149,23 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <IoMdPeople className="w-5 h-5" />,
     label: getTranslation("customers", language),
     path: "/customers",
+    permission: "canViewCustomers",
     expandable: true,
     subItems: [
-      { label: getTranslation("allCustomers", language), path: "/customers" },
+      {
+        label: getTranslation("allCustomers", language),
+        path: "/customers",
+        permission: "canViewCustomers",
+      },
       {
         label: getTranslation("addCustomer", language),
         path: "/customers/create-customer",
+        permission: "canAddCustomers",
       },
       {
         label: getTranslation("customerGroups", language),
         path: "/customers/groups",
+        permission: "canViewCustomers",
       },
     ],
   },
@@ -119,23 +173,28 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <IoMdDocument className="w-5 h-5" />,
     label: getTranslation("reports", language),
     path: "/reports",
+    permission: "canViewReports",
     expandable: true,
     subItems: [
       {
         label: getTranslation("salesReport", language),
         path: "/reports/sales",
+        permission: "canViewReports",
       },
       {
         label: getTranslation("inventoryReport", language),
         path: "/reports/inventory",
+        permission: "canViewReports",
       },
       {
         label: getTranslation("customerReport", language),
         path: "/reports/customers",
+        permission: "canViewReports",
       },
       {
         label: getTranslation("financialReport", language),
         path: "/reports/financial",
+        permission: "canViewReports",
       },
     ],
   },
@@ -143,13 +202,18 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <IoMdPerson className="w-5 h-5" />,
     label: getTranslation("users", language),
     path: "/users",
+    permission: "canViewUsers",
     expandable: true,
     subItems: [
-      { label: getTranslation("allUsers", language), path: "/users" },
-      { label: getTranslation("addUser", language), path: "/users/add" },
       {
-        label: getTranslation("rolesPermissions", language),
-        path: "/users/roles",
+        label: getTranslation("allUsers", language),
+        path: "/users",
+        permission: "canViewUsers",
+      },
+      {
+        label: getTranslation("addUser", language),
+        path: "/users/create-user",
+        permission: "canAddUsers",
       },
     ],
   },
@@ -157,13 +221,23 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <MdStore className="w-5 h-5" />,
     label: getTranslation("stores", language),
     path: "/stores",
+    permission: "canViewStores",
     expandable: true,
     subItems: [
-      { label: getTranslation("allStores", language), path: "/stores" },
-      { label: getTranslation("addStore", language), path: "/stores/add" },
+      {
+        label: getTranslation("allStores", language),
+        path: "/stores",
+        permission: "canViewStores",
+      },
+      {
+        label: getTranslation("addStore", language),
+        path: "/stores/add",
+        permission: "canAddStores",
+      },
       {
         label: getTranslation("storeSettings", language),
         path: "/stores/settings",
+        permission: "canManageStoreSettings",
       },
     ],
   },
@@ -171,6 +245,7 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <IoMdSettings className="w-5 h-5" />,
     label: getTranslation("settings", language),
     path: "/settings",
+    permission: "canManageSettings",
     expandable: true,
     subItems: [
       {
@@ -195,9 +270,17 @@ export default function Sidebar() {
     useSidebar();
   const { language } = useLanguage();
   const pathname = usePathname();
+  const { user, hasPermission } = useStore();
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({});
+  const [mounted, setMounted] = useState(false);
+
+  // Wait for client-side hydration before filtering
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleSection = (label: string) => {
     setExpandedSections((prev) => ({
@@ -206,7 +289,34 @@ export default function Sidebar() {
     }));
   };
 
-  const menuItems = getMenuItems(language);
+  const allMenuItems = getMenuItems(language);
+
+  // Only filter menu items after client-side hydration to prevent mismatch
+  const menuItems = mounted
+    ? allMenuItems
+        .filter((item) => {
+          if (!item.permission) return true;
+          return hasPermission(item.permission);
+        })
+        .map((item) => {
+          // Filter subItems based on permissions
+          if (item.subItems) {
+            const filteredSubItems = item.subItems.filter((subItem) => {
+              if (!subItem.permission) return true;
+              return hasPermission(subItem.permission);
+            });
+            return { ...item, subItems: filteredSubItems };
+          }
+          return item;
+        })
+        // Remove parent items that have no accessible sub-items
+        .filter((item) => {
+          if (item.expandable && item.subItems) {
+            return item.subItems.length > 0;
+          }
+          return true;
+        })
+    : allMenuItems; // Show all items during initial render to match SSR
 
   return (
     <div className="relative">

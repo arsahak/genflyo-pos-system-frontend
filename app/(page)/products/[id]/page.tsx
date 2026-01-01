@@ -1,6 +1,6 @@
 "use client";
 
-import api from "@/lib/api";
+import { getProductById, deleteProduct } from "@/app/actions/product";
 import { useStore } from "@/lib/store";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -107,7 +107,14 @@ export default function ProductDetailPage() {
   const loadProduct = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/products/${productId}`);
+      const response = await getProductById(productId);
+
+      if (!response.success || !response.data) {
+        toast.error(response.error || "Failed to load product details");
+        router.push("/products");
+        return;
+      }
+
       setProduct(response.data);
       setSelectedImage(
         response.data.mainImage?.url || response.data.featureImages?.[0]?.url || ""
@@ -129,14 +136,17 @@ export default function ProductDetailPage() {
       return;
 
     try {
-      await api.delete(`/products/${productId}`);
-      toast.success("Product deleted successfully");
-      router.push("/products");
+      const result = await deleteProduct(productId);
+
+      if (result.success) {
+        toast.success(result.message || "Product deleted successfully");
+        router.push("/products");
+      } else {
+        toast.error(result.error || "Failed to delete product");
+      }
     } catch (error: unknown) {
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to delete product";
-      toast.error(errorMessage);
+      console.error("Failed to delete product:", error);
+      toast.error("Failed to delete product");
     }
   };
 

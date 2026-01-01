@@ -1,10 +1,12 @@
 "use client";
-import LoginPage from "@/component/auth/UserAuth";
+
+import {
+  DashboardOverviewData,
+  DashboardStatsData,
+} from "@/app/actions/dashboard";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSidebar } from "@/lib/SidebarContext";
-import { useStore } from "@/lib/store";
 import { getTranslation } from "@/lib/translations";
-import { useEffect, useState } from "react";
 import {
   IoMdAnalytics,
   IoMdCalendar,
@@ -16,17 +18,36 @@ import {
   IoMdTrendingUp,
 } from "react-icons/io";
 import { MdAttachMoney, MdShoppingCart } from "react-icons/md";
+import CustomerOverviewChart from "./CustomerOverviewChart";
+import SalesPurchaseChart from "./SalesPurchaseChart";
 
-const Dashboard = () => {
-  const { user } = useStore();
+interface DashboardProps {
+  data: DashboardOverviewData | null;
+  stats: DashboardStatsData | null;
+  error?: string;
+}
+
+const Dashboard = ({ data, stats, error }: DashboardProps) => {
   const { isDarkMode } = useSidebar();
   const { language } = useLanguage();
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Simulate loading check
-    setTimeout(() => setLoading(false), 500);
-  }, []);
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
+
+  // Format number with abbreviation
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + "M";
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + "K";
+    }
+    return num.toString();
+  };
 
   return (
     <>
@@ -79,19 +100,24 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {loading ? (
+          {error ? (
             <div className="text-center py-12">
-              <div
-                className={`inline-block animate-spin rounded-full h-12 w-12 border-b-2 transition-colors duration-200 ${
-                  isDarkMode ? "border-blue-400" : "border-blue-600"
-                }`}
-              ></div>
               <p
-                className={`mt-4 transition-colors duration-200 ${
+                className={`text-lg transition-colors duration-200 ${
+                  isDarkMode ? "text-red-400" : "text-red-600"
+                }`}
+              >
+                {error}
+              </p>
+            </div>
+          ) : !data ? (
+            <div className="text-center py-12">
+              <p
+                className={`transition-colors duration-200 ${
                   isDarkMode ? "text-gray-400" : "text-gray-600"
                 }`}
               >
-                {getTranslation("loadingDashboard", language)}
+                No data available
               </p>
             </div>
           ) : (
@@ -112,12 +138,30 @@ const Dashboard = () => {
                         {getTranslation("totalSales", language)}
                       </p>
                       <p className="text-white text-2xl font-bold mt-1">
-                        $48,988,078
+                        {formatCurrency(data.totalSales.current)}
                       </p>
                       <div className="flex items-center mt-2">
-                        <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
-                        <span className="text-green-300 text-sm font-medium">
-                          ↑ +22%
+                        {data.totalSales.trend === "up" ? (
+                          <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
+                        ) : data.totalSales.trend === "down" ? (
+                          <IoMdTrendingDown className="w-4 h-4 text-red-300 mr-1" />
+                        ) : null}
+                        <span
+                          className={`text-sm font-medium ${
+                            data.totalSales.trend === "up"
+                              ? "text-green-300"
+                              : data.totalSales.trend === "down"
+                              ? "text-red-300"
+                              : "text-gray-300"
+                          }`}
+                        >
+                          {data.totalSales.trend === "up"
+                            ? "↑"
+                            : data.totalSales.trend === "down"
+                            ? "↓"
+                            : ""}{" "}
+                          {data.totalSales.change > 0 ? "+" : ""}
+                          {data.totalSales.change}%
                         </span>
                       </div>
                     </div>
@@ -141,12 +185,30 @@ const Dashboard = () => {
                         {getTranslation("totalSalesReturn", language)}
                       </p>
                       <p className="text-white text-2xl font-bold mt-1">
-                        $16,478,145
+                        {formatCurrency(data.totalSalesReturn.current)}
                       </p>
                       <div className="flex items-center mt-2">
-                        <IoMdTrendingDown className="w-4 h-4 text-red-300 mr-1" />
-                        <span className="text-red-300 text-sm font-medium">
-                          ↓ -22%
+                        {data.totalSalesReturn.trend === "up" ? (
+                          <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
+                        ) : data.totalSalesReturn.trend === "down" ? (
+                          <IoMdTrendingDown className="w-4 h-4 text-red-300 mr-1" />
+                        ) : null}
+                        <span
+                          className={`text-sm font-medium ${
+                            data.totalSalesReturn.trend === "up"
+                              ? "text-green-300"
+                              : data.totalSalesReturn.trend === "down"
+                              ? "text-red-300"
+                              : "text-gray-300"
+                          }`}
+                        >
+                          {data.totalSalesReturn.trend === "up"
+                            ? "↑"
+                            : data.totalSalesReturn.trend === "down"
+                            ? "↓"
+                            : ""}{" "}
+                          {data.totalSalesReturn.change > 0 ? "+" : ""}
+                          {data.totalSalesReturn.change}%
                         </span>
                       </div>
                     </div>
@@ -170,12 +232,30 @@ const Dashboard = () => {
                         {getTranslation("totalPurchase", language)}
                       </p>
                       <p className="text-white text-2xl font-bold mt-1">
-                        $24,145,789
+                        {formatCurrency(data.totalPurchase.current)}
                       </p>
                       <div className="flex items-center mt-2">
-                        <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
-                        <span className="text-green-300 text-sm font-medium">
-                          ↑ +22%
+                        {data.totalPurchase.trend === "up" ? (
+                          <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
+                        ) : data.totalPurchase.trend === "down" ? (
+                          <IoMdTrendingDown className="w-4 h-4 text-red-300 mr-1" />
+                        ) : null}
+                        <span
+                          className={`text-sm font-medium ${
+                            data.totalPurchase.trend === "up"
+                              ? "text-green-300"
+                              : data.totalPurchase.trend === "down"
+                              ? "text-red-300"
+                              : "text-gray-300"
+                          }`}
+                        >
+                          {data.totalPurchase.trend === "up"
+                            ? "↑"
+                            : data.totalPurchase.trend === "down"
+                            ? "↓"
+                            : ""}{" "}
+                          {data.totalPurchase.change > 0 ? "+" : ""}
+                          {data.totalPurchase.change}%
                         </span>
                       </div>
                     </div>
@@ -199,12 +279,30 @@ const Dashboard = () => {
                         {getTranslation("totalPurchaseReturn", language)}
                       </p>
                       <p className="text-white text-2xl font-bold mt-1">
-                        $18,458,747
+                        {formatCurrency(data.totalPurchaseReturn.current)}
                       </p>
                       <div className="flex items-center mt-2">
-                        <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
-                        <span className="text-green-300 text-sm font-medium">
-                          ↑ +22%
+                        {data.totalPurchaseReturn.trend === "up" ? (
+                          <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
+                        ) : data.totalPurchaseReturn.trend === "down" ? (
+                          <IoMdTrendingDown className="w-4 h-4 text-red-300 mr-1" />
+                        ) : null}
+                        <span
+                          className={`text-sm font-medium ${
+                            data.totalPurchaseReturn.trend === "up"
+                              ? "text-green-300"
+                              : data.totalPurchaseReturn.trend === "down"
+                              ? "text-red-300"
+                              : "text-gray-300"
+                          }`}
+                        >
+                          {data.totalPurchaseReturn.trend === "up"
+                            ? "↑"
+                            : data.totalPurchaseReturn.trend === "down"
+                            ? "↓"
+                            : ""}{" "}
+                          {data.totalPurchaseReturn.change > 0 ? "+" : ""}
+                          {data.totalPurchaseReturn.change}%
                         </span>
                       </div>
                     </div>
@@ -236,12 +334,25 @@ const Dashboard = () => {
                           isDarkMode ? "text-gray-100" : "text-gray-900"
                         }`}
                       >
-                        $8,458,798
+                        {formatCurrency(data.profit.current)}
                       </p>
                       <div className="flex items-center mt-2">
-                        <IoMdTrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                        <span className="text-green-500 text-sm font-medium">
-                          +35% vs Last Month
+                        {data.profit.trend === "up" ? (
+                          <IoMdTrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                        ) : data.profit.trend === "down" ? (
+                          <IoMdTrendingDown className="w-4 h-4 text-red-500 mr-1" />
+                        ) : null}
+                        <span
+                          className={`text-sm font-medium ${
+                            data.profit.trend === "up"
+                              ? "text-green-500"
+                              : data.profit.trend === "down"
+                              ? "text-red-500"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {data.profit.change > 0 ? "+" : ""}
+                          {data.profit.change}% vs Last Month
                         </span>
                       </div>
                     </div>
@@ -278,12 +389,25 @@ const Dashboard = () => {
                           isDarkMode ? "text-gray-100" : "text-gray-900"
                         }`}
                       >
-                        $48,988,78
+                        {formatCurrency(data.invoiceDue.current)}
                       </p>
                       <div className="flex items-center mt-2">
-                        <IoMdTrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                        <span className="text-green-500 text-sm font-medium">
-                          +35% vs Last Month
+                        {data.invoiceDue.trend === "up" ? (
+                          <IoMdTrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                        ) : data.invoiceDue.trend === "down" ? (
+                          <IoMdTrendingDown className="w-4 h-4 text-red-500 mr-1" />
+                        ) : null}
+                        <span
+                          className={`text-sm font-medium ${
+                            data.invoiceDue.trend === "up"
+                              ? "text-green-500"
+                              : data.invoiceDue.trend === "down"
+                              ? "text-red-500"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {data.invoiceDue.change > 0 ? "+" : ""}
+                          {data.invoiceDue.change}% vs Last Month
                         </span>
                       </div>
                     </div>
@@ -320,12 +444,25 @@ const Dashboard = () => {
                           isDarkMode ? "text-gray-100" : "text-gray-900"
                         }`}
                       >
-                        $8,980,097
+                        {formatCurrency(data.totalExpenses.current)}
                       </p>
                       <div className="flex items-center mt-2">
-                        <IoMdTrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                        <span className="text-green-500 text-sm font-medium">
-                          +41% vs Last Month
+                        {data.totalExpenses.trend === "up" ? (
+                          <IoMdTrendingUp className="w-4 h-4 text-red-500 mr-1" />
+                        ) : data.totalExpenses.trend === "down" ? (
+                          <IoMdTrendingDown className="w-4 h-4 text-green-500 mr-1" />
+                        ) : null}
+                        <span
+                          className={`text-sm font-medium ${
+                            data.totalExpenses.trend === "down"
+                              ? "text-green-500"
+                              : data.totalExpenses.trend === "up"
+                              ? "text-red-500"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {data.totalExpenses.change > 0 ? "+" : ""}
+                          {data.totalExpenses.change}% vs Last Month
                         </span>
                       </div>
                     </div>
@@ -362,12 +499,25 @@ const Dashboard = () => {
                           isDarkMode ? "text-gray-100" : "text-gray-900"
                         }`}
                       >
-                        $78,458,798
+                        {formatCurrency(data.totalPaymentReturns.current)}
                       </p>
                       <div className="flex items-center mt-2">
-                        <IoMdTrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                        <span className="text-red-500 text-sm font-medium">
-                          -20% vs Last Month
+                        {data.totalPaymentReturns.trend === "down" ? (
+                          <IoMdTrendingDown className="w-4 h-4 text-green-500 mr-1" />
+                        ) : data.totalPaymentReturns.trend === "up" ? (
+                          <IoMdTrendingUp className="w-4 h-4 text-red-500 mr-1" />
+                        ) : null}
+                        <span
+                          className={`text-sm font-medium ${
+                            data.totalPaymentReturns.trend === "down"
+                              ? "text-green-500"
+                              : data.totalPaymentReturns.trend === "up"
+                              ? "text-red-500"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {data.totalPaymentReturns.change > 0 ? "+" : ""}
+                          {data.totalPaymentReturns.change}% vs Last Month
                         </span>
                       </div>
                     </div>
@@ -388,73 +538,34 @@ const Dashboard = () => {
 
               {/* Charts and Additional Info */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {/* Sales & Purchase Chart */}
-                <div
-                  className={`lg:col-span-2 p-6 rounded-xl shadow-md transition-colors duration-200 ${
-                    isDarkMode ? "bg-gray-800" : "bg-white"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <MdShoppingCart
-                        className={`w-5 h-5 transition-colors duration-200 ${
-                          isDarkMode ? "text-gray-300" : "text-gray-600"
-                        }`}
-                      />
-                      <h3
-                        className={`text-lg font-semibold transition-colors duration-200 ${
-                          isDarkMode ? "text-gray-100" : "text-gray-900"
-                        }`}
-                      >
-                        {getTranslation("salesPurchase", language)}
-                      </h3>
-                    </div>
-                    <div className="flex gap-2">
-                      {["1D", "1W", "1M", "3M", "6M", "1Y"].map((period) => (
-                        <button
-                          key={period}
-                          className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors duration-200 ${
-                            period === "1Y"
-                              ? "bg-orange-500 text-white"
-                              : isDarkMode
-                              ? "text-gray-400 hover:text-gray-200 hover:bg-gray-700"
-                              : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
-                          }`}
+                {/* Sales & Purchase Chart - 2/3 width */}
+                <div className="lg:col-span-2">
+                  {stats?.salesAndPurchaseByDay ? (
+                    <SalesPurchaseChart data={stats.salesAndPurchaseByDay} />
+                  ) : (
+                    <div
+                      className={`p-6 rounded-xl shadow-md transition-colors duration-200 ${
+                        isDarkMode ? "bg-gray-800" : "bg-white"
+                      }`}
+                    >
+                      <div className="h-64 flex items-center justify-center">
+                        <p
+                          className={
+                            isDarkMode ? "text-gray-400" : "text-gray-500"
+                          }
                         >
-                          {period}
-                        </button>
-                      ))}
+                          No chart data available
+                        </p>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Placeholder Chart */}
-                  <div
-                    className={`h-64 rounded-lg transition-colors duration-200 ${
-                      isDarkMode ? "bg-gray-700" : "bg-gray-100"
-                    } flex items-center justify-center`}
-                  >
-                    <div className="text-center">
-                      <IoMdAnalytics
-                        className={`w-12 h-12 mx-auto mb-2 transition-colors duration-200 ${
-                          isDarkMode ? "text-gray-500" : "text-gray-400"
-                        }`}
-                      />
-                      <p
-                        className={`text-sm transition-colors duration-200 ${
-                          isDarkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        Chart visualization coming soon
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Overall Information */}
-                <div className="space-y-6">
+                {/* Overall Information and Customer Overview - 1/3 width */}
+                <div className="flex flex-col gap-6 h-full">
                   {/* Overall Info Cards */}
                   <div
-                    className={`p-6 rounded-xl shadow-md transition-colors duration-200 ${
+                    className={`p-6 rounded-xl shadow-md transition-colors duration-200 flex-1 ${
                       isDarkMode ? "bg-gray-800" : "bg-white"
                     }`}
                   >
@@ -492,7 +603,7 @@ const Dashboard = () => {
                             isDarkMode ? "text-gray-100" : "text-gray-900"
                           }`}
                         >
-                          6987
+                          {data.overallInformation.suppliers}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -521,7 +632,7 @@ const Dashboard = () => {
                             isDarkMode ? "text-gray-100" : "text-gray-900"
                           }`}
                         >
-                          4896
+                          {data.overallInformation.customers}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -550,117 +661,39 @@ const Dashboard = () => {
                             isDarkMode ? "text-gray-100" : "text-gray-900"
                           }`}
                         >
-                          487
+                          {data.overallInformation.orders}
                         </span>
                       </div>
                     </div>
                   </div>
 
                   {/* Customers Overview */}
-                  <div
-                    className={`p-6 rounded-xl shadow-md transition-colors duration-200 ${
-                      isDarkMode ? "bg-gray-800" : "bg-white"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3
-                        className={`text-lg font-semibold transition-colors duration-200 ${
-                          isDarkMode ? "text-gray-100" : "text-gray-900"
+                  <div className="flex-1 flex flex-col">
+                    {stats?.customerOverviewByDay ? (
+                      <CustomerOverviewChart
+                        data={stats.customerOverviewByDay}
+                        firstTime={data.customerOverview.firstTime}
+                        firstTimeChange={data.customerOverview.firstTimeChange}
+                        returning={data.customerOverview.return}
+                        returningChange={data.customerOverview.returnChange}
+                      />
+                    ) : (
+                      <div
+                        className={`p-6 rounded-xl shadow-md transition-colors duration-200 h-full ${
+                          isDarkMode ? "bg-gray-800" : "bg-white"
                         }`}
                       >
-                        {getTranslation("customersOverview", language)}
-                      </h3>
-                      <select
-                        className={`text-sm px-2 py-1 rounded-lg transition-colors duration-200 ${
-                          isDarkMode
-                            ? "bg-gray-700 text-gray-300 border border-gray-600"
-                            : "bg-white text-gray-700 border border-gray-300"
-                        }`}
-                      >
-                        <option>Today</option>
-                        <option>This Week</option>
-                        <option>This Month</option>
-                      </select>
-                    </div>
-
-                    {/* Placeholder Chart */}
-                    <div
-                      className={`h-32 rounded-lg transition-colors duration-200 ${
-                        isDarkMode ? "bg-gray-700" : "bg-gray-100"
-                      } flex items-center justify-center mb-4`}
-                    >
-                      <div className="text-center">
-                        <IoMdAnalytics
-                          className={`w-8 h-8 mx-auto mb-1 transition-colors duration-200 ${
-                            isDarkMode ? "text-gray-500" : "text-gray-400"
-                          }`}
-                        />
-                        <p
-                          className={`text-xs transition-colors duration-200 ${
-                            isDarkMode ? "text-gray-400" : "text-gray-500"
-                          }`}
-                        >
-                          Chart
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-teal-500"></div>
-                          <span
-                            className={`text-sm font-medium transition-colors duration-200 ${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            }`}
+                        <div className="h-full flex items-center justify-center">
+                          <p
+                            className={
+                              isDarkMode ? "text-gray-400" : "text-gray-500"
+                            }
                           >
-                            {getTranslation("firstTime", language)}
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <span
-                            className={`text-lg font-bold transition-colors duration-200 ${
-                              isDarkMode ? "text-gray-100" : "text-gray-900"
-                            }`}
-                          >
-                            5.5K
-                          </span>
-                          <div className="flex items-center">
-                            <IoMdTrendingUp className="w-3 h-3 text-green-500 mr-1" />
-                            <span className="text-green-500 text-xs">
-                              K 25%
-                            </span>
-                          </div>
+                            No customer data available
+                          </p>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                          <span
-                            className={`text-sm font-medium transition-colors duration-200 ${
-                              isDarkMode ? "text-gray-300" : "text-gray-700"
-                            }`}
-                          >
-                            {getTranslation("return", language)}
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <span
-                            className={`text-lg font-bold transition-colors duration-200 ${
-                              isDarkMode ? "text-gray-100" : "text-gray-900"
-                            }`}
-                          >
-                            3.5K
-                          </span>
-                          <div className="flex items-center">
-                            <IoMdTrendingUp className="w-3 h-3 text-green-500 mr-1" />
-                            <span className="text-green-500 text-xs">
-                              K 21%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -668,16 +701,6 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-
-      {/* Login Modal Overlay - Show if not logged in */}
-      {!user && (
-        <>
-          <div className="fixed inset-0 bg-white/80 z-40"></div>
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <LoginPage />
-          </div>
-        </>
-      )}
     </>
   );
 };

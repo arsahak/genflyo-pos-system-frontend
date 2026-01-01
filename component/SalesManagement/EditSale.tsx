@@ -4,10 +4,12 @@ import { getSaleById, updateSale } from "@/app/actions/sales";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { EditSaleSkeleton } from "./components/EditSaleSkeleton";
 import {
   MdArrowBack,
   MdSave,
   MdCancel,
+  MdReceipt,
 } from "react-icons/md";
 
 interface EditSaleProps {
@@ -78,25 +80,35 @@ const EditSale = ({ saleId }: EditSaleProps) => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <EditSaleSkeleton isDarkMode={isDarkMode} />;
   }
 
   if (!sale) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-          Sale not found
-        </p>
+      <div className={`min-h-screen flex items-center justify-center p-6 ${
+        isDarkMode ? "bg-gray-950" : "bg-slate-50"
+      }`}>
+        <div className={`text-center p-8 rounded-2xl border ${
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}>
+          <MdReceipt className={`text-6xl mx-auto mb-4 ${
+            isDarkMode ? "text-gray-600" : "text-gray-400"
+          }`} />
+          <p className={`text-xl font-semibold ${
+            isDarkMode ? "text-gray-400" : "text-gray-600"
+          }`}>
+            Sale not found
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      isDarkMode ? "bg-gray-950" : "bg-slate-50"
+    }`}>
+      <div className="max-w-[1920px] mx-auto">
       {/* Header */}
       <div className="mb-6">
         <button
@@ -122,8 +134,8 @@ const EditSale = ({ saleId }: EditSaleProps) => {
 
       {/* Sale Information (Read-only) */}
       <div
-        className={`p-6 rounded-xl border-2 mb-6 ${
-          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        className={`p-6 rounded-2xl shadow-xl border mb-6 ${
+          isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
         }`}
       >
         <h2
@@ -164,8 +176,8 @@ const EditSale = ({ saleId }: EditSaleProps) => {
       {/* Edit Form */}
       <form onSubmit={handleSubmit}>
         <div
-          className={`p-6 rounded-xl border-2 mb-6 ${
-            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          className={`p-6 rounded-2xl shadow-xl border mb-6 ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
           <h2
@@ -191,11 +203,11 @@ const EditSale = ({ saleId }: EditSaleProps) => {
                 onChange={(e) =>
                   setFormData({ ...formData, status: e.target.value })
                 }
-                className={`w-full px-4 py-3 rounded-lg border-2 ${
+                className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                   isDarkMode
-                    ? "bg-gray-700 border-gray-600 text-gray-100"
-                    : "bg-gray-50 border-gray-300 text-gray-900"
-                }`}
+                    ? "bg-gray-700 border-gray-600 text-gray-100 hover:border-gray-500"
+                    : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                } focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none`}
                 required
               >
                 <option value="completed">Completed</option>
@@ -220,11 +232,11 @@ const EditSale = ({ saleId }: EditSaleProps) => {
                 }
                 rows={4}
                 placeholder="Add any notes about this sale..."
-                className={`w-full px-4 py-3 rounded-lg border-2 ${
+                className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                   isDarkMode
-                    ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
-                    : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
+                    ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500"
+                    : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 hover:border-gray-400"
+                } focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none`}
               />
             </div>
           </div>
@@ -235,10 +247,10 @@ const EditSale = ({ saleId }: EditSaleProps) => {
           <button
             type="button"
             onClick={() => router.back()}
-            className={`flex-1 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 ${
+            className={`flex-1 px-6 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 border-2 transition-all ${
               isDarkMode
-                ? "bg-gray-700 text-gray-100 hover:bg-gray-600"
-                : "bg-gray-200 text-gray-900 hover:bg-gray-300"
+                ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
+                : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200"
             }`}
           >
             <MdCancel />
@@ -247,7 +259,7 @@ const EditSale = ({ saleId }: EditSaleProps) => {
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 px-6 py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
           >
             {saving ? (
               <>
@@ -263,6 +275,7 @@ const EditSale = ({ saleId }: EditSaleProps) => {
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 };

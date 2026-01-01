@@ -2,9 +2,10 @@
 
 import { createUser } from "@/app/actions/users";
 import { useStore } from "@/lib/store";
+import { useSidebar } from "@/lib/SidebarContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { IoMdCamera, IoMdEye, IoMdEyeOff, IoMdPerson } from "react-icons/io";
 import {
@@ -13,12 +14,16 @@ import {
   MdSettings,
   MdStore,
   MdSupervisorAccount,
+  MdArrowBack,
 } from "react-icons/md";
+import { UserFormSkeleton } from "./components/UserFormSkeleton";
 
 export default function NewUserCreate() {
   const { user } = useStore();
+  const { isDarkMode } = useSidebar();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
@@ -98,23 +103,175 @@ export default function NewUserCreate() {
     }
   };
 
+  useEffect(() => {
+    if (!user) {
+      router.push("/");
+      return;
+    }
+    // Simulate initial data loading
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [user, router]);
+
   const getRoleDescription = (role: string) => {
     switch (role) {
       case "cashier":
-        return "Process transactions and handle payments";
-      case "seller":
-        return "Manage sales and customer interactions";
-      case "editor":
-        return "Edit content and manage products";
+        return "Process sales and handle transactions";
       case "manager":
-        return "Oversee operations and manage team";
+        return "Manage inventory and products";
       case "admin":
-        return "Full system access and user management";
-      case "super_admin":
-        return "Complete system control and configuration";
+        return "Full system access";
       default:
         return "Basic user access";
     }
+  };
+
+  // Get default permissions for each role
+  const getDefaultPermissions = (role: string) => {
+    const basePermissions = {
+      // POS & Sales
+      canViewSales: false,
+      canCreateSales: false,
+      canEditSales: false,
+      canDeleteSales: false,
+      canProcessRefunds: false,
+      canViewSalesReports: false,
+      // Products
+      canViewProducts: false,
+      canAddProducts: false,
+      canEditProducts: false,
+      canDeleteProducts: false,
+      canManageCategories: false,
+      canViewInventory: false,
+      canManageInventory: false,
+      canAdjustStock: false,
+      // Customers
+      canViewCustomers: false,
+      canAddCustomers: false,
+      canEditCustomers: false,
+      canDeleteCustomers: false,
+      canViewCustomerHistory: false,
+      // Users
+      canViewUsers: false,
+      canAddUsers: false,
+      canEditUsers: false,
+      canDeleteUsers: false,
+      canManageRoles: false,
+      // Stores
+      canViewStores: false,
+      canAddStores: false,
+      canEditStores: false,
+      canDeleteStores: false,
+      canManageStoreSettings: false,
+      // Reports
+      canViewReports: false,
+      canExportReports: false,
+      canViewAnalytics: false,
+      canViewDashboard: true,
+      // Settings
+      canManageSettings: false,
+      canManagePaymentMethods: false,
+      canManageTaxSettings: false,
+      canManageReceiptSettings: false,
+      canViewSystemLogs: false,
+    };
+
+    switch (role) {
+      case "cashier":
+        return {
+          ...basePermissions,
+          // Cashier gets POS/Sales permissions
+          canViewSales: true,
+          canCreateSales: true,
+          canViewProducts: true,
+          canViewCustomers: true,
+          canAddCustomers: true,
+          canViewDashboard: true,
+        };
+
+      case "manager":
+        return {
+          ...basePermissions,
+          // Manager gets cashier permissions + inventory/product management
+          canViewSales: true,
+          canCreateSales: true,
+          canEditSales: true,
+          canViewSalesReports: true,
+          canViewProducts: true,
+          canAddProducts: true,
+          canEditProducts: true,
+          canManageCategories: true,
+          canViewInventory: true,
+          canManageInventory: true,
+          canAdjustStock: true,
+          canViewCustomers: true,
+          canAddCustomers: true,
+          canEditCustomers: true,
+          canViewCustomerHistory: true,
+          canViewReports: true,
+          canViewAnalytics: true,
+          canViewDashboard: true,
+        };
+
+      case "admin":
+        // Admin gets all permissions
+        return {
+          ...basePermissions,
+          canViewSales: true,
+          canCreateSales: true,
+          canEditSales: true,
+          canDeleteSales: true,
+          canProcessRefunds: true,
+          canViewSalesReports: true,
+          canViewProducts: true,
+          canAddProducts: true,
+          canEditProducts: true,
+          canDeleteProducts: true,
+          canManageCategories: true,
+          canViewInventory: true,
+          canManageInventory: true,
+          canAdjustStock: true,
+          canViewCustomers: true,
+          canAddCustomers: true,
+          canEditCustomers: true,
+          canDeleteCustomers: true,
+          canViewCustomerHistory: true,
+          canViewUsers: true,
+          canAddUsers: true,
+          canEditUsers: true,
+          canDeleteUsers: true,
+          canManageRoles: true,
+          canViewStores: true,
+          canAddStores: true,
+          canEditStores: true,
+          canDeleteStores: true,
+          canManageStoreSettings: true,
+          canViewReports: true,
+          canExportReports: true,
+          canViewAnalytics: true,
+          canViewDashboard: true,
+          canManageSettings: true,
+          canManagePaymentMethods: true,
+          canManageTaxSettings: true,
+          canManageReceiptSettings: true,
+          canViewSystemLogs: true,
+        };
+
+      default:
+        return basePermissions;
+    }
+  };
+
+  // Handle role change and auto-set permissions
+  const handleRoleChange = (newRole: string) => {
+    const defaultPermissions = getDefaultPermissions(newRole);
+    setFormData({
+      ...formData,
+      role: newRole,
+      permissions: defaultPermissions,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -158,36 +315,50 @@ export default function NewUserCreate() {
   };
 
   if (!user) {
-    router.push("/");
     return null;
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Create New User</h1>
-          <p className="text-gray-500 mt-1">
+    <div
+      className={`min-h-screen p-6 transition-colors duration-300 font-sans ${
+        isDarkMode ? "bg-gray-950 text-gray-100" : "bg-slate-50 text-gray-900"
+      }`}
+    >
+      <div className="max-w-[1920px] mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.back()}
+            className={`flex items-center gap-2 mb-4 transition-colors ${
+              isDarkMode
+                ? "text-gray-400 hover:text-gray-300"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            <MdArrowBack className="text-xl" />
+            Back to Users
+          </button>
+          <h1
+            className={`text-3xl font-bold mb-2 ${
+              isDarkMode ? "text-gray-100" : "text-gray-900"
+            }`}
+          >
+            Create New User
+          </h1>
+          <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
             Add a new team member to your system
           </p>
         </div>
-        <Link
-          href="/users"
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-        >
-          <span>←</span>
-          <span>Back to Users</span>
-        </Link>
-      </div>
 
-      {/* Form Content */}
-      <form onSubmit={handleSubmit}>
+        {initialLoading ? (
+          <UserFormSkeleton isDarkMode={isDarkMode} />
+        ) : (
+          <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Basic Information */}
           <div className="lg:col-span-2 space-y-6">
             {/* Profile Image Section */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Profile Image
               </h3>
@@ -226,7 +397,7 @@ export default function NewUserCreate() {
         </div>
 
             {/* Basic Information */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <h3 className="text-lg font-semibold text-gray-900 mb-6">
                 Basic Information
               </h3>
@@ -300,7 +471,7 @@ export default function NewUserCreate() {
             </div>
 
             {/* Security Information */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <h3 className="text-lg font-semibold text-gray-900 mb-6">
                 Security Information
               </h3>
@@ -378,7 +549,7 @@ export default function NewUserCreate() {
           {/* Right Column - Role & Permissions */}
           <div className="space-y-6">
             {/* Role Selection */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <h3 className="text-lg font-semibold text-gray-900 mb-6">
                 Role & Access
               </h3>
@@ -391,16 +562,6 @@ export default function NewUserCreate() {
                     icon: <MdAttachMoney className="w-5 h-5" />,
                   },
                   {
-                    value: "seller",
-                    label: "Seller",
-                    icon: <MdStore className="w-5 h-5" />,
-                  },
-                  {
-                    value: "editor",
-                    label: "Editor",
-                    icon: <IoMdPerson className="w-5 h-5" />,
-                  },
-                  {
                     value: "manager",
                     label: "Manager",
                     icon: <MdSupervisorAccount className="w-5 h-5" />,
@@ -410,17 +571,16 @@ export default function NewUserCreate() {
                     label: "Admin",
                     icon: <MdAdminPanelSettings className="w-5 h-5" />,
                   },
-                  {
-                    value: "super_admin",
-                    label: "Super Admin",
-                    icon: <MdSettings className="w-5 h-5" />,
-                  },
                 ].map((role) => (
                   <label
                     key={role.value}
-                    className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
                       formData.role === role.value
-                        ? "border-indigo-500 bg-indigo-50"
+                        ? isDarkMode
+                          ? "border-indigo-500 bg-indigo-900/30"
+                          : "border-indigo-500 bg-indigo-50"
+                        : isDarkMode
+                        ? "border-gray-600 hover:border-gray-500"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
@@ -429,9 +589,7 @@ export default function NewUserCreate() {
                       name="role"
                       value={role.value}
                       checked={formData.role === role.value}
-              onChange={(e) =>
-                setFormData({ ...formData, role: e.target.value })
-              }
+              onChange={(e) => handleRoleChange(e.target.value)}
                       className="sr-only"
                     />
                     <div className="flex items-center space-x-3">
@@ -439,13 +597,15 @@ export default function NewUserCreate() {
                         className={`p-2 rounded-lg ${
                           formData.role === role.value
                             ? "bg-indigo-100 text-indigo-600"
+                            : isDarkMode
+                            ? "bg-gray-700 text-gray-400"
                             : "bg-gray-100 text-gray-600"
                         }`}
                       >
                         {role.icon}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className={`font-medium ${isDarkMode ? "text-gray-200" : "text-gray-900"}`}>
                           {role.label}
                         </div>
                         <div className="text-sm text-gray-500">
@@ -459,7 +619,7 @@ export default function NewUserCreate() {
             </div>
 
             {/* Permissions */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <MdSettings className="w-5 h-5 mr-2 text-indigo-600" />
                 Access Permissions
@@ -1009,7 +1169,7 @@ export default function NewUserCreate() {
           </div>
 
           {/* Action Buttons */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <div className="space-y-4">
             <button
               type="submit"
@@ -1046,17 +1206,23 @@ export default function NewUserCreate() {
               )}
             </button>
 
-                <Link
-                  href="/users"
-                  className="w-full px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-center font-semibold block"
-                >
-                  Cancel
-                </Link>
-              </div>
-            </div>
+            <Link
+              href="/users"
+              className={`w-full px-6 py-3 border-2 rounded-xl transition-colors text-center font-semibold block ${
+                isDarkMode
+                  ? "border-gray-600 hover:bg-gray-700 text-gray-200"
+                  : "border-gray-300 hover:bg-gray-50 text-gray-900"
+              }`}
+            >
+              Cancel
+            </Link>
           </div>
-          </div>
-        </form>
+        </div>
+      </div>
+    </div>
+  </form>
+        )}
+      </div>
     </div>
   );
 }

@@ -77,11 +77,8 @@ interface CartItem {
 
 interface Store {
   user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   cart: CartItem[];
   setUser: (user: User | null) => void;
-  setTokens: (accessToken: string, refreshToken: string) => void;
   clearAuth: () => void;
   hasPermission: (permission: keyof Permissions) => boolean;
   addToCart: (item: CartItem) => void;
@@ -91,26 +88,23 @@ interface Store {
   getCartTotal: () => number;
 }
 
+/**
+ * Zustand store for application state
+ *
+ * NOTE: Authentication is now handled by Auth.js (NextAuth)
+ * This store only manages user info and cart state
+ * Tokens are managed by Auth.js session cookies
+ */
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
       user: null,
-      accessToken: null,
-      refreshToken: null,
       cart: [],
 
       setUser: (user) => set({ user }),
 
-      setTokens: (accessToken, refreshToken) =>
-        set({ accessToken, refreshToken }),
-
       clearAuth: () => {
-        // Clear tokens from localStorage
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
-        }
-        set({ user: null, accessToken: null, refreshToken: null, cart: [] });
+        set({ user: null, cart: [] });
       },
 
       hasPermission: (permission: keyof Permissions) => {
@@ -153,8 +147,6 @@ export const useStore = create<Store>()(
       name: "pos-storage",
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
       }),
     }
   )

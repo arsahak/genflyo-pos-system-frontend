@@ -17,6 +17,7 @@ import {
   MdCheckCircle,
   MdCancel,
 } from "react-icons/md";
+import { StoresListSkeleton } from "./components/StoresListSkeleton";
 
 interface Store {
   _id: string;
@@ -108,122 +109,110 @@ const StoresList = () => {
     return colors[type] || "bg-gray-900/30 text-gray-400 border-gray-800";
   };
 
+  if (loading) {
+    return <StoresListSkeleton isDarkMode={isDarkMode} />;
+  }
+
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h1
-              className={`text-3xl font-bold mb-2 ${
-                isDarkMode ? "text-gray-100" : "text-gray-900"
-              }`}
-            >
-              Store Management
-            </h1>
-            <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-              Manage your store locations and settings
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={fetchStores}
-              className="px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700 flex items-center gap-2"
-            >
-              <MdRefresh />
-              Refresh
-            </button>
-            <button
-              onClick={() => router.push("/stores/add")}
-              className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 flex items-center gap-2"
-            >
-              <MdAdd />
-              Add Store
-            </button>
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      isDarkMode ? "bg-gray-950" : "bg-slate-50"
+    }`}>
+      <div className="max-w-[1920px] mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1
+                className={`text-3xl font-bold mb-2 ${
+                  isDarkMode ? "text-gray-100" : "text-gray-900"
+                }`}
+              >
+                Store Management
+              </h1>
+              <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+                Manage your store locations and settings
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={fetchStores}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:from-gray-700 hover:to-gray-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
+              >
+                <MdRefresh />
+                Refresh
+              </button>
+              <button
+                onClick={() => router.push("/stores/add")}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
+              >
+                <MdAdd />
+                Add Store
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Summary Card */}
-      <div
-        className={`p-6 rounded-lg border-2 mb-6 ${
-          isDarkMode
-            ? "bg-gradient-to-r from-indigo-900/30 to-purple-900/30 border-indigo-800"
-            : "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div>
+        {/* Summary Card - Gradient Stat Card */}
+        <div className="relative overflow-hidden p-6 rounded-2xl transition-all duration-300 bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/30 text-white mb-6">
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium mb-1 text-green-100 opacity-90">
+                Total Active Stores
+              </p>
+              <h3 className="text-3xl font-bold text-white">
+                {stores.length}
+              </h3>
+            </div>
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <MdStore className="text-2xl" />
+            </div>
+          </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+        </div>
+
+        {/* Stores Grid */}
+        {stores.length === 0 ? (
+          <div
+            className={`text-center py-12 rounded-2xl shadow-xl border ${
+              isDarkMode
+                ? "bg-gray-800 border-gray-700 shadow-gray-900/20"
+                : "bg-white border-gray-100 shadow-slate-200/50"
+            }`}
+          >
+            <MdStore className="text-6xl text-gray-400 mx-auto mb-4" />
             <p
-              className={`text-sm ${
+              className={`text-xl font-semibold mb-2 ${
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
+              No stores found
+            </p>
+            <p
+              className={`mb-4 ${
                 isDarkMode ? "text-gray-400" : "text-gray-600"
               }`}
             >
-              Total Active Stores
+              Add your first store to get started
             </p>
-            <p
-              className={`text-4xl font-bold ${
-                isDarkMode ? "text-indigo-400" : "text-indigo-600"
-              }`}
+            <button
+              onClick={() => router.push("/stores/add")}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-2 font-medium"
             >
-              {stores.length}
-            </p>
+              <MdAdd />
+              Add First Store
+            </button>
           </div>
-          <MdStore
-            className={`text-6xl ${
-              isDarkMode ? "text-indigo-400/50" : "text-indigo-300"
-            }`}
-          />
-        </div>
-      </div>
-
-      {/* Stores Grid */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-        </div>
-      ) : stores.length === 0 ? (
-        <div
-          className={`text-center py-12 rounded-lg border-2 ${
-            isDarkMode
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-200"
-          }`}
-        >
-          <MdStore className="text-6xl text-gray-400 mx-auto mb-4" />
-          <p
-            className={`text-xl font-semibold mb-2 ${
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
-            No stores found
-          </p>
-          <p
-            className={`mb-4 ${
-              isDarkMode ? "text-gray-400" : "text-gray-600"
-            }`}
-          >
-            Add your first store to get started
-          </p>
-          <button
-            onClick={() => router.push("/stores/add")}
-            className="px-6 py-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-2"
-          >
-            <MdAdd />
-            Add First Store
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stores.map((store) => (
-            <div
-              key={store._id}
-              className={`rounded-lg border-2 overflow-hidden transition-all hover:shadow-lg ${
-                isDarkMode
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-200"
-              }`}
-            >
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stores.map((store) => (
+              <div
+                key={store._id}
+                className={`rounded-2xl shadow-xl border overflow-hidden transition-all hover:shadow-2xl ${
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700 shadow-gray-900/20"
+                    : "bg-white border-gray-100 shadow-slate-200/50"
+                }`}
+              >
               {/* Store Header */}
               <div
                 className={`p-4 border-b ${
@@ -364,87 +353,88 @@ const StoresList = () => {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div
-                className={`p-4 border-t flex gap-2 ${
-                  isDarkMode
-                    ? "bg-gray-750 border-gray-700"
-                    : "bg-gray-50 border-gray-200"
-                }`}
-              >
-                <button
-                  onClick={() => router.push(`/stores/settings/${store._id}`)}
-                  className="flex-1 px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 flex items-center justify-center gap-2 text-sm"
-                >
-                  <MdSettings />
-                  Settings
-                </button>
-                <button
-                  onClick={() => router.push(`/stores/settings/${store._id}`)}
-                  className="px-3 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700"
-                  title="Edit"
-                >
-                  <MdEdit />
-                </button>
-                <button
-                  onClick={() => setDeleteConfirm(store._id)}
-                  className="px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
-                  title="Delete"
-                >
-                  <MdDelete />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div
-            className={`max-w-md w-full rounded-xl shadow-2xl ${
-              isDarkMode ? "bg-gray-800" : "bg-white"
-            }`}
-          >
-            <div className="p-6">
-              <h2
-                className={`text-2xl font-bold mb-4 ${
-                  isDarkMode ? "text-gray-100" : "text-gray-900"
-                }`}
-              >
-                Delete Store?
-              </h2>
-              <p
-                className={`mb-6 ${
-                  isDarkMode ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Are you sure you want to delete this store? This action will
-                deactivate the store and it won't be available for operations.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeleteConfirm(null)}
-                  className={`flex-1 px-4 py-2 rounded-lg ${
+                {/* Action Buttons */}
+                <div
+                  className={`p-4 border-t flex gap-2 ${
                     isDarkMode
-                      ? "bg-gray-700 text-gray-100 hover:bg-gray-600"
-                      : "bg-gray-200 text-gray-900 hover:bg-gray-300"
+                      ? "bg-gray-750 border-gray-700"
+                      : "bg-gray-50 border-gray-200"
                   }`}
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleDelete(deleteConfirm)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  <button
+                    onClick={() => router.push(`/stores/settings/${store._id}`)}
+                    className="flex-1 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm font-medium"
+                  >
+                    <MdSettings />
+                    Settings
+                  </button>
+                  <button
+                    onClick={() => router.push(`/stores/settings/${store._id}`)}
+                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:from-gray-700 hover:to-gray-800 transition-all shadow-lg hover:shadow-xl"
+                    title="Edit"
+                  >
+                    <MdEdit />
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirm(store._id)}
+                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl"
+                    title="Delete"
+                  >
+                    <MdDelete />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div
+              className={`max-w-md w-full rounded-2xl shadow-2xl ${
+                isDarkMode ? "bg-gray-800" : "bg-white"
+              }`}
+            >
+              <div className="p-6">
+                <h2
+                  className={`text-2xl font-bold mb-4 ${
+                    isDarkMode ? "text-gray-100" : "text-gray-900"
+                  }`}
                 >
-                  Delete
-                </button>
+                  Delete Store?
+                </h2>
+                <p
+                  className={`mb-6 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Are you sure you want to delete this store? This action will
+                  deactivate the store and it won't be available for operations.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    className={`flex-1 px-4 py-3 rounded-xl font-semibold border-2 transition-all ${
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
+                        : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200"
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirm)}
+                    className="flex-1 px-4 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

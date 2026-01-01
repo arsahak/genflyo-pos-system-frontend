@@ -2,6 +2,7 @@
 
 import { getUserById, updateUser } from "@/app/actions/users";
 import { useStore } from "@/lib/store";
+import { useSidebar } from "@/lib/SidebarContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -9,11 +10,13 @@ import toast from "react-hot-toast";
 import { IoMdCamera, IoMdEye, IoMdEyeOff, IoMdPerson } from "react-icons/io";
 import {
     MdAdminPanelSettings,
+    MdArrowBack,
     MdAttachMoney,
     MdSettings,
     MdStore,
     MdSupervisorAccount,
 } from "react-icons/md";
+import { UserFormSkeleton } from "./components/UserFormSkeleton";
 
 interface UserEditProps {
   userId: string;
@@ -21,9 +24,11 @@ interface UserEditProps {
 
 export default function UserEdit({ userId }: UserEditProps) {
   const { user } = useStore();
+  const { isDarkMode } = useSidebar();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
@@ -97,6 +102,12 @@ export default function UserEdit({ userId }: UserEditProps) {
       return;
     }
     loadUser();
+
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [userId, user, router]);
 
   const loadUser = async () => {
@@ -149,20 +160,157 @@ export default function UserEdit({ userId }: UserEditProps) {
   const getRoleDescription = (role: string) => {
     switch (role) {
       case "cashier":
-        return "Process transactions and handle payments";
-      case "seller":
-        return "Manage sales and customer interactions";
-      case "editor":
-        return "Edit content and manage products";
+        return "Process sales and handle transactions";
       case "manager":
-        return "Oversee operations and manage team";
+        return "Manage inventory and products";
       case "admin":
-        return "Full system access and user management";
-      case "super_admin":
-        return "Complete system control and configuration";
+        return "Full system access";
       default:
         return "Basic user access";
     }
+  };
+
+  // Get default permissions based on role
+  const getDefaultPermissions = (role: string) => {
+    const basePermissions = {
+      // POS & Sales
+      canViewSales: false,
+      canCreateSales: false,
+      canEditSales: false,
+      canDeleteSales: false,
+      canProcessRefunds: false,
+      canViewSalesReports: false,
+      // Products
+      canViewProducts: false,
+      canAddProducts: false,
+      canEditProducts: false,
+      canDeleteProducts: false,
+      canManageCategories: false,
+      canViewInventory: false,
+      canManageInventory: false,
+      canAdjustStock: false,
+      // Customers
+      canViewCustomers: false,
+      canAddCustomers: false,
+      canEditCustomers: false,
+      canDeleteCustomers: false,
+      canViewCustomerHistory: false,
+      // Users
+      canViewUsers: false,
+      canAddUsers: false,
+      canEditUsers: false,
+      canDeleteUsers: false,
+      canManageRoles: false,
+      // Stores
+      canViewStores: false,
+      canAddStores: false,
+      canEditStores: false,
+      canDeleteStores: false,
+      canManageStoreSettings: false,
+      // Reports
+      canViewReports: false,
+      canExportReports: false,
+      canViewAnalytics: false,
+      canViewDashboard: true,
+      // Settings
+      canManageSettings: false,
+      canManagePaymentMethods: false,
+      canManageTaxSettings: false,
+      canManageReceiptSettings: false,
+      canViewSystemLogs: false,
+    };
+
+    switch (role) {
+      case "cashier":
+        return {
+          ...basePermissions,
+          canViewSales: true,
+          canCreateSales: true,
+          canViewProducts: true,
+          canViewCustomers: true,
+          canAddCustomers: true,
+          canViewDashboard: true,
+        };
+
+      case "manager":
+        return {
+          ...basePermissions,
+          canViewSales: true,
+          canCreateSales: true,
+          canEditSales: true,
+          canViewSalesReports: true,
+          canViewProducts: true,
+          canAddProducts: true,
+          canEditProducts: true,
+          canManageCategories: true,
+          canViewInventory: true,
+          canManageInventory: true,
+          canAdjustStock: true,
+          canViewCustomers: true,
+          canAddCustomers: true,
+          canEditCustomers: true,
+          canViewCustomerHistory: true,
+          canViewReports: true,
+          canViewAnalytics: true,
+          canViewDashboard: true,
+        };
+
+      case "admin":
+        return {
+          ...basePermissions,
+          canViewSales: true,
+          canCreateSales: true,
+          canEditSales: true,
+          canDeleteSales: true,
+          canProcessRefunds: true,
+          canViewSalesReports: true,
+          canViewProducts: true,
+          canAddProducts: true,
+          canEditProducts: true,
+          canDeleteProducts: true,
+          canManageCategories: true,
+          canViewInventory: true,
+          canManageInventory: true,
+          canAdjustStock: true,
+          canViewCustomers: true,
+          canAddCustomers: true,
+          canEditCustomers: true,
+          canDeleteCustomers: true,
+          canViewCustomerHistory: true,
+          canViewUsers: true,
+          canAddUsers: true,
+          canEditUsers: true,
+          canDeleteUsers: true,
+          canManageRoles: true,
+          canViewStores: true,
+          canAddStores: true,
+          canEditStores: true,
+          canDeleteStores: true,
+          canManageStoreSettings: true,
+          canViewReports: true,
+          canExportReports: true,
+          canViewAnalytics: true,
+          canViewDashboard: true,
+          canManageSettings: true,
+          canManagePaymentMethods: true,
+          canManageTaxSettings: true,
+          canManageReceiptSettings: true,
+          canViewSystemLogs: true,
+        };
+
+      default:
+        return basePermissions;
+    }
+  };
+
+  // Handle role change and auto-assign permissions
+  const handleRoleChange = (newRole: string) => {
+    const defaultPermissions = getDefaultPermissions(newRole);
+    setFormData({
+      ...formData,
+      role: newRole,
+      permissions: defaultPermissions,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -217,49 +365,46 @@ export default function UserEdit({ userId }: UserEditProps) {
     return null;
   }
 
-  if (fetching) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading user data...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Edit User</h1>
-          <p className="text-gray-500 mt-1">
-            Update user information and permissions
-          </p>
-        </div>
-        <Link
-          href="/users"
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-        >
-          <span>←</span>
-          <span>Back to Users</span>
-        </Link>
-      </div>
+    <div className={`min-h-screen p-6 transition-colors duration-300 font-sans ${
+      isDarkMode ? "bg-gray-950 text-gray-100" : "bg-slate-50 text-gray-900"
+    }`}>
+      {initialLoading || fetching ? (
+        <UserFormSkeleton isDarkMode={isDarkMode} />
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className={`text-3xl font-bold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+                Edit User
+              </h1>
+              <p className={`mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                Update user information and permissions
+              </p>
+            </div>
+            <Link
+              href="/users"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-2xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+            >
+              <MdArrowBack className="w-5 h-5" />
+              <span>Back to Users</span>
+            </Link>
+          </div>
 
-      {/* Form Content */}
-      <form onSubmit={handleSubmit}>
+          {/* Form Content */}
+          <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Basic Information */}
           <div className="lg:col-span-2 space-y-6">
             {/* Profile Image Section */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+              <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
                 Profile Image
               </h3>
               <div className="flex items-center space-x-6">
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                  <div className={`w-24 h-24 rounded-full flex items-center justify-center overflow-hidden ${isDarkMode ? "bg-gray-700" : "bg-gray-100"}`}>
                     {imagePreview ? (
                       <img
                         src={imagePreview}
@@ -267,7 +412,7 @@ export default function UserEdit({ userId }: UserEditProps) {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <IoMdPerson className="w-12 h-12 text-gray-400" />
+                      <IoMdPerson className={`w-12 h-12 ${isDarkMode ? "text-gray-500" : "text-gray-400"}`} />
                     )}
                   </div>
                   <label className="absolute bottom-0 right-0 bg-indigo-600 text-white rounded-full p-2 cursor-pointer hover:bg-indigo-700 transition-colors">
@@ -281,10 +426,10 @@ export default function UserEdit({ userId }: UserEditProps) {
                   </label>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-2">
+                  <p className={`text-sm mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
                     Upload a profile picture
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                     JPG, PNG or GIF (max 5MB)
                   </p>
                 </div>
@@ -292,14 +437,14 @@ export default function UserEdit({ userId }: UserEditProps) {
             </div>
 
             {/* Basic Information */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+              <h3 className={`text-lg font-semibold mb-6 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
                 Basic Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Name Field */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -310,13 +455,17 @@ export default function UserEdit({ userId }: UserEditProps) {
                     }
                     required
                     placeholder="Enter full name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                    }`}
                   />
                 </div>
 
                 {/* Email Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                     Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -327,13 +476,17 @@ export default function UserEdit({ userId }: UserEditProps) {
                     }
                     required
                     placeholder="user@example.com"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                    }`}
                   />
                 </div>
 
                 {/* Phone Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                     Phone Number
                   </label>
                   <input
@@ -343,13 +496,17 @@ export default function UserEdit({ userId }: UserEditProps) {
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     placeholder="+1 (555) 123-4567"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                    }`}
                   />
                 </div>
 
                 {/* Address Field */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                     Address
                   </label>
                   <textarea
@@ -359,24 +516,28 @@ export default function UserEdit({ userId }: UserEditProps) {
                     }
                     placeholder="Enter full address"
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none ${
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                    }`}
                   />
                 </div>
               </div>
             </div>
 
             {/* Security Information */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+              <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
                 Change Password
               </h3>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className={`text-sm mb-6 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                 Leave blank to keep current password
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Password Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                     New Password
                   </label>
                   <div className="relative">
@@ -388,12 +549,18 @@ export default function UserEdit({ userId }: UserEditProps) {
                       }
                       minLength={6}
                       placeholder="Minimum 6 characters"
-                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      className={`w-full px-4 py-3 pr-12 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                        isDarkMode
+                          ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                      }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                        isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-400 hover:text-gray-600"
+                      }`}
                     >
                       {showPassword ? (
                         <IoMdEyeOff className="w-5 h-5" />
@@ -406,7 +573,7 @@ export default function UserEdit({ userId }: UserEditProps) {
 
                 {/* Confirm Password Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                     Confirm New Password
                   </label>
                   <div className="relative">
@@ -421,14 +588,20 @@ export default function UserEdit({ userId }: UserEditProps) {
                       }
                       minLength={6}
                       placeholder="Re-enter password"
-                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      className={`w-full px-4 py-3 pr-12 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                        isDarkMode
+                          ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                      }`}
                     />
                     <button
                       type="button"
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                        isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-400 hover:text-gray-600"
+                      }`}
                     >
                       {showConfirmPassword ? (
                         <IoMdEyeOff className="w-5 h-5" />
@@ -445,8 +618,8 @@ export default function UserEdit({ userId }: UserEditProps) {
           {/* Right Column - Role & Permissions */}
           <div className="space-y-6">
             {/* Role Selection */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+              <h3 className={`text-lg font-semibold mb-6 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
                 Role & Access
               </h3>
 
@@ -458,16 +631,6 @@ export default function UserEdit({ userId }: UserEditProps) {
                     icon: <MdAttachMoney className="w-5 h-5" />,
                   },
                   {
-                    value: "seller",
-                    label: "Seller",
-                    icon: <MdStore className="w-5 h-5" />,
-                  },
-                  {
-                    value: "editor",
-                    label: "Editor",
-                    icon: <IoMdPerson className="w-5 h-5" />,
-                  },
-                  {
                     value: "manager",
                     label: "Manager",
                     icon: <MdSupervisorAccount className="w-5 h-5" />,
@@ -477,17 +640,16 @@ export default function UserEdit({ userId }: UserEditProps) {
                     label: "Admin",
                     icon: <MdAdminPanelSettings className="w-5 h-5" />,
                   },
-                  {
-                    value: "super_admin",
-                    label: "Super Admin",
-                    icon: <MdSettings className="w-5 h-5" />,
-                  },
                 ].map((role) => (
                   <label
                     key={role.value}
-                    className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
                       formData.role === role.value
-                        ? "border-indigo-500 bg-indigo-50"
+                        ? isDarkMode
+                          ? "border-indigo-500 bg-indigo-900/30"
+                          : "border-indigo-500 bg-indigo-50"
+                        : isDarkMode
+                        ? "border-gray-600 hover:border-gray-500"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
@@ -496,9 +658,7 @@ export default function UserEdit({ userId }: UserEditProps) {
                       name="role"
                       value={role.value}
                       checked={formData.role === role.value}
-                      onChange={(e) =>
-                        setFormData({ ...formData, role: e.target.value })
-                      }
+                      onChange={(e) => handleRoleChange(e.target.value)}
                       className="sr-only"
                     />
                     <div className="flex items-center space-x-3">
@@ -506,16 +666,18 @@ export default function UserEdit({ userId }: UserEditProps) {
                         className={`p-2 rounded-lg ${
                           formData.role === role.value
                             ? "bg-indigo-100 text-indigo-600"
+                            : isDarkMode
+                            ? "bg-gray-700 text-gray-400"
                             : "bg-gray-100 text-gray-600"
                         }`}
                       >
                         {role.icon}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className={`font-medium ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
                           {role.label}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                           {getRoleDescription(role.value)}
                         </div>
                       </div>
@@ -526,12 +688,12 @@ export default function UserEdit({ userId }: UserEditProps) {
             </div>
 
             {/* Permissions - Same as NewUserCreate component */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+              <h3 className={`text-lg font-semibold mb-6 flex items-center ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
                 <MdSettings className="w-5 h-5 mr-2 text-indigo-600" />
                 Access Permissions
               </h3>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className={`text-sm mb-6 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                 Configure user access rights for different modules
               </p>
 
@@ -1029,12 +1191,12 @@ export default function UserEdit({ userId }: UserEditProps) {
             </div>
 
             {/* Action Buttons */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <div className="space-y-4">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center">
@@ -1067,7 +1229,11 @@ export default function UserEdit({ userId }: UserEditProps) {
 
                 <Link
                   href="/users"
-                  className="w-full px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-center font-semibold block"
+                  className={`w-full px-6 py-3 border-2 rounded-xl transition-colors text-center font-semibold block ${
+                    isDarkMode
+                      ? "border-gray-600 hover:bg-gray-700 text-gray-300"
+                      : "border-gray-300 hover:bg-gray-50 text-gray-900"
+                  }`}
                 >
                   Cancel
                 </Link>
@@ -1076,6 +1242,8 @@ export default function UserEdit({ userId }: UserEditProps) {
           </div>
         </div>
       </form>
+        </>
+      )}
     </div>
   );
 }

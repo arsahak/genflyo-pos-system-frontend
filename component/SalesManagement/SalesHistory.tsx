@@ -214,7 +214,10 @@ const SalesHistory = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      isDarkMode ? "bg-gray-950" : "bg-slate-50"
+    }`}>
+      <div className="max-w-[1920px] mx-auto">
       {/* Header */}
       <div className="mb-6">
         <h1
@@ -231,125 +234,81 @@ const SalesHistory = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div
-          className={`p-4 rounded-2xl shadow-sm ${
-            isDarkMode
-              ? "bg-gray-800 shadow-lg shadow-gray-900/20"
-              : "bg-white shadow-xl shadow-slate-200/50"
-          }`}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden p-5 rounded-2xl transition-all duration-300 bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30 text-white">
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
+              <p className="text-sm font-medium mb-1 text-blue-100 opacity-90">
                 Total Sales
               </p>
-              <p
-                className={`text-2xl font-bold ${
-                  isDarkMode ? "text-blue-400" : "text-blue-600"
-                }`}
-              >
+              <h3 className="text-2xl font-bold text-white">
                 {stats.totalSales}
-              </p>
+              </h3>
             </div>
-            <MdShoppingCart className="text-4xl text-blue-500" />
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <MdShoppingCart className="text-2xl" />
+            </div>
           </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
         </div>
 
-        <div
-          className={`p-4 rounded-2xl shadow-sm ${
-            isDarkMode
-              ? "bg-gray-800 shadow-lg shadow-gray-900/20"
-              : "bg-white shadow-xl shadow-slate-200/50"
-          }`}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden p-5 rounded-2xl transition-all duration-300 bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/30 text-white">
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
+              <p className="text-sm font-medium mb-1 text-green-100 opacity-90">
                 Total Revenue
               </p>
-              <p
-                className={`text-2xl font-bold ${
-                  isDarkMode ? "text-green-400" : "text-green-600"
-                }`}
-              >
+              <h3 className="text-2xl font-bold text-white">
                 ${stats.totalRevenue.toFixed(2)}
-              </p>
+              </h3>
             </div>
-            <MdAttachMoney className="text-4xl text-green-500" />
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <MdAttachMoney className="text-2xl" />
+            </div>
           </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
         </div>
 
-        <div
-          className={`p-4 rounded-2xl shadow-sm ${
-            isDarkMode
-              ? "bg-gray-800 shadow-lg shadow-gray-900/20"
-              : "bg-white shadow-xl shadow-slate-200/50"
-          }`}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden p-5 rounded-2xl transition-all duration-300 bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/30 text-white">
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
+              <p className="text-sm font-medium mb-1 text-orange-100 opacity-90">
                 Total Discount
               </p>
-              <p
-                className={`text-2xl font-bold ${
-                  isDarkMode ? "text-orange-400" : "text-orange-600"
-                }`}
-              >
+              <h3 className="text-2xl font-bold text-white">
                 ${stats.totalDiscount.toFixed(2)}
-              </p>
+              </h3>
             </div>
-            <MdAttachMoney className="text-4xl text-orange-500" />
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <MdAttachMoney className="text-2xl" />
+            </div>
           </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
         </div>
 
-        <div
-          className={`p-4 rounded-2xl shadow-sm ${
-            isDarkMode
-              ? "bg-gray-800 shadow-lg shadow-gray-900/20"
-              : "bg-white shadow-xl shadow-slate-200/50"
-          }`}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden p-5 rounded-2xl transition-all duration-300 bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/30 text-white">
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
+              <p className="text-sm font-medium mb-1 text-purple-100 opacity-90">
                 Completed
               </p>
-              <p
-                className={`text-2xl font-bold ${
-                  isDarkMode ? "text-purple-400" : "text-purple-600"
-                }`}
-              >
+              <h3 className="text-2xl font-bold text-white">
                 {stats.completedSales}
-              </p>
+              </h3>
             </div>
-            <MdCheckCircle className="text-4xl text-purple-500" />
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <MdCheckCircle className="text-2xl" />
+            </div>
           </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
         </div>
       </div>
 
       {/* Filters & Search */}
       <div
-        className={`p-6 rounded-2xl shadow-sm mb-6 ${
+        className={`p-4 rounded-2xl border mb-6 shadow-sm ${
           isDarkMode
-            ? "bg-gray-800 shadow-lg shadow-gray-900/20"
-            : "bg-white shadow-xl shadow-slate-200/50"
+            ? "bg-gray-800 border-gray-700"
+            : "bg-white border-gray-200"
         }`}
       >
         <div className="flex flex-wrap items-center gap-3">
@@ -424,7 +383,7 @@ const SalesHistory = () => {
               fetchSalesHistory();
               fetchStats();
             }}
-            className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium"
           >
             <MdRefresh />
             Refresh
@@ -432,7 +391,7 @@ const SalesHistory = () => {
 
           <button
             onClick={exportToCSV}
-            className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-green-600 text-white hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium"
           >
             <MdFileDownload />
             Export
@@ -486,10 +445,10 @@ const SalesHistory = () => {
 
       {/* Sales Table */}
       <div
-        className={`rounded-2xl shadow-sm overflow-hidden ${
+        className={`rounded-2xl overflow-hidden shadow-xl border ${
           isDarkMode
-            ? "bg-gray-800 shadow-lg shadow-gray-900/20"
-            : "bg-white shadow-xl shadow-slate-200/50"
+            ? "bg-gray-800 border-gray-700 shadow-gray-900/20"
+            : "bg-white border-gray-100 shadow-slate-200/50"
         }`}
       >
         <div className="overflow-x-auto">
@@ -687,6 +646,7 @@ const SalesHistory = () => {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

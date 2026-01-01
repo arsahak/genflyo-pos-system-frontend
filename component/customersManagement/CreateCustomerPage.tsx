@@ -6,6 +6,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import {
   MdArrowBack,
+  MdCancel,
   MdEmail,
   MdLocationOn,
   MdPerson,
@@ -84,35 +85,40 @@ const CreateCustomerPage = () => {
 
   return (
     <div
-      className={`min-h-screen p-6 ${
-        isDarkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
+      className={`min-h-screen p-6 transition-colors duration-300 ${
+        isDarkMode ? "bg-gray-950" : "bg-slate-50"
       }`}
     >
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => router.push("/customers")}
-          className={`flex items-center gap-2 mb-4 ${
-            isDarkMode
-              ? "text-gray-400 hover:text-white"
-              : "text-gray-600 hover:text-gray-900"
-          } transition-colors`}
-        >
-          <MdArrowBack className="text-xl" />
-          Back to Customers
-        </button>
-        <h1 className="text-3xl font-bold">Create New Customer</h1>
-        <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-          Add a new customer to your database
-        </p>
-      </div>
+      <div className="max-w-[1920px] mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.push("/customers")}
+            className={`flex items-center gap-2 mb-4 transition-colors ${
+              isDarkMode
+                ? "text-gray-400 hover:text-gray-300"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            <MdArrowBack className="text-xl" />
+            Back to Customers
+          </button>
+          <h1 className={`text-3xl font-bold mb-2 ${
+            isDarkMode ? "text-gray-100" : "text-gray-900"
+          }`}>
+            Create New Customer
+          </h1>
+          <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+            Add a new customer to your database
+          </p>
+        </div>
 
-      {/* Form */}
-      <div
-        className={`rounded-lg shadow max-w-4xl ${
-          isDarkMode ? "bg-gray-800" : "bg-white"
-        }`}
-      >
+        {/* Form */}
+        <div
+          className={`rounded-2xl shadow-xl border max-w-4xl ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
+          }`}
+        >
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-6">
             {/* Basic Information Section */}
@@ -136,11 +142,11 @@ const CreateCustomerPage = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
-                      className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-colors ${
                         isDarkMode
-                          ? "bg-gray-700 border-gray-600 text-white"
-                          : "bg-white border-gray-300 text-gray-900"
-                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                          ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                          : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                       placeholder="Enter customer name"
                       required
                     />
@@ -164,11 +170,11 @@ const CreateCustomerPage = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
                       }
-                      className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-colors ${
                         isDarkMode
-                          ? "bg-gray-700 border-gray-600 text-white"
-                          : "bg-white border-gray-300 text-gray-900"
-                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                          ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                          : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                       placeholder="Enter phone number"
                       required
                     />
@@ -192,11 +198,11 @@ const CreateCustomerPage = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, email: e.target.value })
                       }
-                      className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-colors ${
                         isDarkMode
-                          ? "bg-gray-700 border-gray-600 text-white"
-                          : "bg-white border-gray-300 text-gray-900"
-                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                          ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                          : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                       placeholder="customer@example.com"
                     />
                   </div>
@@ -215,11 +221,11 @@ const CreateCustomerPage = () => {
                         membershipType: e.target.value as "none" | "regular" | "silver" | "gold" | "platinum",
                       })
                     }
-                    className={`w-full px-4 py-3 rounded-lg border ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   >
                     <option value="none">No Membership</option>
                     <option value="regular">Regular (0% discount)</option>
@@ -248,11 +254,11 @@ const CreateCustomerPage = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, street: e.target.value })
                     }
-                    className={`w-full px-4 py-3 rounded-lg border ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                     placeholder="Street address"
                   />
                 </div>
@@ -265,11 +271,11 @@ const CreateCustomerPage = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, city: e.target.value })
                     }
-                    className={`w-full px-4 py-3 rounded-lg border ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                     placeholder="City"
                   />
                 </div>
@@ -282,11 +288,11 @@ const CreateCustomerPage = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, state: e.target.value })
                     }
-                    className={`w-full px-4 py-3 rounded-lg border ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                     placeholder="State"
                   />
                 </div>
@@ -301,11 +307,11 @@ const CreateCustomerPage = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, zipCode: e.target.value })
                     }
-                    className={`w-full px-4 py-3 rounded-lg border ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                     placeholder="ZIP Code"
                   />
                 </div>
@@ -320,11 +326,11 @@ const CreateCustomerPage = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, country: e.target.value })
                     }
-                    className={`w-full px-4 py-3 rounded-lg border ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300 text-gray-900"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                     placeholder="Country"
                   />
                 </div>
@@ -342,34 +348,35 @@ const CreateCustomerPage = () => {
                   setFormData({ ...formData, notes: e.target.value })
                 }
                 rows={4}
-                className={`w-full px-4 py-3 rounded-lg border ${
+                className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                   isDarkMode
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-white border-gray-300 text-gray-900"
-                } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 hover:border-gray-500"
+                    : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 hover:border-gray-400"
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                 placeholder="Additional notes about this customer..."
               />
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 mt-8 pt-6 border-t border-gray-300 dark:border-gray-600">
+          <div className="flex gap-4 mt-8 pt-6 border-t border-gray-600">
             <button
               type="button"
               onClick={() => router.push("/customers")}
               disabled={isSubmitting}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold ${
+              className={`flex-1 py-3 px-6 rounded-xl font-semibold border-2 transition-all flex items-center justify-center gap-2 ${
                 isDarkMode
-                  ? "bg-gray-700 text-white hover:bg-gray-600"
-                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-              } transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                  ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
+                  : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
+              <MdCancel />
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-3 px-6 rounded-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 py-3 px-6 rounded-xl font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -385,6 +392,7 @@ const CreateCustomerPage = () => {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

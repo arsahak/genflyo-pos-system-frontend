@@ -16,6 +16,7 @@ import {
   MdPhone,
   MdStar,
 } from "react-icons/md";
+import { ViewCustomerSkeleton } from "./components/ViewCustomerSkeleton";
 
 interface Customer {
   _id: string;
@@ -175,18 +176,7 @@ const ViewCustomerPage = ({ customerId }: ViewCustomerPageProps) => {
   };
 
   if (isLoading) {
-    return (
-      <div
-        className={`min-h-screen flex items-center justify-center ${
-          isDarkMode ? "bg-gray-900" : "bg-gray-50"
-        }`}
-      >
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-500">Loading customer data...</p>
-        </div>
-      </div>
-    );
+    return <ViewCustomerSkeleton isDarkMode={isDarkMode} />;
   }
 
   if (!customer) {
@@ -195,84 +185,81 @@ const ViewCustomerPage = ({ customerId }: ViewCustomerPageProps) => {
 
   return (
     <div
-      className={`min-h-screen p-6 ${
-        isDarkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
+      className={`min-h-screen p-6 transition-colors duration-300 ${
+        isDarkMode ? "bg-gray-950" : "bg-slate-50"
       }`}
     >
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => router.push("/customers")}
-          className={`flex items-center gap-2 mb-4 ${
-            isDarkMode
-              ? "text-gray-400 hover:text-white"
-              : "text-gray-600 hover:text-gray-900"
-          } transition-colors`}
-        >
-          <MdArrowBack className="text-xl" />
-          Back to Customers
-        </button>
+      <div className="max-w-[1920px] mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.push("/customers")}
+            className={`flex items-center gap-2 mb-4 transition-colors ${
+              isDarkMode
+                ? "text-gray-400 hover:text-gray-300"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            <MdArrowBack className="text-xl" />
+            Back to Customers
+          </button>
 
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">{customer.name}</h1>
-            <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-              Customer Details
-            </p>
-          </div>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className={`text-3xl font-bold mb-2 ${
+                isDarkMode ? "text-gray-100" : "text-gray-900"
+              }`}>
+                {customer.name}
+              </h1>
+              <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+                Customer Details
+              </p>
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push(`/customers/edit-customer/${customer._id}`)}
-              className={`px-4 py-2 rounded-lg ${
-                isDarkMode
-                  ? "bg-blue-900 text-blue-200 hover:bg-blue-800"
-                  : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-              } transition-colors flex items-center gap-2`}
-            >
-              <MdEdit />
-              Edit
-            </button>
-            <button
-              onClick={handleToggleBlock}
-              className={`px-4 py-2 rounded-lg ${
-                customer.isActive
-                  ? isDarkMode
-                    ? "bg-orange-900 text-orange-200 hover:bg-orange-800"
-                    : "bg-orange-100 text-orange-800 hover:bg-orange-200"
-                  : isDarkMode
-                  ? "bg-green-900 text-green-200 hover:bg-green-800"
-                  : "bg-green-100 text-green-800 hover:bg-green-200"
-              } transition-colors flex items-center gap-2`}
-            >
-              {customer.isActive ? <MdBlock /> : <MdLockOpen />}
-              {customer.isActive ? "Block" : "Unblock"}
-            </button>
-            <button
-              onClick={handleDelete}
-              className={`px-4 py-2 rounded-lg ${
-                isDarkMode
-                  ? "bg-red-900 text-red-200 hover:bg-red-800"
-                  : "bg-red-100 text-red-800 hover:bg-red-200"
-              } transition-colors flex items-center gap-2`}
-            >
-              <MdDelete />
-              Delete
-            </button>
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => router.push(`/customers/edit-customer/${customer._id}`)}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
+              >
+                <MdEdit />
+                Edit
+              </button>
+              <button
+                onClick={handleToggleBlock}
+                className={`px-6 py-3 rounded-xl ${
+                  customer.isActive
+                    ? "bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
+                    : "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                } text-white transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium`}
+              >
+                {customer.isActive ? <MdBlock /> : <MdLockOpen />}
+                {customer.isActive ? "Block" : "Unblock"}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
+              >
+                <MdDelete />
+                Delete
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Customer Information */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Info Card */}
-        <div
-          className={`lg:col-span-2 rounded-lg shadow p-6 ${
-            isDarkMode ? "bg-gray-800" : "bg-white"
-          }`}
-        >
-          <h2 className="text-xl font-semibold mb-4">Customer Information</h2>
+        {/* Customer Information */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Info Card */}
+          <div
+            className={`lg:col-span-2 rounded-2xl shadow-xl border p-6 ${
+              isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
+            }`}
+          >
+            <h2 className={`text-xl font-semibold mb-4 ${
+              isDarkMode ? "text-gray-100" : "text-gray-900"
+            }`}>
+              Customer Information
+            </h2>
 
           <div className="space-y-4">
             {/* Status */}
@@ -377,77 +364,100 @@ const ViewCustomerPage = ({ customerId }: ViewCustomerPageProps) => {
           </div>
         </div>
 
-        {/* Stats Card */}
-        <div className="space-y-6">
-          {/* Membership Card */}
-          <div
-            className={`rounded-lg shadow p-6 ${
-              isDarkMode ? "bg-gray-800" : "bg-white"
-            }`}
-          >
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <MdStar className="text-yellow-500" />
-              Membership
-            </h2>
+          {/* Stats Card */}
+          <div className="space-y-6">
+            {/* Membership Card */}
+            <div
+              className={`rounded-2xl shadow-xl border p-6 ${
+                isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
+              }`}
+            >
+              <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${
+                isDarkMode ? "text-gray-100" : "text-gray-900"
+              }`}>
+                <MdStar className="text-yellow-500" />
+                Membership
+              </h2>
 
-            <div className="space-y-4">
-              <div className="text-center">
-                <span
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-lg font-semibold ${getMembershipColor(
-                    customer.membershipType
-                  )}`}
-                >
-                  <MdStar />
-                  {customer.membershipType.charAt(0).toUpperCase() +
-                    customer.membershipType.slice(1)}
-                </span>
-              </div>
-
-              <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-500">
-                  {customer.loyaltyPoints}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <span
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-lg font-semibold ${getMembershipColor(
+                      customer.membershipType
+                    )}`}
+                  >
+                    <MdStar />
+                    {customer.membershipType.charAt(0).toUpperCase() +
+                      customer.membershipType.slice(1)}
+                  </span>
                 </div>
-                <div className="text-sm text-gray-500">Loyalty Points</div>
-              </div>
-            </div>
-          </div>
 
-          {/* Statistics Card */}
-          <div
-            className={`rounded-lg shadow p-6 ${
-              isDarkMode ? "bg-gray-800" : "bg-white"
-            }`}
-          >
-            <h2 className="text-xl font-semibold mb-4">Statistics</h2>
-
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm text-gray-500">Total Spent</div>
-                <div className="text-2xl font-bold text-green-500">
-                  ${customer.totalSpent.toFixed(2)}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm text-gray-500">Total Visits</div>
-                <div className="text-2xl font-bold">
-                  {customer.visitCount}
-                </div>
-              </div>
-
-              {customer.lastVisit && (
-                <div>
-                  <div className="text-sm text-gray-500">Last Visit</div>
-                  <div className="font-medium">
-                    {new Date(customer.lastVisit).toLocaleDateString()}
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-yellow-500">
+                    {customer.loyaltyPoints}
+                  </div>
+                  <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    Loyalty Points
                   </div>
                 </div>
-              )}
+              </div>
+            </div>
 
-              <div>
-                <div className="text-sm text-gray-500">Member Since</div>
-                <div className="font-medium">
-                  {new Date(customer.createdAt).toLocaleDateString()}
+            {/* Statistics Card */}
+            <div
+              className={`rounded-2xl shadow-xl border p-6 ${
+                isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
+              }`}
+            >
+              <h2 className={`text-xl font-semibold mb-4 ${
+                isDarkMode ? "text-gray-100" : "text-gray-900"
+              }`}>
+                Statistics
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    Total Spent
+                  </div>
+                  <div className="text-2xl font-bold text-green-500">
+                    ${customer.totalSpent.toFixed(2)}
+                  </div>
+                </div>
+
+                <div>
+                  <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    Total Visits
+                  </div>
+                  <div className={`text-2xl font-bold ${
+                    isDarkMode ? "text-gray-100" : "text-gray-900"
+                  }`}>
+                    {customer.visitCount}
+                  </div>
+                </div>
+
+                {customer.lastVisit && (
+                  <div>
+                    <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                      Last Visit
+                    </div>
+                    <div className={`font-medium ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                      {new Date(customer.lastVisit).toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    Member Since
+                  </div>
+                  <div className={`font-medium ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    {new Date(customer.createdAt).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
             </div>

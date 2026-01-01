@@ -12,6 +12,7 @@ import {
   MdPhone,
   MdEmail,
   MdSettings,
+  MdCancel,
 } from "react-icons/md";
 
 const AddStore = () => {
@@ -29,8 +30,8 @@ const AddStore = () => {
     country: "",
     phone: "",
     email: "",
-    timezone: "UTC",
-    currency: "USD",
+    timezone: "Asia/Dhaka",
+    currency: "BDT",
     locale: "",
     receiptHeader: "",
     receiptFooter: "",
@@ -92,44 +93,47 @@ const AddStore = () => {
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => router.back()}
-          className={`flex items-center gap-2 mb-4 ${
-            isDarkMode
-              ? "text-gray-400 hover:text-gray-300"
-              : "text-gray-600 hover:text-gray-800"
-          }`}
-        >
-          <MdArrowBack className="text-xl" />
-          Back to Stores
-        </button>
-        <h1
-          className={`text-3xl font-bold mb-2 ${
-            isDarkMode ? "text-gray-100" : "text-gray-900"
-          }`}
-        >
-          Add New Store
-        </h1>
-        <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-          Create a new store location
-        </p>
-      </div>
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      isDarkMode ? "bg-gray-950" : "bg-slate-50"
+    }`}>
+      <div className="max-w-[1920px] mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.back()}
+            className={`flex items-center gap-2 mb-4 ${
+              isDarkMode
+                ? "text-gray-400 hover:text-gray-300"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            <MdArrowBack className="text-xl" />
+            Back to Stores
+          </button>
+          <h1
+            className={`text-3xl font-bold mb-2 ${
+              isDarkMode ? "text-gray-100" : "text-gray-900"
+            }`}
+          >
+            Add New Store
+          </h1>
+          <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+            Create a new store location
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Form */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information */}
-            <div
-              className={`rounded-lg border-2 p-6 ${
-                isDarkMode
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-200"
-              }`}
-            >
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Form */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Basic Information */}
+              <div
+                className={`rounded-2xl shadow-xl border p-6 ${
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700 shadow-gray-900/20"
+                    : "bg-white border-gray-100 shadow-slate-200/50"
+                }`}
+              >
               <div className="flex items-center gap-2 mb-4">
                 <MdStore className="text-2xl text-indigo-500" />
                 <h2
@@ -157,11 +161,11 @@ const AddStore = () => {
                     onChange={handleChange}
                     required
                     placeholder="Main Store"
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   />
                 </div>
 
@@ -179,11 +183,11 @@ const AddStore = () => {
                     value={formData.code}
                     onChange={handleChange}
                     placeholder="MAIN-001"
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   />
                 </div>
 
@@ -200,11 +204,11 @@ const AddStore = () => {
                     value={formData.type}
                     onChange={handleChange}
                     required
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   >
                     <option value="supershop">Supershop</option>
                     <option value="pharmacy">Pharmacy</option>
@@ -215,14 +219,14 @@ const AddStore = () => {
               </div>
             </div>
 
-            {/* Address Information */}
-            <div
-              className={`rounded-lg border-2 p-6 ${
-                isDarkMode
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-200"
-              }`}
-            >
+              {/* Address Information */}
+              <div
+                className={`rounded-2xl shadow-xl border p-6 ${
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700 shadow-gray-900/20"
+                    : "bg-white border-gray-100 shadow-slate-200/50"
+                }`}
+              >
               <div className="flex items-center gap-2 mb-4">
                 <MdLocationOn className="text-2xl text-green-500" />
                 <h2
@@ -249,11 +253,11 @@ const AddStore = () => {
                     value={formData.street}
                     onChange={handleChange}
                     placeholder="123 Main Street"
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   />
                 </div>
 
@@ -351,14 +355,14 @@ const AddStore = () => {
               </div>
             </div>
 
-            {/* Contact Information */}
-            <div
-              className={`rounded-lg border-2 p-6 ${
-                isDarkMode
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-200"
-              }`}
-            >
+              {/* Contact Information */}
+              <div
+                className={`rounded-2xl shadow-xl border p-6 ${
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700 shadow-gray-900/20"
+                    : "bg-white border-gray-100 shadow-slate-200/50"
+                }`}
+              >
               <div className="flex items-center gap-2 mb-4">
                 <MdPhone className="text-2xl text-blue-500" />
                 <h2
@@ -385,11 +389,11 @@ const AddStore = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="+1 (555) 123-4567"
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   />
                 </div>
 
@@ -407,27 +411,27 @@ const AddStore = () => {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="store@example.com"
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Sidebar - Settings */}
-          <div className="space-y-6">
-            {/* Store Settings */}
-            <div
-              className={`rounded-lg border-2 p-6 ${
-                isDarkMode
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-200"
-              }`}
-            >
+            {/* Sidebar - Settings */}
+            <div className="space-y-6">
+              {/* Store Settings */}
+              <div
+                className={`rounded-2xl shadow-xl border p-6 ${
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700 shadow-gray-900/20"
+                    : "bg-white border-gray-100 shadow-slate-200/50"
+                }`}
+              >
               <div className="flex items-center gap-2 mb-4">
                 <MdSettings className="text-2xl text-purple-500" />
                 <h2
@@ -452,12 +456,13 @@ const AddStore = () => {
                     name="currency"
                     value={formData.currency}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   >
+                    <option value="BDT">BDT (৳)</option>
                     <option value="USD">USD ($)</option>
                     <option value="EUR">EUR (€)</option>
                     <option value="GBP">GBP (£)</option>
@@ -478,12 +483,13 @@ const AddStore = () => {
                     name="timezone"
                     value={formData.timezone}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   >
+                    <option value="Asia/Dhaka">Bangladesh Time (GMT+6)</option>
                     <option value="UTC">UTC</option>
                     <option value="America/New_York">Eastern Time</option>
                     <option value="America/Chicago">Central Time</option>
@@ -508,24 +514,24 @@ const AddStore = () => {
                     value={formData.locale}
                     onChange={handleChange}
                     placeholder="en-US"
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Receipt Settings */}
-            <div
-              className={`rounded-lg border-2 p-6 ${
-                isDarkMode
-                  ? "bg-gray-800 border-gray-700"
-                  : "bg-white border-gray-200"
-              }`}
-            >
+              {/* Receipt Settings */}
+              <div
+                className={`rounded-2xl shadow-xl border p-6 ${
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700 shadow-gray-900/20"
+                    : "bg-white border-gray-100 shadow-slate-200/50"
+                }`}
+              >
               <div className="flex items-center gap-2 mb-4">
                 <MdEmail className="text-2xl text-orange-500" />
                 <h2
@@ -552,11 +558,11 @@ const AddStore = () => {
                     onChange={handleChange}
                     placeholder="Welcome to Our Store!"
                     rows={2}
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   />
                 </div>
 
@@ -574,37 +580,52 @@ const AddStore = () => {
                     onChange={handleChange}
                     placeholder="Thank you for your business!"
                     rows={2}
-                    className={`w-full px-4 py-2 rounded-lg border-2 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
                       isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-300 text-gray-900"
-                    }`}
+                        ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                        : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full px-6 py-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <MdSave />
-                  Create Store
-                </>
-              )}
-            </button>
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className={`flex-1 py-3 px-6 rounded-xl font-semibold border-2 transition-all flex items-center justify-center gap-2 ${
+                    isDarkMode
+                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
+                      : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <MdCancel />
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 py-3 px-6 rounded-xl font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <MdSave className="text-xl" />
+                      Create Store
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

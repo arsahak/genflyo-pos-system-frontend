@@ -17,6 +17,7 @@ import {
   MdStar,
   MdVisibility,
 } from "react-icons/md";
+import { CustomersListSkeleton } from "./components/CustomersListSkeleton";
 
 interface Customer {
   _id: string;
@@ -185,146 +186,149 @@ const CustomersDetials = () => {
     }
   };
 
+  if (isLoading) {
+    return <CustomersListSkeleton isDarkMode={isDarkMode} />;
+  }
+
   return (
     <div
-      className={`min-h-screen p-6 ${
-        isDarkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
+      className={`min-h-screen p-6 transition-colors duration-300 ${
+        isDarkMode ? "bg-gray-950" : "bg-slate-50"
       }`}
     >
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Customer Management</h1>
-        <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-          Manage your customers, memberships, and loyalty programs
-        </p>
-      </div>
+      <div className="max-w-[1920px] mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className={`text-3xl font-bold mb-2 ${
+            isDarkMode ? "text-gray-100" : "text-gray-900"
+          }`}>
+            Customer Management
+          </h1>
+          <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+            Manage your customers, memberships, and loyalty programs
+          </p>
+        </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Stats Cards with Gradients */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Total Customers */}
+          <div className="relative overflow-hidden p-6 rounded-2xl transition-all duration-300 bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30 text-white">
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium mb-1 text-blue-100 opacity-90">
+                  Total Customers
+                </p>
+                <h3 className="text-3xl font-bold text-white">
+                  {customers.length}
+                </h3>
+              </div>
+              <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+                <MdPerson className="text-2xl" />
+              </div>
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+          </div>
+
+          {/* Active Customers */}
+          <div className="relative overflow-hidden p-6 rounded-2xl transition-all duration-300 bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/30 text-white">
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium mb-1 text-green-100 opacity-90">
+                  Active Customers
+                </p>
+                <h3 className="text-3xl font-bold text-white">
+                  {customers.filter((c) => c.isActive).length}
+                </h3>
+              </div>
+              <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+                <MdLockOpen className="text-2xl" />
+              </div>
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+          </div>
+
+          {/* Platinum Members */}
+          <div className="relative overflow-hidden p-6 rounded-2xl transition-all duration-300 bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/30 text-white">
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium mb-1 text-purple-100 opacity-90">
+                  Platinum Members
+                </p>
+                <h3 className="text-3xl font-bold text-white">
+                  {customers.filter((c) => c.membershipType === "platinum").length}
+                </h3>
+              </div>
+              <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+                <MdStar className="text-2xl" />
+              </div>
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+          </div>
+
+          {/* Blocked Customers */}
+          <div className="relative overflow-hidden p-6 rounded-2xl transition-all duration-300 bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/30 text-white">
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium mb-1 text-red-100 opacity-90">
+                  Blocked Customers
+                </p>
+                <h3 className="text-3xl font-bold text-white">
+                  {customers.filter((c) => !c.isActive).length}
+                </h3>
+              </div>
+              <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+                <MdBlock className="text-2xl" />
+              </div>
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+          </div>
+        </div>
+
+        {/* Search and Add */}
         <div
-          className={`p-4 rounded-lg shadow ${
-            isDarkMode ? "bg-gray-800" : "bg-white"
+          className={`p-6 rounded-2xl shadow-xl border mb-6 ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-                Total Customers
-              </p>
-              <p className="text-2xl font-bold">{customers.length}</p>
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            {/* Search */}
+            <div className="relative flex-1 w-full">
+              <MdSearch
+                className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-xl ${
+                  isDarkMode ? "text-gray-400" : "text-gray-500"
+                }`}
+              />
+              <input
+                type="text"
+                placeholder="Search by name, phone, or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-colors ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white hover:border-gray-500"
+                    : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none`}
+              />
             </div>
-            <MdPerson className="text-4xl text-blue-500" />
+
+            {/* Add Button */}
+            <button
+              onClick={() => router.push("/customers/create-customer")}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl whitespace-nowrap font-medium"
+            >
+              <MdAdd className="text-xl" />
+              Add Customer
+            </button>
           </div>
         </div>
 
+        {/* Customer List */}
         <div
-          className={`p-4 rounded-lg shadow ${
-            isDarkMode ? "bg-gray-800" : "bg-white"
+          className={`rounded-2xl shadow-xl border overflow-hidden ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-                Active Customers
-              </p>
-              <p className="text-2xl font-bold">
-                {customers.filter((c) => c.isActive).length}
-              </p>
-            </div>
-            <MdLockOpen className="text-4xl text-green-500" />
-          </div>
-        </div>
-
-        <div
-          className={`p-4 rounded-lg shadow ${
-            isDarkMode ? "bg-gray-800" : "bg-white"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-                Platinum Members
-              </p>
-              <p className="text-2xl font-bold">
-                {
-                  customers.filter((c) => c.membershipType === "platinum")
-                    .length
-                }
-              </p>
-            </div>
-            <MdStar className="text-4xl text-purple-500" />
-          </div>
-        </div>
-
-        <div
-          className={`p-4 rounded-lg shadow ${
-            isDarkMode ? "bg-gray-800" : "bg-white"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-                Blocked Customers
-              </p>
-              <p className="text-2xl font-bold">
-                {customers.filter((c) => !c.isActive).length}
-              </p>
-            </div>
-            <MdBlock className="text-4xl text-red-500" />
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Add */}
-      <div
-        className={`p-4 rounded-lg shadow mb-6 ${
-          isDarkMode ? "bg-gray-800" : "bg-white"
-        }`}
-      >
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          {/* Search */}
-          <div className="relative flex-1 w-full">
-            <MdSearch
-              className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-xl ${
-                isDarkMode ? "text-gray-400" : "text-gray-500"
-              }`}
-            />
-            <input
-              type="text"
-              placeholder="Search by name, phone, or email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-white border-gray-300 text-gray-900"
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            />
-          </div>
-
-          {/* Add Button */}
-          <button
-            onClick={() => router.push("/customers/create-customer")}
-            className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg whitespace-nowrap"
-          >
-            <MdAdd className="text-xl" />
-            Add Customer
-          </button>
-        </div>
-      </div>
-
-      {/* Customer List */}
-      <div
-        className={`rounded-lg shadow overflow-hidden ${
-          isDarkMode ? "bg-gray-800" : "bg-white"
-        }`}
-      >
-        {isLoading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-500">Loading customers...</p>
-          </div>
-        ) : filteredCustomers.length === 0 ? (
+          {filteredCustomers.length === 0 ? (
           <div className="p-8 text-center">
             <MdPerson className="text-6xl text-gray-400 mx-auto mb-4" />
             <p className="text-xl font-semibold mb-2">No customers found</p>
@@ -335,36 +339,48 @@ const CustomersDetials = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead
-                className={
-                  isDarkMode
-                    ? "bg-gray-700 border-b border-gray-600"
-                    : "bg-gray-50 border-b border-gray-200"
-                }
-              >
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Membership
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Stats
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead
+                  className={`${
+                    isDarkMode
+                      ? "bg-gray-700/50 border-b border-gray-600"
+                      : "bg-gray-50 border-b border-gray-200"
+                  }`}
+                >
+                  <tr>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                      Customer
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                      Contact
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                      Membership
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                      Stats
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                      Status
+                    </th>
+                    <th className={`px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
               <tbody
                 className={
                   isDarkMode
@@ -567,10 +583,11 @@ const CustomersDetials = () => {
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

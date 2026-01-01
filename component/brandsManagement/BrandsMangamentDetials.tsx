@@ -18,7 +18,7 @@ import {
   updateBrand,
   deleteBrand,
   initializeDefaultBrands as initDefaults,
-} from "@/app/products/brands/actions";
+} from "@/app/(page)/products/brands/actions";
 
 // Default Bangladeshi Pharmacy Brands
 const DEFAULT_BRANDS = [

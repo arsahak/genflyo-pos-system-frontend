@@ -3,7 +3,7 @@
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSidebar } from "@/lib/SidebarContext";
 import { getTranslation } from "@/lib/translations";
-import { useSession } from "next-auth/react";
+
 import React, { useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import {
@@ -11,18 +11,27 @@ import {
   IoMdLogOut,
   IoMdMenu,
   IoMdNotifications,
-  IoMdPerson,
   IoMdSearch,
   IoMdSettings,
 } from "react-icons/io";
 
+interface User {
+  id?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  profileImage?: string;
+}
+
 interface TopbarMainProps {
+  user: User | null;
   userSignOutHandle: () => Promise<void>;
 }
 
-export default function TopbarMain({ userSignOutHandle }: TopbarMainProps) {
-  const { data: session } = useSession();
-  const user = session?.user;
+export default function TopbarMain({
+  user,
+  userSignOutHandle,
+}: TopbarMainProps) {
   const { isOpen, isMobile, isDarkMode } = useSidebar();
   const { language, setLanguage } = useLanguage();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -151,7 +160,7 @@ export default function TopbarMain({ userSignOutHandle }: TopbarMainProps) {
             </button>
 
             {/* Language Dropdown Menu */}
-            {showLanguageMenu && (
+            {/* {showLanguageMenu && (
               <div
                 className={`absolute right-0 mt-2 w-32 rounded-lg shadow-lg border py-2 z-60 ${
                   isDarkMode
@@ -188,7 +197,7 @@ export default function TopbarMain({ userSignOutHandle }: TopbarMainProps) {
                   🇧🇩 বাংলা
                 </button>
               </div>
-            )}
+            )} */}
           </div>
 
           {/* Notifications */}
@@ -266,19 +275,35 @@ export default function TopbarMain({ userSignOutHandle }: TopbarMainProps) {
                 }`}
               >
                 {/* User Info */}
-                <div className={`px-4 py-3 border-b ${isDarkMode ? "border-gray-700" : "border-gray-100"}`}>
-                  <p className={`text-sm font-semibold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+                <div
+                  className={`px-4 py-3 border-b ${
+                    isDarkMode ? "border-gray-700" : "border-gray-100"
+                  }`}
+                >
+                  <p
+                    className={`text-sm font-semibold ${
+                      isDarkMode ? "text-gray-100" : "text-gray-900"
+                    }`}
+                  >
                     {user.name}
                   </p>
-                  <p className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  <p
+                    className={`text-xs ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
                     {user.email}
                   </p>
-                  <p className={`text-xs capitalize mt-1 ${isDarkMode ? "text-blue-400" : "text-blue-600"}`}>
+                  <p
+                    className={`text-xs capitalize mt-1 ${
+                      isDarkMode ? "text-blue-400" : "text-blue-600"
+                    }`}
+                  >
                     {user.role}
                   </p>
                 </div>
 
-                <div className="py-1">
+                {/* <div className="py-1">
                   <button
                     onClick={() => {
                       setShowProfileMenu(false);
@@ -307,7 +332,7 @@ export default function TopbarMain({ userSignOutHandle }: TopbarMainProps) {
                     <IoMdSettings className="w-4 h-4" />
                     {getTranslation("settings", language)}
                   </button>
-                </div>
+                </div> */}
 
                 <hr
                   className={`my-1 ${
@@ -327,7 +352,8 @@ export default function TopbarMain({ userSignOutHandle }: TopbarMainProps) {
                   >
                     <IoMdLogOut className="w-4 h-4" />
                     {isPending
-                      ? getTranslation("signingOut", language) || "Signing out..."
+                      ? getTranslation("signingOut", language) ||
+                        "Signing out..."
                       : getTranslation("logout", language)}
                   </button>
                 </div>

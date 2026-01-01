@@ -1,6 +1,6 @@
 "use server";
 
-import { signIn, signOut } from "@/auth";
+import { auth, signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -207,5 +207,19 @@ export async function userSignUp(formData: FormData): Promise<{
           : "An unexpected error occurred. Please try again.",
       ok: false,
     };
+  }
+}
+
+
+/**
+ * Get the current session (server action for client components)
+ */
+export async function getCurrentSession() {
+  try {
+    const session = await auth();
+    return session;
+  } catch (error) {
+    console.error("Error getting session:", error);
+    return null;
   }
 }

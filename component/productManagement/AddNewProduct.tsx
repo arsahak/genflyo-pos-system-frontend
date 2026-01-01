@@ -55,6 +55,8 @@ export default function AddNewProduct() {
   const [mainCategories, setMainCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState<string>("");
 
   // --- Image States ---
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
@@ -115,8 +117,6 @@ export default function AddNewProduct() {
 
     // Meta
     description: "",
-    supplierName: "",
-    supplierPhone: "",
     isFeatured: false,
   });
 
@@ -144,13 +144,15 @@ export default function AddNewProduct() {
     }));
   }, [formData.openingStockBoxes, formData.conversionFactor]);
 
-  // 3. Load Categories and Brands
+  // 3. Load Categories, Brands, and Suppliers
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [categoriesRes, brandsRes] = await Promise.all([
+        const { getAllSuppliers } = await import("@/app/actions/suppliers");
+        const [categoriesRes, brandsRes, suppliersRes] = await Promise.all([
           getAllCategories({ limit: 100 }),
-          getAllBrands({ limit: 1000, isActive: true })
+          getAllBrands({ limit: 1000, isActive: true }),
+          getAllSuppliers({ limit: 1000, isActive: true })
         ]);
 
         if (categoriesRes.success && categoriesRes.data?.categories) {
@@ -162,6 +164,10 @@ export default function AddNewProduct() {
 
         if (brandsRes.success && brandsRes.data?.brands) {
           setBrands(brandsRes.data.brands);
+        }
+
+        if (suppliersRes.success && suppliersRes.data) {
+          setSuppliers(suppliersRes.data);
         }
       } catch (e) {
         toast.error("Failed to load data");
@@ -217,6 +223,10 @@ export default function AddNewProduct() {
         subCategoryId: cat._id,
       }));
     }
+  };
+
+  const handleSupplierChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedSupplier(e.target.value);
   };
 
   const handleMainImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,12 +330,9 @@ export default function AddNewProduct() {
         data.append("location", JSON.stringify(locationObj));
       }
 
-      // Supplier
-      if (formData.supplierName || formData.supplierPhone) {
-        const supplierObj: { name?: string; phone?: string } = {};
-        if (formData.supplierName) supplierObj.name = formData.supplierName;
-        if (formData.supplierPhone) supplierObj.phone = formData.supplierPhone;
-        data.append("supplier", JSON.stringify(supplierObj));
+      // Supplier - Send as array with single ID
+      if (selectedSupplier) {
+        data.append("suppliers", JSON.stringify([selectedSupplier]));
       }
 
       // Status
@@ -557,6 +564,31 @@ export default function AddNewProduct() {
                       {brands.map((brand) => (
                         <option key={brand._id} value={brand.name}>
                           {brand.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1.5 ${
+                        isDarkMode ? "text-gray-300" : "text-slate-700"
+                      }`}
+                    >
+                      Supplier
+                    </label>
+                    <select
+                      value={selectedSupplier}
+                      onChange={handleSupplierChange}
+                      className={`w-full h-11 px-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white"
+                          : "bg-white border-slate-300 text-slate-900"
+                      }`}
+                    >
+                      <option value="">Select Supplier (Optional)</option>
+                      {suppliers.map((supplier) => (
+                        <option key={supplier._id} value={supplier._id}>
+                          {supplier.company}
                         </option>
                       ))}
                     </select>
@@ -1392,48 +1424,6 @@ export default function AddNewProduct() {
                 </div>
               </div>
 
-              {/* 4. Supplier */}
-              <div
-                className={`rounded-2xl shadow-sm border p-5 ${
-                  isDarkMode
-                    ? "bg-gray-900 border-gray-800"
-                    : "bg-white border-slate-200"
-                }`}
-              >
-                <h3
-                  className={`font-bold mb-4 text-sm uppercase tracking-wide ${
-                    isDarkMode ? "text-gray-300" : "text-slate-800"
-                  }`}
-                >
-                  Supplier
-                </h3>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    name="supplierName"
-                    value={formData.supplierName}
-                    onChange={handleChange}
-                    className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                      isDarkMode
-                        ? "bg-gray-800 border-gray-700 text-white"
-                        : "bg-white border-slate-300 text-slate-900"
-                    }`}
-                    placeholder="Supplier Name"
-                  />
-                  <input
-                    type="text"
-                    name="supplierPhone"
-                    value={formData.supplierPhone}
-                    onChange={handleChange}
-                    className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                      isDarkMode
-                        ? "bg-gray-800 border-gray-700 text-white"
-                        : "bg-white border-slate-300 text-slate-900"
-                    }`}
-                    placeholder="Contact Phone"
-                  />
-                </div>
-              </div>
             </div>
           </form>
         </div>

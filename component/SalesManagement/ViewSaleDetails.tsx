@@ -4,6 +4,9 @@ import { getSaleById } from "@/app/actions/sales";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { useStore } from "@/lib/store";
+import ProtectedRoute from "@/component/ProtectedRoute";
+import { ViewSaleDetailsSkeleton } from "./components/ViewSaleDetailsSkeleton";
 import {
   MdArrowBack,
   MdPrint,
@@ -29,10 +32,19 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
   const router = useRouter();
   const [sale, setSale] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Wait for client-side hydration
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
-    fetchSaleDetails();
-  }, [saleId]);
+    if (mounted) {
+      fetchSaleDetails();
+    }
+  }, [saleId, mounted]);
 
   const fetchSaleDetails = async () => {
     setLoading(true);
@@ -59,26 +71,44 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
     toast.success("Printing invoice...");
   };
 
-  if (loading) {
+  // Show loading while hydrating or fetching
+  if (!mounted || loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
-      </div>
+      <ProtectedRoute requiredPermission="canViewSales">
+        <ViewSaleDetailsSkeleton isDarkMode={isDarkMode} />
+      </ProtectedRoute>
     );
   }
 
   if (!sale) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-          Sale not found
-        </p>
-      </div>
+      <ProtectedRoute requiredPermission="canViewSales">
+        <div className={`min-h-screen flex items-center justify-center p-6 ${
+          isDarkMode ? "bg-gray-950" : "bg-slate-50"
+        }`}>
+          <div className={`text-center p-8 rounded-2xl border ${
+            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          }`}>
+            <MdReceipt className={`text-6xl mx-auto mb-4 ${
+              isDarkMode ? "text-gray-600" : "text-gray-400"
+            }`} />
+            <p className={`text-xl font-semibold ${
+              isDarkMode ? "text-gray-400" : "text-gray-600"
+            }`}>
+              Sale not found
+            </p>
+          </div>
+        </div>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <div className="p-6">
+    <ProtectedRoute requiredPermission="canViewSales">
+      <div className={`min-h-screen p-6 transition-colors duration-300 ${
+        isDarkMode ? "bg-gray-950" : "bg-slate-50"
+      }`}>
+      <div className="max-w-[1920px] mx-auto">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -106,16 +136,16 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
         <div className="flex gap-3">
           <button
             onClick={handlePrint}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
           >
-            <MdPrint />
+            <MdPrint className="text-lg" />
             Print
           </button>
           <button
             onClick={() => router.push(`/sales/edit-sale/${sale._id}`)}
-            className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
           >
-            <MdEdit />
+            <MdEdit className="text-lg" />
             Edit
           </button>
         </div>
@@ -125,8 +155,8 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Customer Info */}
         <div
-          className={`p-6 rounded-xl border-2 ${
-            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          className={`p-6 rounded-2xl shadow-xl border ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -169,8 +199,8 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
 
         {/* Store Info */}
         <div
-          className={`p-6 rounded-xl border-2 ${
-            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          className={`p-6 rounded-2xl shadow-xl border ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -192,7 +222,18 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
               >
                 {sale.storeId.name}
               </p>
-              {sale.storeId.address && (
+              {sale.storeId.address && typeof sale.storeId.address === 'object' && (
+                <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+                  {[
+                    sale.storeId.address.street,
+                    sale.storeId.address.city,
+                    sale.storeId.address.state,
+                    sale.storeId.address.zipCode,
+                    sale.storeId.address.country
+                  ].filter(Boolean).join(', ')}
+                </p>
+              )}
+              {sale.storeId.address && typeof sale.storeId.address === 'string' && (
                 <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
                   {sale.storeId.address}
                 </p>
@@ -208,8 +249,8 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
 
         {/* Sale Info */}
         <div
-          className={`p-6 rounded-xl border-2 ${
-            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          className={`p-6 rounded-2xl shadow-xl border ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -251,8 +292,8 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
 
       {/* Items Table */}
       <div
-        className={`p-6 rounded-xl border-2 mb-6 ${
-          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        className={`p-6 rounded-2xl shadow-xl border mb-6 ${
+          isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
         }`}
       >
         <div className="flex items-center gap-3 mb-4">
@@ -342,8 +383,8 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payment Information */}
         <div
-          className={`p-6 rounded-xl border-2 ${
-            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          className={`p-6 rounded-2xl shadow-xl border ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -392,8 +433,8 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
 
         {/* Sale Summary */}
         <div
-          className={`p-6 rounded-xl border-2 ${
-            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          className={`p-6 rounded-2xl shadow-xl border ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -462,8 +503,8 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
       {/* Notes */}
       {sale.notes && (
         <div
-          className={`p-6 rounded-xl border-2 mt-6 ${
-            isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          className={`p-6 rounded-2xl shadow-xl border mt-6 ${
+            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
           <h3
@@ -478,7 +519,9 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
           </p>
         </div>
       )}
+      </div>
     </div>
+    </ProtectedRoute>
   );
 };
 

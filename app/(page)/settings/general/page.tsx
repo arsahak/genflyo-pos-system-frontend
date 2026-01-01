@@ -1,4 +1,4 @@
-import GeneralSettings from "@/component/settingsManagement/GeneralSettings";
+import GeneralSettings from "@/component/settingsManagement/general";
 
 const GeneralSettingsPage = () => {
   return <GeneralSettings />;

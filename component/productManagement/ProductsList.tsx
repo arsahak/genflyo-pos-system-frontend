@@ -124,12 +124,10 @@ export default function ProductsList() {
 
   // Load products when filters change
   useEffect(() => {
-    if (!user) {
-      router.push("/");
-      return;
-    }
+    // Wait for user to be synced before loading
+    if (!user) return;
     loadProducts();
-  }, [user, router, loadProducts]);
+  }, [user, loadProducts]);
 
   // Load metadata and alerts only once on mount
   useEffect(() => {
@@ -401,7 +399,20 @@ export default function ProductsList() {
     }
   };
 
-  if (!user) return null;
+  // Show loading while waiting for session sync
+  if (!user) {
+    return (
+      <div
+        className={`min-h-screen p-6 transition-colors duration-300 font-sans ${
+          isDarkMode ? "bg-gray-950 text-gray-100" : "bg-slate-50 text-gray-900"
+        }`}
+      >
+        <div className="max-w-[1920px] mx-auto">
+          <ProductListSkeleton isDarkMode={isDarkMode} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

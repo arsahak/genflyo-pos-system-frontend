@@ -50,6 +50,9 @@ export default function UpdateProduct() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [mainCategories, setMainCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState<string>("");
 
   // --- Image States ---
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
@@ -107,8 +110,6 @@ export default function UpdateProduct() {
 
     // Meta
     description: "",
-    supplierName: "",
-    supplierPhone: "",
     isFeatured: false,
   });
 
@@ -136,22 +137,36 @@ export default function UpdateProduct() {
     }));
   }, [formData.openingStockBoxes, formData.conversionFactor]);
 
-  // 3. Load Categories
+  // 3. Load Categories, Brands, and Suppliers
   useEffect(() => {
-    const loadCats = async () => {
+    const loadData = async () => {
       try {
-        const res = await getAllCategories({ limit: 100 });
-        if (res.success && res.data?.categories) {
-          const all = res.data.categories;
+        const { getAllSuppliers } = await import("@/app/actions/suppliers");
+        const [categoriesRes, brandsRes, suppliersRes] = await Promise.all([
+          getAllCategories({ limit: 100 }),
+          getAllBrands({ limit: 1000, isActive: true }),
+          getAllSuppliers({ limit: 1000, isActive: true })
+        ]);
+
+        if (categoriesRes.success && categoriesRes.data?.categories) {
+          const all = categoriesRes.data.categories;
           setCategories(all);
           setMainCategories(all.filter((c: Category) => !c.parentCategory));
           setSubCategories(all.filter((c: Category) => c.parentCategory));
         }
+
+        if (brandsRes.success && brandsRes.data?.brands) {
+          setBrands(brandsRes.data.brands);
+        }
+
+        if (suppliersRes.success && suppliersRes.data) {
+          setSuppliers(suppliersRes.data);
+        }
       } catch (e) {
-        toast.error("Failed to load categories");
+        toast.error("Failed to load data");
       }
     };
-    loadCats();
+    loadData();
   }, []);
 
   // 4. Load Product
@@ -248,13 +263,18 @@ export default function UpdateProduct() {
 
         // Meta
         description: product.description || "",
-        supplierName: product.supplier?.name || "",
-        supplierPhone: product.supplier?.phone || "",
         isFeatured: product.isFeatured || false,
       });
 
+      // Set selected supplier if exists
+      if (product.suppliers && product.suppliers.length > 0) {
+        setSelectedSupplier(product.suppliers[0]._id || product.suppliers[0]);
+      }
+
       // Set main image if exists
-      if (product.images && product.images.length > 0) {
+      if (product.mainImage?.url) {
+        setMainImagePreview(product.mainImage.url);
+      } else if (product.images && product.images.length > 0) {
         const imageUrl = product.images[0].url || product.images[0].thumbUrl || product.images[0];
         if (imageUrl) {
           setMainImagePreview(imageUrl);
@@ -329,6 +349,10 @@ export default function UpdateProduct() {
       reader.onloadend = () => setMainImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSupplierChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedSupplier(e.target.value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -425,11 +449,8 @@ export default function UpdateProduct() {
       }
 
       // Supplier
-      if (formData.supplierName || formData.supplierPhone) {
-        const supplierObj: { name?: string; phone?: string } = {};
-        if (formData.supplierName) supplierObj.name = formData.supplierName;
-        if (formData.supplierPhone) supplierObj.phone = formData.supplierPhone;
-        data.append("supplier", JSON.stringify(supplierObj));
+      if (selectedSupplier) {
+        data.append("suppliers", JSON.stringify([selectedSupplier]));
       }
 
       // Status
@@ -678,6 +699,31 @@ export default function UpdateProduct() {
                       }`}
                       placeholder="e.g. Beximco Pharma"
                     />
+                  </div>
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1.5 ${
+                        isDarkMode ? "text-gray-300" : "text-slate-700"
+                      }`}
+                    >
+                      Supplier
+                    </label>
+                    <select
+                      value={selectedSupplier}
+                      onChange={handleSupplierChange}
+                      className={`w-full h-11 px-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white"
+                          : "bg-white border-slate-300 text-slate-900"
+                      }`}
+                    >
+                      <option value="">Select Supplier (Optional)</option>
+                      {suppliers.map((supplier) => (
+                        <option key={supplier._id} value={supplier._id}>
+                          {supplier.company}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label
@@ -1510,48 +1556,6 @@ export default function UpdateProduct() {
                 </div>
               </div>
 
-              {/* 4. Supplier */}
-              <div
-                className={`rounded-2xl shadow-sm border p-5 ${
-                  isDarkMode
-                    ? "bg-gray-900 border-gray-800"
-                    : "bg-white border-slate-200"
-                }`}
-              >
-                <h3
-                  className={`font-bold mb-4 text-sm uppercase tracking-wide ${
-                    isDarkMode ? "text-gray-300" : "text-slate-800"
-                  }`}
-                >
-                  Supplier
-                </h3>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    name="supplierName"
-                    value={formData.supplierName}
-                    onChange={handleChange}
-                    className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                      isDarkMode
-                        ? "bg-gray-800 border-gray-700 text-white"
-                        : "bg-white border-slate-300 text-slate-900"
-                    }`}
-                    placeholder="Supplier Name"
-                  />
-                  <input
-                    type="text"
-                    name="supplierPhone"
-                    value={formData.supplierPhone}
-                    onChange={handleChange}
-                    className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                      isDarkMode
-                        ? "bg-gray-800 border-gray-700 text-white"
-                        : "bg-white border-slate-300 text-slate-900"
-                    }`}
-                    placeholder="Contact Phone"
-                  />
-                </div>
-              </div>
             </div>
           </form>
         </div>

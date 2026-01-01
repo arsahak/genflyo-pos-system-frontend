@@ -4,6 +4,9 @@ import { getAllSales, getSalesStats, deleteSale } from "@/app/actions/sales";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import ProtectedRoute from "@/component/ProtectedRoute";
+import PermissionGuard from "@/component/PermissionGuard";
+import SalesListSkeleton from "./SalesListSkeleton";
 import {
   MdSearch,
   MdFilterList,
@@ -59,6 +62,7 @@ const SalesList = () => {
   const router = useRouter();
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -76,6 +80,12 @@ const SalesList = () => {
     total: 0,
     pages: 1,
   });
+
+  // Wait for client-side hydration
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
@@ -120,9 +130,11 @@ const SalesList = () => {
   }, [dateFrom, dateTo]);
 
   useEffect(() => {
-    fetchSales();
-    fetchStats();
-  }, [fetchSales, fetchStats]);
+    if (mounted) {
+      fetchSales();
+      fetchStats();
+    }
+  }, [fetchSales, fetchStats, mounted]);
 
   const handleSearch = () => {
     setPagination({ ...pagination, page: 1 });
@@ -200,8 +212,17 @@ const SalesList = () => {
     }
   };
 
+  // Show skeleton while hydrating or initial load
+  if (!mounted || loading) {
+    return <SalesListSkeleton isDarkMode={isDarkMode} />;
+  }
+
   return (
-    <div className="p-6">
+    <ProtectedRoute requiredPermission="canViewSales">
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      isDarkMode ? "bg-gray-950" : "bg-slate-50"
+    }`}>
+      <div className="max-w-[1920px] mx-auto">
       {/* Header */}
       <div className="mb-6">
         <h1
@@ -218,122 +239,78 @@ const SalesList = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div
-          className={`p-4 rounded-lg border-2 ${
-            isDarkMode
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-200"
-          }`}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden p-5 rounded-2xl transition-all duration-300 bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30 text-white">
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
+              <p className="text-sm font-medium mb-1 text-blue-100 opacity-90">
                 Total Sales
               </p>
-              <p
-                className={`text-2xl font-bold ${
-                  isDarkMode ? "text-blue-400" : "text-blue-600"
-                }`}
-              >
+              <h3 className="text-2xl font-bold text-white">
                 {stats.totalSales}
-              </p>
+              </h3>
             </div>
-            <MdAttachMoney className="text-4xl text-blue-500" />
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <MdAttachMoney className="text-2xl" />
+            </div>
           </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
         </div>
 
-        <div
-          className={`p-4 rounded-lg border-2 ${
-            isDarkMode
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-200"
-          }`}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden p-5 rounded-2xl transition-all duration-300 bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/30 text-white">
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
+              <p className="text-sm font-medium mb-1 text-green-100 opacity-90">
                 Total Revenue
               </p>
-              <p
-                className={`text-2xl font-bold ${
-                  isDarkMode ? "text-green-400" : "text-green-600"
-                }`}
-              >
+              <h3 className="text-2xl font-bold text-white">
                 ${stats.totalRevenue.toFixed(2)}
-              </p>
+              </h3>
             </div>
-            <MdAttachMoney className="text-4xl text-green-500" />
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <MdAttachMoney className="text-2xl" />
+            </div>
           </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
         </div>
 
-        <div
-          className={`p-4 rounded-lg border-2 ${
-            isDarkMode
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-200"
-          }`}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden p-5 rounded-2xl transition-all duration-300 bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/30 text-white">
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
+              <p className="text-sm font-medium mb-1 text-orange-100 opacity-90">
                 Total Discount
               </p>
-              <p
-                className={`text-2xl font-bold ${
-                  isDarkMode ? "text-orange-400" : "text-orange-600"
-                }`}
-              >
+              <h3 className="text-2xl font-bold text-white">
                 ${stats.totalDiscount.toFixed(2)}
-              </p>
+              </h3>
             </div>
-            <MdAttachMoney className="text-4xl text-orange-500" />
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <MdAttachMoney className="text-2xl" />
+            </div>
           </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
         </div>
 
-        <div
-          className={`p-4 rounded-lg border-2 ${
-            isDarkMode
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-200"
-          }`}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden p-5 rounded-2xl transition-all duration-300 bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/30 text-white">
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p
-                className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
+              <p className="text-sm font-medium mb-1 text-purple-100 opacity-90">
                 Completed
               </p>
-              <p
-                className={`text-2xl font-bold ${
-                  isDarkMode ? "text-purple-400" : "text-purple-600"
-                }`}
-              >
+              <h3 className="text-2xl font-bold text-white">
                 {stats.completedSales}
-              </p>
+              </h3>
             </div>
-            <MdCheckCircle className="text-4xl text-purple-500" />
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <MdCheckCircle className="text-2xl" />
+            </div>
           </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
         </div>
       </div>
 
       {/* Filters & Search */}
       <div
-        className={`p-4 rounded-lg border-2 mb-4 ${
+        className={`p-4 rounded-2xl border mb-6 shadow-sm ${
           isDarkMode
             ? "bg-gray-800 border-gray-700"
             : "bg-white border-gray-200"
@@ -350,11 +327,11 @@ const SalesList = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border-2 transition-colors ${
                   isDarkMode
-                    ? "bg-gray-700 border-gray-600 text-gray-100"
-                    : "bg-gray-50 border-gray-300 text-gray-900"
-                }`}
+                    ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 hover:border-gray-500"
+                    : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 hover:border-gray-400"
+                } focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none`}
               />
             </div>
           </div>
@@ -366,11 +343,11 @@ const SalesList = () => {
               setStatusFilter(e.target.value);
               setPagination({ ...pagination, page: 1 });
             }}
-            className={`px-4 py-2 rounded-lg border ${
+            className={`px-4 py-2.5 rounded-xl border-2 transition-colors ${
               isDarkMode
-                ? "bg-gray-700 border-gray-600 text-gray-100"
-                : "bg-gray-50 border-gray-300 text-gray-900"
-            }`}
+                ? "bg-gray-700 border-gray-600 text-gray-100 hover:border-gray-500"
+                : "bg-gray-50 border-gray-300 text-gray-900 hover:border-gray-400"
+            } focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none`}
           >
             <option value="all">All Status</option>
             <option value="completed">Completed</option>
@@ -381,7 +358,7 @@ const SalesList = () => {
           {/* Filter Toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2 rounded-lg border-2 flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-xl border-2 flex items-center gap-2 transition-all ${
               isDarkMode
                 ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
                 : "bg-gray-50 border-gray-300 text-gray-900 hover:bg-gray-100"
@@ -394,7 +371,7 @@ const SalesList = () => {
           {/* Action Buttons */}
           <button
             onClick={handleSearch}
-            className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium"
           >
             <MdRefresh />
             Refresh
@@ -402,7 +379,7 @@ const SalesList = () => {
 
           <button
             onClick={exportToCSV}
-            className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-green-600 text-white hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium"
           >
             <MdFileDownload />
             Export
@@ -410,7 +387,7 @@ const SalesList = () => {
 
           <button
             onClick={() => router.push("/sales/add-sale")}
-            className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 flex items-center gap-2"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
           >
             + Add Sale
           </button>
@@ -463,31 +440,37 @@ const SalesList = () => {
 
       {/* Sales Table */}
       <div
-        className={`rounded-lg border-2 overflow-hidden ${
+        className={`rounded-2xl overflow-hidden shadow-xl border ${
           isDarkMode
-            ? "bg-gray-800 border-gray-700"
-            : "bg-white border-gray-200"
+            ? "bg-gray-800 border-gray-700 shadow-gray-900/20"
+            : "bg-white border-gray-100 shadow-slate-200/50"
         }`}
       >
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead
-              className={
-                isDarkMode ? "bg-gray-700 text-gray-100" : "bg-gray-100 text-gray-900"
-              }
-            >
-              <tr>
-                <th className="px-4 py-3 text-left">Sale No</th>
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-left">Customer</th>
-                <th className="px-4 py-3 text-left">Items</th>
-                <th className="px-4 py-3 text-right">Total</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Cashier</th>
-                <th className="px-4 py-3 text-center">Actions</th>
+            <thead>
+              <tr
+                className={`text-left text-xs font-semibold uppercase tracking-wider ${
+                  isDarkMode
+                    ? "bg-gray-900/50 text-gray-400"
+                    : "bg-gray-50/80 text-gray-500"
+                }`}
+              >
+                <th className="px-6 py-4">Sale No</th>
+                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Customer</th>
+                <th className="px-6 py-4">Items</th>
+                <th className="px-6 py-4 text-right">Total</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Cashier</th>
+                <th className="px-6 py-4 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody
+              className={`divide-y ${
+                isDarkMode ? "divide-gray-700" : "divide-gray-100"
+              }`}
+            >
               {loading ? (
                 <tr>
                   <td colSpan={8} className="text-center py-8">
@@ -512,13 +495,13 @@ const SalesList = () => {
                 sales.map((sale) => (
                   <tr
                     key={sale._id}
-                    className={`border-t ${
+                    className={`group transition-colors ${
                       isDarkMode
-                        ? "border-gray-700 hover:bg-gray-750"
-                        : "border-gray-200 hover:bg-gray-50"
+                        ? "hover:bg-gray-700/50"
+                        : "hover:bg-indigo-50/30"
                     }`}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <span
                         className={`font-semibold ${
                           isDarkMode ? "text-indigo-400" : "text-indigo-600"
@@ -527,7 +510,7 @@ const SalesList = () => {
                         {sale.saleNo}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <MdCalendarToday className="text-gray-400" />
                         <span
@@ -563,7 +546,7 @@ const SalesList = () => {
                         <span className="text-gray-500 italic">Walk-in</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <span
                         className={
                           isDarkMode ? "text-gray-300" : "text-gray-700"
@@ -572,7 +555,7 @@ const SalesList = () => {
                         {sale.items.length} item(s)
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-6 py-4 text-right">
                       <span
                         className={`font-bold text-lg ${
                           isDarkMode ? "text-green-400" : "text-green-600"
@@ -581,7 +564,7 @@ const SalesList = () => {
                         ${sale.total.toFixed(2)}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
                           sale.status
@@ -591,7 +574,7 @@ const SalesList = () => {
                         {sale.status.replace("_", " ").toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <span
                         className={
                           isDarkMode ? "text-gray-300" : "text-gray-700"
@@ -600,30 +583,42 @@ const SalesList = () => {
                         {sale.cashierId?.name || "N/A"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => router.push(`/sales/${sale._id}`)}
-                          className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                          className={`p-2 rounded-lg transition-colors ${
+                            isDarkMode
+                              ? "hover:bg-gray-600 text-gray-400 hover:text-blue-400"
+                              : "hover:bg-blue-50 text-gray-400 hover:text-blue-600"
+                          }`}
                           title="View"
                         >
-                          <MdVisibility className="text-xl" />
+                          <MdVisibility size={18} />
                         </button>
                         <button
                           onClick={() =>
                             router.push(`/sales/edit-sale/${sale._id}`)
                           }
-                          className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+                          className={`p-2 rounded-lg transition-colors ${
+                            isDarkMode
+                              ? "hover:bg-gray-600 text-gray-400 hover:text-green-400"
+                              : "hover:bg-green-50 text-gray-400 hover:text-green-600"
+                          }`}
                           title="Edit"
                         >
-                          <MdEdit className="text-xl" />
+                          <MdEdit size={18} />
                         </button>
                         <button
                           onClick={() => handleDelete(sale._id, sale.saleNo)}
-                          className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                          className={`p-2 rounded-lg transition-colors ${
+                            isDarkMode
+                              ? "hover:bg-gray-600 text-gray-400 hover:text-red-400"
+                              : "hover:bg-red-50 text-gray-400 hover:text-red-600"
+                          }`}
                           title="Cancel"
                         >
-                          <MdDelete className="text-xl" />
+                          <MdDelete size={18} />
                         </button>
                       </div>
                     </td>
@@ -637,14 +632,18 @@ const SalesList = () => {
         {/* Pagination */}
         {pagination.pages > 1 && (
           <div
-            className={`px-4 py-3 border-t flex items-center justify-between ${
-              isDarkMode ? "border-gray-700" : "border-gray-200"
+            className={`px-6 py-4 border-t flex items-center justify-between ${
+              isDarkMode
+                ? "bg-gray-900/50 border-gray-700"
+                : "bg-gray-50 border-gray-200"
             }`}
           >
-            <div className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-              Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-              {pagination.total} results
+            <div className={`text-sm ${
+              isDarkMode ? "text-gray-400" : "text-gray-700"
+            }`}>
+              Showing <span className="font-semibold">{(pagination.page - 1) * pagination.limit + 1}</span> to{" "}
+              <span className="font-semibold">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{" "}
+              <span className="font-semibold">{pagination.total}</span> results
             </div>
             <div className="flex gap-2">
               <button
@@ -652,11 +651,11 @@ const SalesList = () => {
                   setPagination({ ...pagination, page: pagination.page - 1 })
                 }
                 disabled={pagination.page === 1}
-                className={`px-4 py-2 rounded-lg ${
-                  pagination.page === 1
-                    ? "bg-gray-300 cursor-not-allowed"
-                    : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                }`}
+                className={`px-4 py-2 rounded-lg border transition-all ${
+                  isDarkMode
+                    ? "border-gray-600 hover:bg-gray-700 disabled:opacity-50"
+                    : "border-gray-300 hover:bg-gray-100 disabled:opacity-50"
+                } disabled:cursor-not-allowed`}
               >
                 Previous
               </button>
@@ -665,11 +664,11 @@ const SalesList = () => {
                   setPagination({ ...pagination, page: pagination.page + 1 })
                 }
                 disabled={pagination.page === pagination.pages}
-                className={`px-4 py-2 rounded-lg ${
-                  pagination.page === pagination.pages
-                    ? "bg-gray-300 cursor-not-allowed"
-                    : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                }`}
+                className={`px-4 py-2 rounded-lg border transition-all ${
+                  isDarkMode
+                    ? "border-gray-600 hover:bg-gray-700 disabled:opacity-50"
+                    : "border-gray-300 hover:bg-gray-100 disabled:opacity-50"
+                } disabled:cursor-not-allowed`}
               >
                 Next
               </button>
@@ -677,7 +676,9 @@ const SalesList = () => {
           </div>
         )}
       </div>
+      </div>
     </div>
+    </ProtectedRoute>
   );
 };
 

@@ -59,7 +59,8 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error("Unexpected login error:", error);
-      const errorMsg = error instanceof Error ? error.message : "An unexpected error occurred";
+      const errorMsg =
+        error instanceof Error ? error.message : "An unexpected error occurred";
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -88,7 +89,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+    <div className="bg-white rounded-2xl shadow p-8 max-w-2xl w-full mx-6">
       {/* Main Title */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
@@ -127,7 +128,7 @@ export default function LoginPage() {
       )}
 
       {/* Quick Login Options */}
-      <div className="mb-6">
+      {/* <div className="mb-6">
         <p className="text-xs text-gray-500 mb-3 uppercase tracking-wide">
           {getTranslation("quickLogin", language)}
         </p>
@@ -157,7 +158,7 @@ export default function LoginPage() {
             {getTranslation("cashier", language)}
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* Login Form */}
       <form onSubmit={handleLogin} className="space-y-6">

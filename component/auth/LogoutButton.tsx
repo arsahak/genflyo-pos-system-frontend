@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { logout, logoutAll } from "@/lib/auth";
+import { userSignOut } from "@/app/actions/auth";
 import toast from "react-hot-toast";
 import { IoMdExit, IoMdPower } from "react-icons/io";
 
@@ -22,29 +22,31 @@ export default function LogoutButton({
   const handleLogout = async () => {
     setLoading(true);
     try {
-      await logout();
+      await userSignOut();
       toast.success("Logged out successfully");
     } catch (error) {
       toast.error("Logout failed");
-    } finally {
       setLoading(false);
     }
   };
 
   const handleLogoutAll = async () => {
     if (
-      !confirm("Are you sure you want to logout from all devices? This will end all your active sessions.")
+      !confirm(
+        "Are you sure you want to logout from all devices? This will end all your active sessions."
+      )
     ) {
       return;
     }
 
     setLoading(true);
     try {
-      await logoutAll();
-      toast.success("Logged out from all devices");
+      // Auth.js doesn't support logout from all devices by default
+      // This would need to be implemented on the backend if required
+      await userSignOut();
+      toast.success("Logged out successfully");
     } catch (error) {
       toast.error("Logout failed");
-    } finally {
       setLoading(false);
     }
   };

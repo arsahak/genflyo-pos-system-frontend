@@ -3,12 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-// Access token expires in 30 days
+// Access token expires in 30 days - NO REFRESH TOKEN NEEDED
 const ACCESS_TOKEN_LIFETIME = 30 * 24 * 60 * 60; // 30 days in seconds
-// Refresh token expires in 30 days (same as access token)
-const REFRESH_TOKEN_LIFETIME = 30 * 24 * 60 * 60; // 30 days in seconds
-// Refresh access token when it has less than 1 day remaining
-const REFRESH_THRESHOLD = 24 * 60 * 60; // 1 day in seconds
 
 interface TokenData {
   id?: string;
@@ -21,55 +17,13 @@ interface TokenData {
   profileImage?: string;
   lastLogin?: string;
   accessToken?: string;
-  refreshToken?: string;
   accessTokenIssuedAt?: number;
-  error?: string;
-}
-
-/**
- * Refreshes the access token using the refresh token
- */
-async function refreshAccessToken(token: any): Promise<any> {
-  try {
-    console.log("Attempting to refresh access token...");
-
-    const response = await fetch(`${API_URL}/api/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        refreshToken: token.refreshToken,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to refresh token");
-    }
-
-    console.log("Access token refreshed successfully");
-
-    return {
-      ...token,
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken, // Backend rotates refresh tokens
-      accessTokenIssuedAt: Date.now(),
-      error: undefined,
-    };
-  } catch (error) {
-    console.error("Error refreshing access token:", error);
-
-    return {
-      ...token,
-      error: "RefreshTokenError",
-    };
-  }
 }
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   session: {
     strategy: "jwt",
-    maxAge: REFRESH_TOKEN_LIFETIME, // Session lasts as long as refresh token
+    maxAge: ACCESS_TOKEN_LIFETIME, // Session lasts 30 days
   },
   pages: {
     signIn: "/sign-in",
@@ -113,15 +67,15 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             throw new Error(data.message || "Invalid email or password");
           }
 
-          // Backend returns: { message, user, accessToken, refreshToken }
-          if (!data.user || !data.accessToken || !data.refreshToken) {
+          // Backend returns: { message, user, accessToken }
+          if (!data.user || !data.accessToken) {
             console.error("Incomplete user data received from server:", data);
             throw new Error("Server error. Please try again.");
           }
 
           console.log("User authenticated successfully:", data.user.email);
 
-          // Return user with both access and refresh tokens
+          // Return user with access token (no refresh token)
           return {
             id: data.user.id || data.user._id,
             _id: data.user.id || data.user._id,
@@ -134,7 +88,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             lastLogin: data.user.lastLogin,
             emailVerified: null, // Required by NextAuth
             accessToken: data.accessToken,
-            refreshToken: data.refreshToken,
             accessTokenIssuedAt: Date.now(),
           };
         } catch (error) {
@@ -149,7 +102,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // Initial sign in - store user data and tokens
+      // Initial sign in - store user data and token
       if (user) {
         token.id = user.id;
         token._id = user._id;
@@ -161,35 +114,34 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         token.profileImage = user.profileImage;
         token.lastLogin = user.lastLogin;
         token.accessToken = user.accessToken;
-        token.refreshToken = user.refreshToken;
         token.accessTokenIssuedAt = user.accessTokenIssuedAt || Date.now();
         return token;
       }
 
-      // Return previous token if the access token has not expired yet
-      const timeUntilExpiry =
-        (token.accessTokenIssuedAt ? Number(token.accessTokenIssuedAt) : 0) +
-        ACCESS_TOKEN_LIFETIME * 1000 -
-        Date.now();
+      // Check if token has expired (30 days)
+      const tokenAge = Date.now() - (token.accessTokenIssuedAt ? Number(token.accessTokenIssuedAt) : 0);
+      const hasExpired = tokenAge > ACCESS_TOKEN_LIFETIME * 1000;
 
-      // If access token is still valid and not close to expiry, return token as-is
-      if (timeUntilExpiry > REFRESH_THRESHOLD * 1000) {
-        return token;
+      if (hasExpired) {
+        console.log("Access token expired after 30 days, user must re-login");
+        return {
+          ...token,
+          error: "TokenExpired",
+        };
       }
 
-      // Access token has expired or is close to expiring, try to refresh it
-      console.log("Access token expired or expiring soon, refreshing...");
-      return refreshAccessToken(token);
+      // Token is still valid, return as-is
+      return token;
     },
     async session({ session, token }) {
-      // Check if there was an error refreshing the token
-      if (token.error === "RefreshTokenError") {
-        console.log("Refresh token error detected, forcing re-login");
+      // Check if token expired
+      if (token.error === "TokenExpired") {
+        console.log("Token expired, forcing re-login");
         return {
           ...session,
           user: undefined,
           accessToken: undefined,
-          error: "RefreshTokenError",
+          error: "TokenExpired",
         };
       }
 
@@ -208,7 +160,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           image: token.profileImage,
         } as any;
         session.accessToken = String(token.accessToken);
-        session.refreshToken = String(token.refreshToken);
       }
 
       return session;
@@ -216,9 +167,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   },
   events: {
     async signOut(message) {
-      // Call backend logout endpoint to revoke refresh token
+      // Call backend logout endpoint
       const token = "token" in message ? message.token : null;
-      if (token?.refreshToken) {
+      if (token?.accessToken) {
         try {
           await fetch(`${API_URL}/api/auth/logout`, {
             method: "POST",
@@ -226,10 +177,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
               "Content-Type": "application/json",
               Authorization: `Bearer ${token.accessToken}`,
             },
-            body: JSON.stringify({
-              refreshToken: token.refreshToken,
-              logoutAll: false,
-            }),
           });
           console.log("User logged out successfully");
         } catch (error) {
