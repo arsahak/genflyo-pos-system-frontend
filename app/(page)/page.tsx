@@ -6,6 +6,8 @@ import {
 import { Suspense } from "react";
 import DashboardSkeleton from "@/component/dashboard/DashboardSkeleton";
 
+export const dynamic = "force-dynamic";
+
 async function DashboardData() {
   // Fetch both overview and stats data in parallel
   const [overviewResult, statsResult] = await Promise.all([
