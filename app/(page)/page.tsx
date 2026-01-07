@@ -1,10 +1,12 @@
-import Dashboard from "@/component/dashboard/Dashboard";
 import {
   getDashboardOverview,
   getDashboardStats,
 } from "@/app/actions/dashboard";
-import { Suspense } from "react";
+import { auth } from "@/auth";
+import Dashboard from "@/component/dashboard/Dashboard";
 import DashboardSkeleton from "@/component/dashboard/DashboardSkeleton";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,15 @@ async function DashboardData() {
 }
 
 const page = async () => {
+  // Check authentication status
+  const session = await auth();
+
+  // If not logged in, redirect to sign-in page
+  if (!session || !session.user) {
+    redirect("/sign-in");
+  }
+
+  // If logged in, show dashboard
   return (
     <div>
       <Suspense fallback={<DashboardSkeleton />}>
