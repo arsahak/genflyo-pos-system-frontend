@@ -11,6 +11,7 @@ import {
   IoMdLogOut,
   IoMdMenu,
   IoMdNotifications,
+  IoMdPerson,
   IoMdSearch,
   IoMdSettings,
 } from "react-icons/io";
@@ -160,7 +161,7 @@ export default function TopbarMain({
             </button>
 
             {/* Language Dropdown Menu */}
-            {/* {showLanguageMenu && (
+            {showLanguageMenu && (
               <div
                 className={`absolute right-0 mt-2 w-32 rounded-lg shadow-lg border py-2 z-60 ${
                   isDarkMode
@@ -197,7 +198,7 @@ export default function TopbarMain({
                   🇧🇩 বাংলা
                 </button>
               </div>
-            )} */}
+            )}
           </div>
 
           {/* Notifications */}
@@ -303,7 +304,7 @@ export default function TopbarMain({
                   </p>
                 </div>
 
-                {/* <div className="py-1">
+                <div className="py-1">
                   <button
                     onClick={() => {
                       setShowProfileMenu(false);
@@ -332,7 +333,7 @@ export default function TopbarMain({
                     <IoMdSettings className="w-4 h-4" />
                     {getTranslation("settings", language)}
                   </button>
-                </div> */}
+                </div>
 
                 <hr
                   className={`my-1 ${
