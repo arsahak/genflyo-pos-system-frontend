@@ -4,7 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // Access token expires in 30 days - NO REFRESH TOKEN NEEDED
-const ACCESS_TOKEN_LIFETIME = 30 * 24 * 60 * 60; // 30 days in seconds
+const ACCESS_TOKEN_LIFETIME = 30 * 24 * 60 * 60; 
 
 interface TokenData {
   id?: string;
