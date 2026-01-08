@@ -1,6 +1,6 @@
 "use client";
 
-import CategoryUpdate from "@/component/categoryManagement/CategoryUpdate";
+import CategoryUpdate from "./CategoryUpdateComponent";
 
 export default function CategoryEditPage() {
   return <CategoryUpdate />;
