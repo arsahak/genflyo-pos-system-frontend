@@ -2,7 +2,6 @@
 
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { SidebarProvider } from "@/lib/SidebarContext";
-import DashboardSkeleton from "../dashboard/DashboardSkeleton";
 
 export default function LayoutWrapperForSignin({
   children,
@@ -13,13 +12,16 @@ export default function LayoutWrapperForSignin({
     <LanguageProvider>
       <SidebarProvider>
         <div className="relative min-h-screen overflow-hidden">
-          {/* Dashboard Skeleton Background - Blurred */}
-          <div className="absolute inset-0 blur-sm scale-105 opacity-40">
-            <DashboardSkeleton />
-          </div>
+          {/* Image Background with Blur */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center blur-sm scale-110 opacity-70"
+            style={{
+              backgroundImage: `url('/loginbg.jpeg')`,
+            }}
+          />
           
           {/* Overlay gradient for better contrast */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-900/60 via-gray-900/70 to-black/80 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/50 to-white/70 backdrop-blur-[1px]" />
           
           {/* Sign-in form on top */}
           <div className="relative z-10 min-h-screen flex items-center justify-center p-4">

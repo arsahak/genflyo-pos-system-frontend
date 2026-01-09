@@ -267,7 +267,7 @@ export const translations = {
     signIn: "Sign In",
     loginSuccessful: "Login successful!",
     loginFailed: "Login failed",
-    allRightsReserved: "© 2025 Genflyo POS System. All rights reserved.",
+    allRightsReserved: "© 2026 Genflyo POS System. All rights reserved.",
   },
   bn: {
     // Dashboard
@@ -536,7 +536,7 @@ export const translations = {
     signIn: "সাইন ইন",
     loginSuccessful: "লগইন সফল!",
     loginFailed: "লগইন ব্যর্থ",
-    allRightsReserved: "© 2025 Genflyo POS System. All rights reserved.",
+    allRightsReserved: "© 2026 Genflyo POS System. All rights reserved.",
   },
 };
 
