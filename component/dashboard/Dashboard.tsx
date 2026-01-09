@@ -31,12 +31,12 @@ const Dashboard = ({ data, stats, error }: DashboardProps) => {
   const { isDarkMode } = useSidebar();
   const { language } = useLanguage();
 
-  // Format currency
+  // Format currency - Bangladesh Taka
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
+    return `৳${amount.toLocaleString("en-BD", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   // Format number with abbreviation
@@ -72,7 +72,7 @@ const Dashboard = ({ data, stats, error }: DashboardProps) => {
                   isDarkMode ? "text-gray-400" : "text-gray-600"
                 }`}
               >
-                {getTranslation("ordersToday", language)}
+                You have {data?.todaysOrderCount || 0}+ Orders, Today.
               </p>
             </div>
             <div className="flex items-center gap-4 mt-4 lg:mt-0">
@@ -122,192 +122,216 @@ const Dashboard = ({ data, stats, error }: DashboardProps) => {
             </div>
           ) : (
             <>
-              {/* Main KPI Cards */}
+              {/* Main KPI Cards - Combined Today's + Total */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {/* Total Sales */}
+                {/* Sales Card - Combined */}
                 <div
                   className={`p-6 rounded-xl shadow-lg transition-colors duration-200 ${
                     isDarkMode
-                      ? "bg-gradient-to-br from-orange-500 to-orange-600"
-                      : "bg-gradient-to-br from-orange-400 to-orange-500"
+                      ? "bg-gradient-to-br from-emerald-600 to-emerald-700"
+                      : "bg-gradient-to-br from-emerald-500 to-emerald-600"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-orange-100 text-sm font-medium">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="text-emerald-100 text-xs font-medium uppercase tracking-wide">
                         {getTranslation("totalSales", language)}
                       </p>
-                      <p className="text-white text-2xl font-bold mt-1">
-                        {formatCurrency(data.totalSales.current)}
+                    </div>
+                    <div className="bg-white/20 p-2.5 rounded-full">
+                      <IoMdDocument className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="mb-2">
+                      <p className="text-white/70 text-xs mb-0.5">Today</p>
+                      <p className="text-white text-xl font-bold">
+                        {formatCurrency(data.todaysSales || 0)}
                       </p>
-                      <div className="flex items-center mt-2">
-                        {data.totalSales.trend === "up" ? (
-                          <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
-                        ) : data.totalSales.trend === "down" ? (
-                          <IoMdTrendingDown className="w-4 h-4 text-red-300 mr-1" />
-                        ) : null}
-                        <span
-                          className={`text-sm font-medium ${
+                    </div>
+                    <div className="pt-2 border-t border-white/20">
+                      <p className="text-white/70 text-xs mb-0.5">Total</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-white text-sm font-semibold">
+                          {formatCurrency(data.totalSales.current)}
+                        </p>
+                        <div className="flex items-center">
+                          {data.totalSales.trend === "up" ? (
+                            <IoMdTrendingUp className="w-3.5 h-3.5 text-green-300 mr-1" />
+                          ) : data.totalSales.trend === "down" ? (
+                            <IoMdTrendingDown className="w-3.5 h-3.5 text-red-300 mr-1" />
+                          ) : null}
+                          <span className={`text-xs font-medium ${
                             data.totalSales.trend === "up"
                               ? "text-green-300"
                               : data.totalSales.trend === "down"
                               ? "text-red-300"
-                              : "text-gray-300"
-                          }`}
-                        >
-                          {data.totalSales.trend === "up"
-                            ? "↑"
-                            : data.totalSales.trend === "down"
-                            ? "↓"
-                            : ""}{" "}
-                          {data.totalSales.change > 0 ? "+" : ""}
-                          {data.totalSales.change}%
-                        </span>
+                              : "text-white/70"
+                          }`}>
+                            {data.totalSales.change > 0 ? "+" : ""}{data.totalSales.change}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <IoMdDocument className="w-6 h-6 text-white" />
                     </div>
                   </div>
                 </div>
 
-                {/* Total Sales Return */}
+                {/* Sales Return Card - Combined */}
                 <div
                   className={`p-6 rounded-xl shadow-lg transition-colors duration-200 ${
                     isDarkMode
-                      ? "bg-gradient-to-br from-blue-600 to-blue-700"
-                      : "bg-gradient-to-br from-blue-500 to-blue-600"
+                      ? "bg-gradient-to-br from-red-600 to-red-700"
+                      : "bg-gradient-to-br from-red-500 to-red-600"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-100 text-sm font-medium">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="text-red-100 text-xs font-medium uppercase tracking-wide">
                         {getTranslation("totalSalesReturn", language)}
                       </p>
-                      <p className="text-white text-2xl font-bold mt-1">
-                        {formatCurrency(data.totalSalesReturn.current)}
+                    </div>
+                    <div className="bg-white/20 p-2.5 rounded-full">
+                      <IoMdCard className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="mb-2">
+                      <p className="text-white/70 text-xs mb-0.5">Today</p>
+                      <p className="text-white text-xl font-bold">
+                        {formatCurrency(data.todaysSalesReturn || 0)}
                       </p>
-                      <div className="flex items-center mt-2">
-                        {data.totalSalesReturn.trend === "up" ? (
-                          <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
-                        ) : data.totalSalesReturn.trend === "down" ? (
-                          <IoMdTrendingDown className="w-4 h-4 text-red-300 mr-1" />
-                        ) : null}
-                        <span
-                          className={`text-sm font-medium ${
+                    </div>
+                    <div className="pt-2 border-t border-white/20">
+                      <p className="text-white/70 text-xs mb-0.5">Total</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-white text-sm font-semibold">
+                          {formatCurrency(data.totalSalesReturn.current)}
+                        </p>
+                        <div className="flex items-center">
+                          {data.totalSalesReturn.trend === "up" ? (
+                            <IoMdTrendingUp className="w-3.5 h-3.5 text-green-300 mr-1" />
+                          ) : data.totalSalesReturn.trend === "down" ? (
+                            <IoMdTrendingDown className="w-3.5 h-3.5 text-red-300 mr-1" />
+                          ) : null}
+                          <span className={`text-xs font-medium ${
                             data.totalSalesReturn.trend === "up"
                               ? "text-green-300"
                               : data.totalSalesReturn.trend === "down"
                               ? "text-red-300"
-                              : "text-gray-300"
-                          }`}
-                        >
-                          {data.totalSalesReturn.trend === "up"
-                            ? "↑"
-                            : data.totalSalesReturn.trend === "down"
-                            ? "↓"
-                            : ""}{" "}
-                          {data.totalSalesReturn.change > 0 ? "+" : ""}
-                          {data.totalSalesReturn.change}%
-                        </span>
+                              : "text-white/70"
+                          }`}>
+                            {data.totalSalesReturn.change > 0 ? "+" : ""}{data.totalSalesReturn.change}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <IoMdCard className="w-6 h-6 text-white" />
                     </div>
                   </div>
                 </div>
 
-                {/* Total Purchase */}
+                {/* Purchase Card - Combined */}
                 <div
                   className={`p-6 rounded-xl shadow-lg transition-colors duration-200 ${
                     isDarkMode
-                      ? "bg-gradient-to-br from-teal-500 to-teal-600"
-                      : "bg-gradient-to-br from-teal-400 to-teal-500"
+                      ? "bg-gradient-to-br from-purple-600 to-purple-700"
+                      : "bg-gradient-to-br from-purple-500 to-purple-600"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-teal-100 text-sm font-medium">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="text-purple-100 text-xs font-medium uppercase tracking-wide">
                         {getTranslation("totalPurchase", language)}
                       </p>
-                      <p className="text-white text-2xl font-bold mt-1">
-                        {formatCurrency(data.totalPurchase.current)}
+                    </div>
+                    <div className="bg-white/20 p-2.5 rounded-full">
+                      <MdShoppingCart className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="mb-2">
+                      <p className="text-white/70 text-xs mb-0.5">Today</p>
+                      <p className="text-white text-xl font-bold">
+                        {formatCurrency(data.todaysPurchase || 0)}
                       </p>
-                      <div className="flex items-center mt-2">
-                        {data.totalPurchase.trend === "up" ? (
-                          <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
-                        ) : data.totalPurchase.trend === "down" ? (
-                          <IoMdTrendingDown className="w-4 h-4 text-red-300 mr-1" />
-                        ) : null}
-                        <span
-                          className={`text-sm font-medium ${
+                    </div>
+                    <div className="pt-2 border-t border-white/20">
+                      <p className="text-white/70 text-xs mb-0.5">Total</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-white text-sm font-semibold">
+                          {formatCurrency(data.totalPurchase.current)}
+                        </p>
+                        <div className="flex items-center">
+                          {data.totalPurchase.trend === "up" ? (
+                            <IoMdTrendingUp className="w-3.5 h-3.5 text-green-300 mr-1" />
+                          ) : data.totalPurchase.trend === "down" ? (
+                            <IoMdTrendingDown className="w-3.5 h-3.5 text-red-300 mr-1" />
+                          ) : null}
+                          <span className={`text-xs font-medium ${
                             data.totalPurchase.trend === "up"
                               ? "text-green-300"
                               : data.totalPurchase.trend === "down"
                               ? "text-red-300"
-                              : "text-gray-300"
-                          }`}
-                        >
-                          {data.totalPurchase.trend === "up"
-                            ? "↑"
-                            : data.totalPurchase.trend === "down"
-                            ? "↓"
-                            : ""}{" "}
-                          {data.totalPurchase.change > 0 ? "+" : ""}
-                          {data.totalPurchase.change}%
-                        </span>
+                              : "text-white/70"
+                          }`}>
+                            {data.totalPurchase.change > 0 ? "+" : ""}{data.totalPurchase.change}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <MdShoppingCart className="w-6 h-6 text-white" />
                     </div>
                   </div>
                 </div>
 
-                {/* Total Purchase Return */}
+                {/* Purchase Return Card - Combined */}
                 <div
                   className={`p-6 rounded-xl shadow-lg transition-colors duration-200 ${
                     isDarkMode
-                      ? "bg-gradient-to-br from-cyan-500 to-cyan-600"
-                      : "bg-gradient-to-br from-cyan-400 to-cyan-500"
+                      ? "bg-gradient-to-br from-amber-600 to-amber-700"
+                      : "bg-gradient-to-br from-amber-500 to-amber-600"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-cyan-100 text-sm font-medium">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="text-amber-100 text-xs font-medium uppercase tracking-wide">
                         {getTranslation("totalPurchaseReturn", language)}
                       </p>
-                      <p className="text-white text-2xl font-bold mt-1">
-                        {formatCurrency(data.totalPurchaseReturn.current)}
+                    </div>
+                    <div className="bg-white/20 p-2.5 rounded-full">
+                      <IoMdAnalytics className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="mb-2">
+                      <p className="text-white/70 text-xs mb-0.5">Today</p>
+                      <p className="text-white text-xl font-bold">
+                        {formatCurrency(data.todaysPurchaseReturn || 0)}
                       </p>
-                      <div className="flex items-center mt-2">
-                        {data.totalPurchaseReturn.trend === "up" ? (
-                          <IoMdTrendingUp className="w-4 h-4 text-green-300 mr-1" />
-                        ) : data.totalPurchaseReturn.trend === "down" ? (
-                          <IoMdTrendingDown className="w-4 h-4 text-red-300 mr-1" />
-                        ) : null}
-                        <span
-                          className={`text-sm font-medium ${
+                    </div>
+                    <div className="pt-2 border-t border-white/20">
+                      <p className="text-white/70 text-xs mb-0.5">Total</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-white text-sm font-semibold">
+                          {formatCurrency(data.totalPurchaseReturn.current)}
+                        </p>
+                        <div className="flex items-center">
+                          {data.totalPurchaseReturn.trend === "up" ? (
+                            <IoMdTrendingUp className="w-3.5 h-3.5 text-green-300 mr-1" />
+                          ) : data.totalPurchaseReturn.trend === "down" ? (
+                            <IoMdTrendingDown className="w-3.5 h-3.5 text-red-300 mr-1" />
+                          ) : null}
+                          <span className={`text-xs font-medium ${
                             data.totalPurchaseReturn.trend === "up"
                               ? "text-green-300"
                               : data.totalPurchaseReturn.trend === "down"
                               ? "text-red-300"
-                              : "text-gray-300"
-                          }`}
-                        >
-                          {data.totalPurchaseReturn.trend === "up"
-                            ? "↑"
-                            : data.totalPurchaseReturn.trend === "down"
-                            ? "↓"
-                            : ""}{" "}
-                          {data.totalPurchaseReturn.change > 0 ? "+" : ""}
-                          {data.totalPurchaseReturn.change}%
-                        </span>
+                              : "text-white/70"
+                          }`}>
+                            {data.totalPurchaseReturn.change > 0 ? "+" : ""}{data.totalPurchaseReturn.change}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="bg-white/20 p-3 rounded-full">
-                      <IoMdAnalytics className="w-6 h-6 text-white" />
                     </div>
                   </div>
                 </div>

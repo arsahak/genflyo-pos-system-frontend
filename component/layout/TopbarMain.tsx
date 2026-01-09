@@ -3,6 +3,7 @@
 import { useLanguage } from "@/lib/LanguageContext";
 import { useSidebar } from "@/lib/SidebarContext";
 import { getTranslation } from "@/lib/translations";
+import Link from "next/link";
 
 import React, { useState, useTransition } from "react";
 import toast from "react-hot-toast";
@@ -305,11 +306,8 @@ export default function TopbarMain({
                 </div>
 
                 <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      // Navigate to profile
-                    }}
+                  <Link
+                    href="/users"
                     className={`flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm transition-colors ${
                       isDarkMode
                         ? "text-gray-300 hover:bg-gray-700"
@@ -317,13 +315,10 @@ export default function TopbarMain({
                     }`}
                   >
                     <IoMdPerson className="w-4 h-4" />
-                    {getTranslation("profile", language)}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      // Navigate to settings
-                    }}
+                    {getTranslation("users", language)}
+                  </Link>
+                  <Link
+                    href="/settings"
                     className={`flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm transition-colors ${
                       isDarkMode
                         ? "text-gray-300 hover:bg-gray-700"
@@ -332,7 +327,7 @@ export default function TopbarMain({
                   >
                     <IoMdSettings className="w-4 h-4" />
                     {getTranslation("settings", language)}
-                  </button>
+                  </Link>
                 </div>
 
                 <hr

@@ -28,6 +28,14 @@ export interface CustomerOverview {
 }
 
 export interface DashboardOverviewData {
+  // Today's metrics
+  todaysSales?: number;
+  todaysSalesReturn?: number;
+  todaysPurchase?: number;
+  todaysPurchaseReturn?: number;
+  todaysOrderCount?: number;
+  
+  // Overall metrics with trends
   totalSales: DashboardKPI;
   totalSalesReturn: DashboardKPI;
   totalPurchase: DashboardKPI;
