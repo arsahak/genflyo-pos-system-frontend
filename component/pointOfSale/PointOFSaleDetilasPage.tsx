@@ -80,12 +80,16 @@ const PointOFSaleDetilasPage = () => {
 
   const handleBarcodeScanned = useCallback(
     (barcode: string) => {
+      if (!barcode.trim()) return;
+      
       const product = products.find(
         (p) => p.barcode === barcode || p.sku === barcode
       );
       if (product) {
         if (product.stock <= 0) {
           toast.error("Out of stock!");
+          setBarcodeInput("");
+          barcodeInputRef.current?.focus();
           return;
         }
 
@@ -94,15 +98,25 @@ const PointOFSaleDetilasPage = () => {
         if (existingItem) {
           if (existingItem.quantity >= product.stock) {
             toast.error("Insufficient stock!");
+            setBarcodeInput("");
+            barcodeInputRef.current?.focus();
             return;
           }
           setCart(
             cart.map((item) =>
               item.id === product.id
-                ? { ...item, quantity: item.quantity + 1 }
+                ? { 
+                    ...item, 
+                    quantity: item.quantity + 1,
+                    subtotal: (item.quantity + 1) * item.price
+                  }
                 : item
             )
           );
+          toast.success(`${product.name} (${existingItem.quantity + 1})`, {
+            icon: '✓',
+            duration: 2000,
+          });
         } else {
           setCart([
             ...cart,
@@ -113,11 +127,19 @@ const PointOFSaleDetilasPage = () => {
               discount: 0,
             },
           ]);
+          toast.success(`✓ ${product.name} added`, {
+            duration: 2000,
+          });
         }
-        toast.success(`${product.name} added`);
         setBarcodeInput("");
+        // Refocus barcode input for next scan
+        setTimeout(() => {
+          barcodeInputRef.current?.focus();
+        }, 100);
       } else {
         toast.error("Product not found");
+        setBarcodeInput("");
+        barcodeInputRef.current?.focus();
       }
     },
     [products, cart]
@@ -211,10 +233,9 @@ const PointOFSaleDetilasPage = () => {
     let scanTimeout: NodeJS.Timeout;
 
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA"
-      ) {
+      // Only skip if the barcode input field itself is focused
+      // This allows barcode scanner to work even when search or customer fields are focused
+      if (document.activeElement === barcodeInputRef.current) {
         return;
       }
 

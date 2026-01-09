@@ -1,4 +1,6 @@
 "use client";
+import { useLanguage } from "@/lib/LanguageContext";
+import { getTranslation } from "@/lib/translations";
 import {
   FaCapsules,
   FaFlask,
@@ -14,8 +16,6 @@ import {
   MdQrCodeScanner,
   MdSearch,
 } from "react-icons/md";
-import { useLanguage } from "@/lib/LanguageContext";
-import { getTranslation } from "@/lib/translations";
 import { Product } from "./types";
 
 interface POSProductsProps {
@@ -111,9 +111,9 @@ export const POSProducts = ({
           {/* Barcode Scanner */}
           <div className="w-64 relative group border-l border-gray-200 dark:border-gray-700 pl-3">
             <MdQrCodeScanner
-              className={`absolute left-6 top-1/2 -translate-y-1/2 text-xl transition-colors ${
+              className={`absolute left-6 top-1/2 -translate-y-1/2 text-xl transition-all duration-300 ${
                 scannerActive
-                  ? "text-indigo-500 animate-pulse"
+                  ? "text-indigo-500 animate-pulse scale-110"
                   : isDarkMode
                   ? "text-gray-500 group-focus-within:text-indigo-400"
                   : "text-gray-400 group-focus-within:text-indigo-500"
@@ -125,12 +125,18 @@ export const POSProducts = ({
               placeholder={t("scanBarcodePlaceholder")}
               value={barcodeInput}
               onChange={(e) => setBarcodeInput(e.target.value)}
-              onKeyPress={(e) =>
-                e.key === "Enter" && handleBarcodeScanned(barcodeInput)
-              }
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && barcodeInput.trim()) {
+                  handleBarcodeScanned(barcodeInput);
+                }
+              }}
               onFocus={() => setScannerActive(true)}
               onBlur={() => setScannerActive(false)}
-              className={`w-full pl-10 pr-4 py-3 rounded-xl bg-transparent focus:outline-none transition-all placeholder:text-gray-400 ${
+              className={`w-full pl-10 pr-4 py-3 rounded-xl bg-transparent focus:outline-none transition-all duration-300 placeholder:text-gray-400 border-2 border-transparent ${
+                scannerActive 
+                  ? "border-indigo-500/30 bg-indigo-500/5" 
+                  : "hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
+              } ${
                 isDarkMode ? "text-gray-100" : "text-gray-800"
               }`}
             />
