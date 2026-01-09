@@ -1,11 +1,13 @@
 "use client";
 
 import { createBarcode, generateBarcode } from "@/app/actions/barcode";
+import { printBarcode } from "@/lib/printUtils";
 import { useSidebar } from "@/lib/SidebarContext";
+import { getTranslation } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
-import { MdAdd, MdQrCode2 } from "react-icons/md";
+import { MdAdd, MdPrint, MdQrCode2 } from "react-icons/md";
 
 interface Product {
   _id: string;
@@ -15,9 +17,10 @@ interface Product {
 
 interface BarcodeGeneratorProps {
   products: Product[];
+  language: "en" | "bn";
 }
 
-export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
+export default function BarcodeGenerator({ products, language }: BarcodeGeneratorProps) {
   const { isDarkMode } = useSidebar();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -28,7 +31,7 @@ export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
 
   const handleGenerate = async () => {
     if (!selectedProduct) {
-      toast.error("Please select a product");
+      toast.error(getTranslation("pleaseSelectProduct", language));
       return;
     }
 
@@ -37,16 +40,16 @@ export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
 
     if (result.success) {
       setGeneratedBarcode(result.data.barcode);
-      toast.success("Barcode generated successfully");
+      toast.success(getTranslation("barcodeGeneratedSuccess", language));
     } else {
-      toast.error(result.error || "Failed to generate barcode");
+      toast.error(result.error || getTranslation("failedToGenerateBarcode", language));
     }
     setIsGenerating(false);
   };
 
   const handleSave = async () => {
     if (!generatedBarcode || !selectedProduct) {
-      toast.error("Please generate a barcode first");
+      toast.error(getTranslation("pleaseGenerateFirst", language));
       return;
     }
 
@@ -58,16 +61,23 @@ export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
     });
 
     if (result.success) {
-      toast.success("Barcode saved successfully");
+      toast.success(getTranslation("barcodeSavedSuccess", language));
       setGeneratedBarcode("");
       setSelectedProduct("");
       startTransition(() => {
         router.refresh();
       });
     } else {
-      toast.error(result.error || "Failed to save barcode");
+      toast.error(result.error || getTranslation("failedToSaveBarcode", language));
     }
     setIsSaving(false);
+  };
+
+  const handlePrint = () => {
+    const product = products.find((p) => p._id === selectedProduct);
+    if (product && generatedBarcode) {
+      printBarcode(generatedBarcode, product.name, product.sku);
+    }
   };
 
   return (
@@ -84,7 +94,7 @@ export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
         }`}
       >
         <MdQrCode2 className="w-5 h-5 text-blue-500" />
-        Generate New Barcode
+        {getTranslation("generateNewBarcode", language)}
       </h3>
 
       <div className="space-y-4">
@@ -95,7 +105,7 @@ export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
           >
-            Select Product
+            {getTranslation("selectProduct", language)}
           </label>
           <select
             value={selectedProduct}
@@ -106,7 +116,7 @@ export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
                 : "bg-white border-gray-300 text-gray-900"
             } focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500`}
           >
-            <option value="">-- Select a product --</option>
+            <option value="">{getTranslation("selectAProduct", language)}</option>
             {products.map((product) => (
               <option key={product._id} value={product._id}>
                 {product.name} (SKU: {product.sku})
@@ -126,7 +136,7 @@ export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
           } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
         >
           <MdQrCode2 className="w-5 h-5" />
-          {isGenerating ? "Generating..." : "Generate Barcode"}
+          {isGenerating ? getTranslation("generating", language) : getTranslation("generateBarcode", language)}
         </button>
 
         {/* Generated Barcode Display */}
@@ -143,31 +153,46 @@ export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
                 isDarkMode ? "text-gray-300" : "text-gray-700"
               }`}
             >
-              Generated Barcode:
+              {getTranslation("generatedBarcode", language)}
             </p>
-            <div className="flex items-center justify-center py-6">
-              <span
-                className={`text-3xl font-mono font-bold ${
-                  isDarkMode ? "text-blue-400" : "text-blue-600"
-                }`}
-              >
-                {generatedBarcode}
-              </span>
+            <div className="flex items-center justify-center py-6 bg-white rounded-lg border">
+              <div className="text-center">
+                 <p className="text-xs text-gray-500 mb-1">Print to see barcode bars</p>
+                 <span className="text-3xl font-mono font-bold tracking-widest text-black">
+                  {generatedBarcode}
+                </span>
+              </div>
             </div>
 
-            {/* Save Button */}
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className={`w-full px-4 py-2 rounded-lg font-medium transition-colors mt-4 ${
-                isDarkMode
-                  ? "bg-green-600 hover:bg-green-700 text-white"
-                  : "bg-green-500 hover:bg-green-600 text-white"
-              } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-            >
-              <MdAdd className="w-5 h-5" />
-              {isSaving ? "Saving..." : "Save Barcode"}
-            </button>
+            <div className="flex gap-3 mt-4">
+              {/* Save Button */}
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isDarkMode
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-green-500 hover:bg-green-600 text-white"
+                } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+              >
+                <MdAdd className="w-5 h-5" />
+                {isSaving ? getTranslation("saving", language) : getTranslation("saveBarcode", language)}
+              </button>
+
+              {/* Print Button */}
+              <button
+                onClick={handlePrint}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isDarkMode
+                    ? "bg-gray-600 hover:bg-gray-500 text-white"
+                    : "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700"
+                } flex items-center justify-center gap-2`}
+                title={getTranslation("print", language)}
+              >
+                <MdPrint className="w-5 h-5" />
+                {getTranslation("print", language)}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -183,9 +208,7 @@ export default function BarcodeGenerator({ products }: BarcodeGeneratorProps) {
             isDarkMode ? "text-blue-300" : "text-blue-800"
           }`}
         >
-          <strong>Note:</strong> Generated barcodes are unique EAN13 format with
-          automatic check digit calculation. Duplicate barcodes are
-          automatically prevented.
+          <strong>{getTranslation("note", language) || "Note"}:</strong> {getTranslation("barcodeNote", language)}
         </p>
       </div>
     </div>

@@ -1,17 +1,20 @@
 "use client";
 
 import { Barcode, deleteBarcode } from "@/app/actions/barcode";
+import { printBarcode } from "@/lib/printUtils";
 import { useSidebar } from "@/lib/SidebarContext";
+import { getTranslation } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
-import { MdDelete, MdQrCode2, MdSearch } from "react-icons/md";
+import { MdDelete, MdPrint, MdQrCode2, MdSearch } from "react-icons/md";
 
 interface BarcodeListProps {
   initialBarcodes: Barcode[];
   totalPages: number;
   currentPage: number;
   total: number;
+  language: "en" | "bn";
 }
 
 export default function BarcodeList({
@@ -19,6 +22,7 @@ export default function BarcodeList({
   totalPages,
   currentPage,
   total,
+  language,
 }: BarcodeListProps) {
   const { isDarkMode } = useSidebar();
   const router = useRouter();
@@ -27,7 +31,7 @@ export default function BarcodeList({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string, barcode: string) => {
-    if (!confirm(`Are you sure you want to delete barcode ${barcode}?`)) {
+    if (!confirm(getTranslation("areYouSure", language) + ` ${barcode}?`)) {
       return;
     }
 
@@ -35,14 +39,18 @@ export default function BarcodeList({
     const result = await deleteBarcode(id);
 
     if (result.success) {
-      toast.success("Barcode deleted successfully");
+      toast.success(getTranslation("barcodeDeletedSuccess", language));
       startTransition(() => {
         router.refresh();
       });
     } else {
-      toast.error(result.error || "Failed to delete barcode");
+      toast.error(result.error || getTranslation("failedToDeleteBarcode", language));
     }
     setDeletingId(null);
+  };
+
+  const handlePrint = (barcode: string, productName: string, sku: string) => {
+    printBarcode(barcode, productName, sku);
   };
 
   const filteredBarcodes = initialBarcodes.filter(
@@ -64,7 +72,7 @@ export default function BarcodeList({
           />
           <input
             type="text"
-            placeholder="Search by barcode, product name, or SKU..."
+            placeholder={getTranslation("searchByBarcode", language)}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={`w-full pl-10 pr-4 py-3 rounded-lg border transition-colors ${
@@ -83,7 +91,7 @@ export default function BarcodeList({
             isDarkMode ? "text-gray-400" : "text-gray-600"
           }`}
         >
-          Showing {filteredBarcodes.length} of {total} barcodes
+          {getTranslation("showing", language)} {filteredBarcodes.length} {getTranslation("of", language)} {total} {getTranslation("allBarcodes", language).toLowerCase()}
         </p>
       </div>
 
@@ -106,7 +114,7 @@ export default function BarcodeList({
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
           >
-            No barcodes found
+            {getTranslation("noBarcodesFound", language)}
           </p>
           <p
             className={`text-sm mt-1 ${
@@ -114,8 +122,8 @@ export default function BarcodeList({
             }`}
           >
             {searchQuery
-              ? "Try adjusting your search"
-              : "Generate your first barcode to get started"}
+              ? getTranslation("tryAdjustingSearch", language)
+              : getTranslation("generateFirstBarcode", language)}
           </p>
         </div>
       ) : (
@@ -137,35 +145,35 @@ export default function BarcodeList({
                       isDarkMode ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
-                    Barcode
+                    {getTranslation("barcodeManagement", language).split(" ")[0]}
                   </th>
                   <th
                     className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       isDarkMode ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
-                    Product
+                    {getTranslation("selectProduct", language).split(" ")[1] || "Product"}
                   </th>
                   <th
                     className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       isDarkMode ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
-                    Type
+                    {getTranslation("type", language)}
                   </th>
                   <th
                     className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       isDarkMode ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
-                    Created
+                    {getTranslation("created", language)}
                   </th>
                   <th
                     className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${
                       isDarkMode ? "text-gray-400" : "text-gray-500"
                     }`}
                   >
-                    Actions
+                    {getTranslation("actions", language)}
                   </th>
                 </tr>
               </thead>
@@ -234,20 +242,35 @@ export default function BarcodeList({
                       {new Date(barcode.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
-                        onClick={() =>
-                          handleDelete(barcode._id, barcode.barcode)
-                        }
-                        disabled={deletingId === barcode._id}
-                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                          isDarkMode
-                            ? "bg-red-900/30 text-red-400 hover:bg-red-900/50"
-                            : "bg-red-50 text-red-600 hover:bg-red-100"
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        <MdDelete className="w-4 h-4" />
-                        {deletingId === barcode._id ? "Deleting..." : "Delete"}
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handlePrint(barcode.barcode, barcode.productId.name, barcode.productId.sku)}
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                            isDarkMode
+                              ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                          title={getTranslation("print", language)}
+                        >
+                          <MdPrint className="w-4 h-4" />
+                          <span className="sr-only">{getTranslation("print", language)}</span>
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDelete(barcode._id, barcode.barcode)
+                          }
+                          disabled={deletingId === barcode._id}
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                            isDarkMode
+                              ? "bg-red-900/30 text-red-400 hover:bg-red-900/50"
+                              : "bg-red-50 text-red-600 hover:bg-red-100"
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          title={getTranslation("delete", language)}
+                        >
+                          <MdDelete className="w-4 h-4" />
+                          <span className="sr-only">{getTranslation("delete", language)}</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

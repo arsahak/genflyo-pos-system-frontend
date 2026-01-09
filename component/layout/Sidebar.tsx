@@ -10,18 +10,18 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaTruck } from "react-icons/fa";
 import {
-  IoIosArrowDown,
-  IoMdAnalytics,
-  IoMdCard,
-  IoMdCube,
-  IoMdDocument,
-  IoMdHome,
-  IoMdMoon,
-  IoMdPeople,
-  IoMdPerson,
-  IoMdSettings,
-  IoMdSunny,
-  IoMdTrendingUp,
+    IoIosArrowDown,
+    IoMdAnalytics,
+    IoMdCard,
+    IoMdCube,
+    IoMdDocument,
+    IoMdHome,
+    IoMdMoon,
+    IoMdPeople,
+    IoMdPerson,
+    IoMdSettings,
+    IoMdSunny,
+    IoMdTrendingUp,
 } from "react-icons/io";
 import { MdQrCode2, MdStore } from "react-icons/md";
 import { RxDoubleArrowLeft } from "react-icons/rx";
@@ -405,7 +405,9 @@ export default function Sidebar() {
                       {item.icon}
                     </span>
                     {isOpen && (
-                      <span className="font-medium text-sm">{item.label}</span>
+                      <span className="font-medium text-sm" suppressHydrationWarning>
+                        {item.label}
+                      </span>
                     )}
                   </Link>
 
@@ -453,6 +455,7 @@ export default function Sidebar() {
                             ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
                             : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                         }`}
+                        suppressHydrationWarning
                       >
                         {subItem.label}
                       </Link>
@@ -484,7 +487,7 @@ export default function Sidebar() {
               ) : (
                 <IoMdMoon className="w-5 h-5" />
               )}
-              <span className="font-medium text-sm">
+              <span className="font-medium text-sm" suppressHydrationWarning>
                 {isDarkMode
                   ? getTranslation("lightMode", language)
                   : getTranslation("darkMode", language)}
