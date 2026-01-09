@@ -1,13 +1,12 @@
 "use client";
-import { createSale } from "@/app/actions/sales";
+import { createCustomer, getAllCustomers } from "@/app/actions/customers";
 import { getAllProducts } from "@/app/actions/product";
+import { createSale } from "@/app/actions/sales";
 import { getAllStores } from "@/app/actions/stores";
-import { getAllCustomers, createCustomer } from "@/app/actions/customers";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { InvoiceModal } from "./InvoiceModal";
-import { PaymentModal } from "./PaymentModal";
 import { POSCart } from "./POSCart";
 import { POSHeader } from "./POSHeader";
 import { POSProducts } from "./POSProducts";
@@ -44,15 +43,12 @@ const PointOFSaleDetilasPage = () => {
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
 
   // Modals
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showHeldOrdersModal, setShowHeldOrdersModal] = useState(false);
   const [showHoldOrderModal, setShowHoldOrderModal] = useState(false);
 
   // Payment
-  const [paymentMethod, setPaymentMethod] = useState<
-    "cash" | "card" | "wallet"
-  >("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [receivedAmount, setReceivedAmount] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
   const [discountType, setDiscountType] = useState<"percent" | "fixed">(
@@ -70,6 +66,8 @@ const PointOFSaleDetilasPage = () => {
 
   // UI State
   const [scannerActive, setScannerActive] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showInvoiceAfterSale, setShowInvoiceAfterSale] = useState(false);
 
   // Refs
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -125,14 +123,7 @@ const PointOFSaleDetilasPage = () => {
     [products, cart]
   );
 
-  const handleCheckout = useCallback(() => {
-    if (cart.length === 0) {
-      toast.error("Cart is empty!");
-      return;
-    }
-    setShowPaymentModal(true);
-    setTimeout(() => phoneInputRef.current?.focus(), 100);
-  }, [cart]);
+  // Removed handleCheckout - payment is now inline in cart
 
   // ==================== EFFECTS ====================
 
@@ -275,7 +266,7 @@ const PointOFSaleDetilasPage = () => {
         barcodeInputRef.current?.focus();
       } else if (e.key === "F8" && cart.length > 0) {
         e.preventDefault();
-        handleCheckout();
+        processPayment();
       } else if (e.key === "F9" && cart.length > 0) {
         e.preventDefault();
         setShowHoldOrderModal(true);
@@ -283,7 +274,6 @@ const PointOFSaleDetilasPage = () => {
         e.preventDefault();
         setShowHeldOrdersModal(true);
       } else if (e.key === "Escape") {
-        setShowPaymentModal(false);
         setShowInvoiceModal(false);
         setShowHeldOrdersModal(false);
         setShowHoldOrderModal(false);
@@ -292,7 +282,7 @@ const PointOFSaleDetilasPage = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cart, handleCheckout]);
+  }, [cart]);
 
   // ==================== HANDLERS ====================
 
@@ -490,8 +480,7 @@ const PointOFSaleDetilasPage = () => {
       calculateSubtotal() -
       calculateItemDiscounts() -
       getMembershipDiscount() -
-      calculateOrderDiscount() +
-      calculateTax()
+      calculateOrderDiscount()
     );
   };
 
@@ -500,14 +489,7 @@ const PointOFSaleDetilasPage = () => {
     return Math.max(0, received - calculateGrandTotal());
   };
 
-  const closePaymentModal = () => {
-    setShowPaymentModal(false);
-    setCustomerPhone("");
-    setCustomerName("");
-    setCustomerEmail("");
-    setReceivedAmount("");
-    setShowSuggestions(false);
-  };
+  // Removed closePaymentModal - no longer needed
 
   const processPayment = async () => {
     const grandTotal = calculateGrandTotal();
@@ -520,6 +502,7 @@ const PointOFSaleDetilasPage = () => {
       }
     }
 
+    setIsProcessing(true);
     try {
       // Handle customer
       let customerId = selectedCustomer?._id || selectedCustomer?.id;
@@ -590,8 +573,7 @@ const PointOFSaleDetilasPage = () => {
         })),
         payments: [
           {
-            method:
-              paymentMethod === "wallet" ? "mobile_wallet" : paymentMethod,
+            method: paymentMethod,
             amount: grandTotal,
             reference:
               paymentMethod !== "cash" ? `REF-${Date.now()}` : undefined,
@@ -650,17 +632,23 @@ const PointOFSaleDetilasPage = () => {
       setItemDiscount({});
       setAppliedDiscount(0);
       setSelectedCustomer(null);
-      setShowPaymentModal(false);
       setReceivedAmount("");
       setCustomerPhone("");
       setCustomerName("");
       setCustomerEmail("");
-      setShowInvoiceModal(true);
-      toast.success("Sale completed!");
+      
+      // Conditionally show invoice modal or just toast
+      if (showInvoiceAfterSale) {
+        setShowInvoiceModal(true);
+      } else {
+        toast.success("Sale completed! Ready for new sale.");
+      }
     } catch (error: any) {
       console.error("Payment process error:", error);
       const errorMessage = error.message || error.response?.data?.message || "Payment failed!";
       toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -687,18 +675,19 @@ const PointOFSaleDetilasPage = () => {
 
   return (
     <div
-      className={`h-[calc(100vh-5rem)] flex flex-col font-sans transition-colors duration-300 ${
+      className={`h-[calc(100vh-5rem)] flex font-sans transition-colors duration-300 ${
         isDarkMode ? "bg-gray-950 text-gray-100" : "bg-slate-50 text-gray-800"
       }`}
     >
-      <POSHeader
-        isDarkMode={isDarkMode}
-        storeName={storeName}
-        heldOrdersCount={heldOrders.length}
-        onOpenHeldOrders={() => setShowHeldOrdersModal(true)}
-      />
+      {/* Left Panel - Products with Header */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <POSHeader
+          isDarkMode={isDarkMode}
+          storeName={storeName}
+          heldOrdersCount={heldOrders.length}
+          onOpenHeldOrders={() => setShowHeldOrdersModal(true)}
+        />
 
-      <div className="flex-1 flex overflow-hidden">
         <POSProducts
           isDarkMode={isDarkMode}
           searchQuery={searchQuery}
@@ -717,8 +706,10 @@ const PointOFSaleDetilasPage = () => {
           filteredProducts={filteredProducts}
           addToCart={addToCart}
         />
+      </div>
 
-        <POSCart
+      {/* Right Panel - Cart (Full Height) */}
+      <POSCart
           isDarkMode={isDarkMode}
           cart={cart}
           itemDiscount={itemDiscount}
@@ -733,36 +724,35 @@ const PointOFSaleDetilasPage = () => {
           calculateOrderDiscount={calculateOrderDiscount}
           calculateTax={calculateTax}
           calculateGrandTotal={calculateGrandTotal}
-          handleCheckout={handleCheckout}
+          selectedCustomer={selectedCustomer}
+          setSelectedCustomer={setSelectedCustomer}
+          customerPhone={customerPhone}
+          handlePhoneInput={handlePhoneInput}
+          customerName={customerName}
+          setCustomerName={setCustomerName}
+          customerEmail={customerEmail}
+          setCustomerEmail={setCustomerEmail}
+          isSearchingCustomer={isSearchingCustomer}
+          showSuggestions={showSuggestions}
+          customerSuggestions={customerSuggestions}
+          selectCustomer={selectCustomer}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+          receivedAmount={receivedAmount}
+          setReceivedAmount={setReceivedAmount}
+          getChangeAmount={getChangeAmount}
+          processPayment={processPayment}
+          phoneInputRef={phoneInputRef}
+          appliedDiscount={appliedDiscount}
+          setAppliedDiscount={setAppliedDiscount}
+          discountType={discountType}
+          setDiscountType={setDiscountType}
+          isProcessing={isProcessing}
+          showInvoiceAfterSale={showInvoiceAfterSale}
+          setShowInvoiceAfterSale={setShowInvoiceAfterSale}
         />
-      </div>
 
-      <PaymentModal
-        isDarkMode={isDarkMode}
-        showPaymentModal={showPaymentModal}
-        closePaymentModal={closePaymentModal}
-        selectedCustomer={selectedCustomer}
-        setSelectedCustomer={setSelectedCustomer}
-        customerPhone={customerPhone}
-        handlePhoneInput={handlePhoneInput}
-        customerName={customerName}
-        setCustomerName={setCustomerName}
-        customerEmail={customerEmail}
-        setCustomerEmail={setCustomerEmail}
-        isSearchingCustomer={isSearchingCustomer}
-        showSuggestions={showSuggestions}
-        customerSuggestions={customerSuggestions}
-        selectCustomer={selectCustomer}
-        paymentMethod={paymentMethod}
-        setPaymentMethod={setPaymentMethod}
-        receivedAmount={receivedAmount}
-        setReceivedAmount={setReceivedAmount}
-        calculateGrandTotal={calculateGrandTotal}
-        getChangeAmount={getChangeAmount}
-        processPayment={processPayment}
-        phoneInputRef={phoneInputRef}
-        quickCashAmounts={quickCashAmounts}
-      />
+      {/* PaymentModal removed - payment is now inline in POSCart */}
 
       <InvoiceModal
         showInvoiceModal={showInvoiceModal}
