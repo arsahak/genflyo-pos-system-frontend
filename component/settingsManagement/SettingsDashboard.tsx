@@ -2,17 +2,17 @@
 import { useSidebar } from "@/lib/SidebarContext";
 import { useRouter } from "next/navigation";
 import {
-  MdSettings,
-  MdBusiness,
-  MdPayment,
-  MdReceipt,
-  MdNotifications,
-  MdInventory,
-  MdPeople,
-  MdSecurity,
-  MdComputer,
-  MdPercent,
   MdArrowForward,
+  MdBusiness,
+  MdComputer,
+  MdInventory,
+  MdNotifications,
+  MdPayment,
+  MdPeople,
+  MdPercent,
+  MdReceipt,
+  MdSecurity,
+  MdSettings,
 } from "react-icons/md";
 
 const SettingsDashboard = () => {
@@ -204,7 +204,7 @@ const SettingsDashboard = () => {
           return (
             <div
               key={section.id}
-              onClick={() => router.push(section.route)}
+              // onClick={() => router.push(section.route)}
               className={`rounded-lg border-2 p-6 cursor-pointer transition-all hover:shadow-lg ${
                 isDarkMode
                   ? `${colors.bgDark} ${colors.borderDark} hover:${colors.borderDark}`

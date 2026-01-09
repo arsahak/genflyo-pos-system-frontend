@@ -40,6 +40,7 @@ export const translations = {
     customers: "Customers",
     reports: "Reports",
     users: "Users",
+    barcode: "Barcode",
     stores: "Stores",
     settings: "Settings",
 
@@ -65,6 +66,8 @@ export const translations = {
     allUsers: "All Users",
     addUser: "Add User",
     rolesPermissions: "Roles & Permissions",
+    allBarcodes: "All Barcodes",
+    addBarcode: "Add Barcode",
     allStores: "All Stores",
     addStore: "Add Store",
     storeSettings: "Store Settings",
@@ -269,6 +272,7 @@ export const translations = {
     customers: "গ্রাহক",
     reports: "রিপোর্ট",
     users: "ব্যবহারকারী",
+    barcode: "বারকোড",
     stores: "স্টোর",
     settings: "সেটিংস",
 
@@ -294,6 +298,8 @@ export const translations = {
     allUsers: "সব ব্যবহারকারী",
     addUser: "ব্যবহারকারী যোগ করুন",
     rolesPermissions: "ভূমিকা ও অনুমতি",
+    allBarcodes: "সব বারকোড",
+    addBarcode: "বারকোড যোগ করুন",
     allStores: "সব স্টোর",
     addStore: "স্টোর যোগ করুন",
     storeSettings: "স্টোর সেটিংস",

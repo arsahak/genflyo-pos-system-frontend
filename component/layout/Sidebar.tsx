@@ -8,6 +8,7 @@ import { getTranslation } from "@/lib/translations";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FaTruck } from "react-icons/fa";
 import {
   IoIosArrowDown,
   IoMdAnalytics,
@@ -22,8 +23,7 @@ import {
   IoMdSunny,
   IoMdTrendingUp,
 } from "react-icons/io";
-import { MdStore } from "react-icons/md";
-import { FaTruck } from "react-icons/fa";
+import { MdQrCode2, MdStore } from "react-icons/md";
 import { RxDoubleArrowLeft } from "react-icons/rx";
 
 interface MenuItem {
@@ -242,26 +242,45 @@ const getMenuItems = (language: string): MenuItem[] => [
     ],
   },
   {
+    icon: <MdQrCode2 className="w-5 h-5" />,
+    label: getTranslation("barcode", language),
+    path: "/barcode",
+    permission: "canViewProducts",
+    expandable: true,
+    subItems: [
+      {
+        label: getTranslation("allBarcodes", language),
+        path: "/barcode",
+        permission: "canViewProducts",
+      },
+      {
+        label: getTranslation("addBarcode", language),
+        path: "/barcode/add",
+        permission: "canAddProducts",
+      },
+    ],
+  },
+  {
     icon: <IoMdSettings className="w-5 h-5" />,
     label: getTranslation("settings", language),
     path: "/settings",
     permission: "canManageSettings",
     expandable: true,
-    subItems: [
-      {
-        label: getTranslation("generalSettings", language),
-        path: "/settings/general",
-      },
-      {
-        label: getTranslation("paymentMethods", language),
-        path: "/settings/payments",
-      },
-      { label: getTranslation("taxSettings", language), path: "/settings/tax" },
-      {
-        label: getTranslation("receiptSettings", language),
-        path: "/settings/receipts",
-      },
-    ],
+    // subItems: [
+    //   {
+    //     label: getTranslation("generalSettings", language),
+    //     path: "/settings/general",
+    //   },
+    //   {
+    //     label: getTranslation("paymentMethods", language),
+    //     path: "/settings/payments",
+    //   },
+    //   { label: getTranslation("taxSettings", language), path: "/settings/tax" },
+    //   {
+    //     label: getTranslation("receiptSettings", language),
+    //     path: "/settings/receipts",
+    //   },
+    // ],
   },
 ];
 
