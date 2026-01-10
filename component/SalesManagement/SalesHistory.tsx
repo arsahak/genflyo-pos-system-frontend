@@ -5,6 +5,7 @@ import { getAllStores } from "@/app/actions/stores";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import ProtectedRoute from "@/component/ProtectedRoute";
 import {
   MdSearch,
   MdFilterList,
@@ -214,6 +215,7 @@ const SalesHistory = () => {
   }
 
   return (
+    <ProtectedRoute requiredPermission="canViewSales">
     <div className={`min-h-screen p-6 transition-colors duration-300 ${
       isDarkMode ? "bg-gray-950" : "bg-slate-50"
     }`}>
@@ -649,6 +651,7 @@ const SalesHistory = () => {
       </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 };
 

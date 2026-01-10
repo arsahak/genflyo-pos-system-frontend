@@ -23,7 +23,7 @@ import {
     IoMdSunny,
     IoMdTrendingUp,
 } from "react-icons/io";
-import { MdQrCode2, MdStore } from "react-icons/md";
+import { MdQrCode2, MdStore, MdShoppingCart } from "react-icons/md";
 import { RxDoubleArrowLeft } from "react-icons/rx";
 
 interface MenuItem {
@@ -82,18 +82,18 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <FaTruck className="w-5 h-5" />,
     label: getTranslation("suppliers", language),
     path: "/suppliers",
-    permission: "canViewProducts",
+    permission: "canViewSuppliers",
     expandable: true,
     subItems: [
       {
         label: getTranslation("allSuppliers", language),
         path: "/suppliers",
-        permission: "canViewProducts",
+        permission: "canViewSuppliers",
       },
       {
         label: getTranslation("addSupplier", language),
         path: "/suppliers/add",
-        permission: "canAddProducts",
+        permission: "canAddSuppliers",
       },
     ],
   },
@@ -142,6 +142,30 @@ const getMenuItems = (language: string): MenuItem[] => [
         label: getTranslation("salesHistory", language),
         path: "/sales/history",
         permission: "canViewSales",
+      },
+    ],
+  },
+  {
+    icon: <MdShoppingCart className="w-5 h-5" />,
+    label: getTranslation("orders", language),
+    path: "/orders",
+    permission: "canViewOrders",
+    expandable: true,
+    subItems: [
+      {
+        label: getTranslation("allOrders", language),
+        path: "/orders",
+        permission: "canViewOrders",
+      },
+      {
+        label: getTranslation("pendingOrders", language),
+        path: "/orders/pending",
+        permission: "canViewOrders",
+      },
+      {
+        label: getTranslation("completedOrders", language),
+        path: "/orders/completed",
+        permission: "canViewOrders",
       },
     ],
   },
@@ -245,18 +269,18 @@ const getMenuItems = (language: string): MenuItem[] => [
     icon: <MdQrCode2 className="w-5 h-5" />,
     label: getTranslation("barcode", language),
     path: "/barcode",
-    permission: "canViewProducts",
+    permission: "canViewBarcodes",
     expandable: true,
     subItems: [
       {
         label: getTranslation("allBarcodes", language),
         path: "/barcode",
-        permission: "canViewProducts",
+        permission: "canViewBarcodes",
       },
       {
         label: getTranslation("addBarcode", language),
         path: "/barcode/add",
-        permission: "canAddProducts",
+        permission: "canGenerateBarcodes",
       },
     ],
   },
@@ -294,11 +318,17 @@ export default function Sidebar() {
     Record<string, boolean>
   >({});
   const [mounted, setMounted] = useState(false);
+  const [languageMounted, setLanguageMounted] = useState(false);
 
   // Wait for client-side hydration before filtering
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Wait for language to be loaded from localStorage to prevent hydration mismatch
+  useEffect(() => {
+    setLanguageMounted(true);
   }, []);
 
   const toggleSection = (label: string) => {
@@ -498,8 +528,9 @@ export default function Sidebar() {
                     ? "bg-gray-700 text-gray-300"
                     : "bg-gray-100 text-gray-600"
                 }`}
+                suppressHydrationWarning
               >
-                {language === "en" ? "EN" : "বাংলা"}
+                {languageMounted ? (language === "en" ? "EN" : "বাংলা") : "EN"}
               </span>
             </button>
           ) : (
@@ -524,8 +555,9 @@ export default function Sidebar() {
                     ? "bg-gray-700 text-gray-300"
                     : "bg-gray-100 text-gray-600"
                 }`}
+                suppressHydrationWarning
               >
-                {language === "en" ? "EN" : "বাংলা"}
+                {languageMounted ? (language === "en" ? "EN" : "বাংলা") : "EN"}
               </span>
             </div>
           )}

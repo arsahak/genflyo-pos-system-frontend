@@ -4,6 +4,7 @@ import { getSaleById, updateSale } from "@/app/actions/sales";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import ProtectedRoute from "@/component/ProtectedRoute";
 import { EditSaleSkeleton } from "./components/EditSaleSkeleton";
 import {
   MdArrowBack,
@@ -105,6 +106,7 @@ const EditSale = ({ saleId }: EditSaleProps) => {
   }
 
   return (
+    <ProtectedRoute requiredPermission="canEditSales">
     <div className={`min-h-screen p-6 transition-colors duration-300 ${
       isDarkMode ? "bg-gray-950" : "bg-slate-50"
     }`}>
@@ -277,6 +279,7 @@ const EditSale = ({ saleId }: EditSaleProps) => {
       </form>
       </div>
     </div>
+    </ProtectedRoute>
   );
 };
 

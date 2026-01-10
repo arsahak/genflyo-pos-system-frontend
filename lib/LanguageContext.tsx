@@ -1,10 +1,12 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
+import { getTranslation } from "./translations";
 
 interface LanguageContextType {
   language: string;
   setLanguage: (language: string) => void;
+  t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(
@@ -40,11 +42,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }, 200);
   };
 
+  // Translation helper function
+  const t = (key: string) => {
+    return getTranslation(key, language);
+  };
+
   return (
     <LanguageContext.Provider
       value={{
         language,
         setLanguage: updateLanguage,
+        t,
       }}
     >
       {children}

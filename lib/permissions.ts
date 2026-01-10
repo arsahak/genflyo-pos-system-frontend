@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export type PermissionKey =
+  // Dashboard
+  | "canViewDashboard"
   // POS & Sales
   | "canViewSales"
   | "canCreateSales"
@@ -14,6 +16,13 @@ export type PermissionKey =
   | "canDeleteSales"
   | "canProcessRefunds"
   | "canViewSalesReports"
+  // Orders
+  | "canViewOrders"
+  | "canCreateOrders"
+  | "canEditOrders"
+  | "canDeleteOrders"
+  | "canApproveOrders"
+  | "canCancelOrders"
   // Products
   | "canViewProducts"
   | "canAddProducts"
@@ -23,6 +32,12 @@ export type PermissionKey =
   | "canViewInventory"
   | "canManageInventory"
   | "canAdjustStock"
+  // Suppliers
+  | "canViewSuppliers"
+  | "canAddSuppliers"
+  | "canEditSuppliers"
+  | "canDeleteSuppliers"
+  | "canManageSuppliers"
   // Customers
   | "canViewCustomers"
   | "canAddCustomers"
@@ -41,17 +56,26 @@ export type PermissionKey =
   | "canEditStores"
   | "canDeleteStores"
   | "canManageStoreSettings"
+  // Barcodes
+  | "canViewBarcodes"
+  | "canGenerateBarcodes"
+  | "canDeleteBarcodes"
+  | "canManageBarcodes"
   // Reports & Analytics
   | "canViewReports"
   | "canExportReports"
   | "canViewAnalytics"
-  | "canViewDashboard"
   // System Settings
   | "canManageSettings"
   | "canManagePaymentMethods"
   | "canManageTaxSettings"
   | "canManageReceiptSettings"
   | "canViewSystemLogs";
+
+/**
+ * Type for permissions object with all keys required as booleans
+ */
+export type PermissionsRecord = Record<PermissionKey, boolean>;
 
 /**
  * Hook to check if user has a specific permission

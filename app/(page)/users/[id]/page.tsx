@@ -3,15 +3,31 @@
 import { getUserById, deleteUser } from "@/app/actions/users";
 import { useStore } from "@/lib/store";
 import { useSidebar } from "@/lib/SidebarContext";
+import { useLanguage } from "@/lib/LanguageContext";
 import { UserDetailsSkeleton } from "@/component/userManagement/components/UserDetailsSkeleton";
 import ProtectedRoute from "@/component/ProtectedRoute";
 import PermissionGuard from "@/component/PermissionGuard";
+import { permissionCategories, getCategoryColorClasses } from "@/lib/permissionsList";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, ReactElement } from "react";
 import toast from "react-hot-toast";
 import { IoMdPerson, IoMdMail, IoMdCall, IoMdHome } from "react-icons/io";
-import { MdEdit, MdDelete, MdArrowBack } from "react-icons/md";
+import { 
+  MdEdit, 
+  MdDelete, 
+  MdArrowBack,
+  MdDashboard,
+  MdAttachMoney,
+  MdShoppingCart,
+  MdStore,
+  MdInventory,
+  MdLocalShipping,
+  MdPeople,
+  MdSupervisorAccount,
+  MdAnalytics,
+  MdSettings
+} from "react-icons/md";
 
 interface UserData {
   _id: string;
@@ -37,6 +53,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
   const { id } = use(params);
   const { user } = useStore();
   const { isDarkMode } = useSidebar();
+  const { t } = useLanguage();
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,9 +106,27 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
 
   if (!user) return null;
 
+  // Get icon for category
+  const getCategoryIcon = (iconName: string) => {
+    const icons: Record<string, ReactElement> = {
+      dashboard: <MdDashboard className="w-4 h-4" />,
+      sales: <MdAttachMoney className="w-4 h-4" />,
+      orders: <MdShoppingCart className="w-4 h-4" />,
+      products: <MdStore className="w-4 h-4" />,
+      inventory: <MdInventory className="w-4 h-4" />,
+      suppliers: <MdLocalShipping className="w-4 h-4" />,
+      customers: <MdPeople className="w-4 h-4" />,
+      users: <MdSupervisorAccount className="w-4 h-4" />,
+      stores: <MdStore className="w-4 h-4" />,
+      reports: <MdAnalytics className="w-4 h-4" />,
+      settings: <MdSettings className="w-4 h-4" />,
+    };
+    return icons[iconName] || <MdSettings className="w-4 h-4" />;
+  };
+
   return (
     <ProtectedRoute requiredPermission="canViewUsers">
-      <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      <div className={`min-h-screen p-6 transition-colors duration-300 font-sans ${
         isDarkMode ? "bg-gray-950 text-gray-100" : "bg-slate-50 text-gray-900"
       }`}>
       {loading ? (
@@ -144,10 +179,10 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
           <h1 className={`text-3xl font-bold ${
             isDarkMode ? "text-gray-100" : "text-gray-900"
           }`}>
-            User Details
+            {t("userDetails") || "User Details"}
           </h1>
           <p className={`mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-            View user information and permissions
+            {t("viewUserInfo") || "View user information and permissions"}
           </p>
         </div>
         <div className="flex gap-3">
@@ -160,7 +195,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
             }`}
           >
             <MdArrowBack className="w-5 h-5" />
-            <span>Back</span>
+            <span>{t("back") || "Back"}</span>
           </Link>
           <PermissionGuard permission="canEditUsers">
             <Link
@@ -168,7 +203,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
               className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-2xl hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
             >
               <MdEdit className="w-5 h-5" />
-              <span>Edit</span>
+              <span>{t("edit") || "Edit"}</span>
             </Link>
           </PermissionGuard>
           <PermissionGuard permission="canDeleteUsers">
@@ -177,13 +212,80 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
               className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-2xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
             >
               <MdDelete className="w-5 h-5" />
-              <span>Delete</span>
+              <span>{t("delete") || "Delete"}</span>
             </button>
           </PermissionGuard>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
+        {/* Role & Access Section */}
+        <div className={`rounded-2xl border p-6 shadow-sm ${
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}>
+          <h3 className={`text-lg font-semibold mb-6 ${
+            isDarkMode ? "text-gray-100" : "text-gray-900"
+          }`}>
+            {t("roleAccessLevel") || "Role & Access Level"}
+          </h3>
+          
+          {/* Role Display Card */}
+          <div className={`p-6 rounded-xl border-2 transition-all ${
+            userData.role === "super_admin"
+              ? "border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100/50"
+              : userData.role === "admin"
+              ? "border-blue-300 bg-gradient-to-br from-blue-50 to-blue-100/50"
+              : userData.role === "manager"
+              ? "border-green-300 bg-gradient-to-br from-green-50 to-green-100/50"
+              : "border-orange-300 bg-gradient-to-br from-orange-50 to-orange-100/50"
+          }`}>
+            <div className="flex items-center gap-4">
+              <div className={`p-4 rounded-xl ${
+                userData.role === "super_admin"
+                  ? "bg-purple-500"
+                  : userData.role === "admin"
+                  ? "bg-blue-500"
+                  : userData.role === "manager"
+                  ? "bg-green-500"
+                  : "bg-orange-500"
+              } text-white shadow-lg`}>
+                {userData.role === "super_admin" ? (
+                  <MdSupervisorAccount className="w-8 h-8" />
+                ) : userData.role === "admin" ? (
+                  <MdSupervisorAccount className="w-8 h-8" />
+                ) : userData.role === "manager" ? (
+                  <MdPeople className="w-8 h-8" />
+                ) : (
+                  <MdAttachMoney className="w-8 h-8" />
+                )}
+              </div>
+              <div>
+                <h4 className={`text-xl font-bold capitalize ${
+                  userData.role === "super_admin"
+                    ? "text-purple-900"
+                    : userData.role === "admin"
+                    ? "text-blue-900"
+                    : userData.role === "manager"
+                    ? "text-green-900"
+                    : "text-orange-900"
+                }`}>
+                  {userData.role.replace("_", " ")}
+                </h4>
+                <p className="text-sm text-gray-600 mt-1">
+                  {userData.role === "super_admin"
+                    ? "Full system access with all permissions"
+                    : userData.role === "admin"
+                    ? "Administrative access with user management"
+                    : userData.role === "manager"
+                    ? "Management access with inventory control"
+                    : "Point of Sale access for transactions"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Profile Info */}
         <div className="lg:col-span-1 space-y-6">
           {/* Profile Card */}
@@ -229,14 +331,14 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
             <h3 className={`text-lg font-semibold mb-4 ${
               isDarkMode ? "text-gray-100" : "text-gray-900"
             }`}>
-              Contact Information
+              {t("contactInformation") || "Contact Information"}
             </h3>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <IoMdMail className="w-5 h-5 text-indigo-600 mt-0.5" />
                 <div>
                   <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    Email
+                    {t("email") || "Email"}
                   </p>
                   <p className={`font-medium ${isDarkMode ? "text-gray-200" : "text-gray-900"}`}>
                     {userData.email}
@@ -248,7 +350,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
                   <IoMdCall className="w-5 h-5 text-indigo-600 mt-0.5" />
                   <div>
                     <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                      Phone
+                      {t("phoneNumber") || "Phone"}
                     </p>
                     <p className={`font-medium ${isDarkMode ? "text-gray-200" : "text-gray-900"}`}>
                       {userData.phone}
@@ -261,7 +363,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
                   <IoMdHome className="w-5 h-5 text-indigo-600 mt-0.5" />
                   <div>
                     <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                      Address
+                      {t("address") || "Address"}
                     </p>
                     <p className={`font-medium ${isDarkMode ? "text-gray-200" : "text-gray-900"}`}>
                       {userData.address}
@@ -279,7 +381,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
             <h3 className={`text-lg font-semibold mb-4 ${
               isDarkMode ? "text-gray-100" : "text-gray-900"
             }`}>
-              Additional Information
+              {t("additionalInformation") || "Additional Information"}
             </h3>
             <div className="space-y-3">
               {userData.createdBy && (
@@ -322,52 +424,109 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
             <h3 className={`text-lg font-semibold mb-6 ${
               isDarkMode ? "text-gray-100" : "text-gray-900"
             }`}>
-              Permissions
+              {t("accessPermissions") || "Access Permissions"}
             </h3>
 
-            {userData.permissions && Object.keys(userData.permissions).length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(userData.permissions).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      value
-                        ? isDarkMode
-                          ? "border-green-700 bg-green-900/20"
-                          : "border-green-200 bg-green-50"
-                        : isDarkMode
-                        ? "border-gray-600 bg-gray-700/50"
-                        : "border-gray-200 bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-sm font-medium ${
-                        isDarkMode ? "text-gray-200" : "text-gray-900"
-                      }`}>
-                        {key.replace(/([A-Z])/g, " $1").replace(/^can /, "")}
-                      </span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          value
-                            ? "bg-green-200 text-green-800"
-                            : isDarkMode
-                            ? "bg-gray-600 text-gray-300"
-                            : "bg-gray-300 text-gray-600"
-                        }`}
-                      >
-                        {value ? "Granted" : "Denied"}
-                      </span>
+            {permissionCategories && permissionCategories.length > 0 ? (
+              <div className="space-y-5">
+                {permissionCategories.map((category) => {
+                  const categoryPermissions = category.permissions;
+                  
+                  if (categoryPermissions.length === 0) return null;
+
+                  const colorClasses = getCategoryColorClasses(category.color);
+                  const grantedCount = categoryPermissions.filter(
+                    (perm) => userData.permissions?.[perm.key] === true
+                  ).length;
+
+                  return (
+                    <div
+                      key={category.title}
+                      className={`border rounded-lg p-4 transition-shadow ${
+                        isDarkMode
+                          ? "bg-gray-700/50 border-gray-600"
+                          : `${colorClasses.bg} ${colorClasses.border}`
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${
+                          isDarkMode ? "text-gray-300" : colorClasses.text
+                        }`}>
+                          {getCategoryIcon(category.icon)}
+                          {category.title}
+                        </h4>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                          grantedCount === categoryPermissions.length
+                            ? "bg-green-100 text-green-700"
+                            : grantedCount > 0
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-gray-100 text-gray-600"
+                        }`}>
+                          {grantedCount}/{categoryPermissions.length}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-2">
+                        {categoryPermissions.map((permission) => {
+                          const isGranted = userData.permissions?.[permission.key] === true;
+                          return (
+                            <div
+                              key={permission.key}
+                              className={`p-2.5 rounded-md border transition-all ${
+                                isGranted
+                                  ? isDarkMode
+                                    ? "bg-green-900/20 border-green-700"
+                                    : "bg-green-50 border-green-200"
+                                  : isDarkMode
+                                  ? "bg-gray-800 border-gray-700"
+                                  : "bg-white border-gray-200"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className={`text-sm font-medium ${
+                                    isGranted
+                                      ? isDarkMode ? "text-green-300" : "text-green-900"
+                                      : isDarkMode ? "text-gray-400" : "text-gray-700"
+                                  }`}>
+                                    {permission.label}
+                                  </div>
+                                  <p className={`text-xs ${
+                                    isGranted
+                                      ? isDarkMode ? "text-green-400/70" : "text-green-600"
+                                      : isDarkMode ? "text-gray-500" : "text-gray-500"
+                                  }`}>
+                                    {permission.description}
+                                  </p>
+                                </div>
+                                <div className="flex-shrink-0 ml-3">
+                                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
+                                    isGranted
+                                      ? "bg-green-200 text-green-800"
+                                      : isDarkMode
+                                      ? "bg-gray-700 text-gray-400"
+                                      : "bg-gray-200 text-gray-600"
+                                  }`}>
+                                    {isGranted ? `✓ ${t("granted") || "Granted"}` : `✗ ${t("denied") || "Denied"}`}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>
-                No permissions assigned
+                {t("noPermissions") || "No permissions assigned"}
               </p>
             )}
           </div>
         </div>
+      </div>
       </div>
         </>
       )}

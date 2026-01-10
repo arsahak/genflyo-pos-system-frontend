@@ -3,6 +3,8 @@
 import { createUser } from "@/app/actions/users";
 import { useStore } from "@/lib/store";
 import { useSidebar } from "@/lib/SidebarContext";
+import { useLanguage } from "@/lib/LanguageContext";
+import { PermissionsRecord } from "@/lib/permissions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -17,10 +19,12 @@ import {
   MdArrowBack,
 } from "react-icons/md";
 import { UserFormSkeleton } from "./components/UserFormSkeleton";
+import PermissionSelector from "./PermissionSelector";
 
 export default function NewUserCreate() {
   const { user } = useStore();
   const { isDarkMode } = useSidebar();
+  const { t } = useLanguage();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -37,6 +41,9 @@ export default function NewUserCreate() {
     phone: "",
     address: "",
     permissions: {
+      // Dashboard
+      canViewDashboard: true,
+      
       // POS & Sales Permissions
       canViewSales: true,
       canCreateSales: true,
@@ -45,15 +52,36 @@ export default function NewUserCreate() {
       canProcessRefunds: false,
       canViewSalesReports: false,
 
-      // Product Management Permissions
+      // Order Management Permissions
+      canViewOrders: false,
+      canCreateOrders: false,
+      canEditOrders: false,
+      canDeleteOrders: false,
+      canApproveOrders: false,
+      canCancelOrders: false,
+
+      // Product Management Permissions (includes Barcodes)
       canViewProducts: false,
       canAddProducts: false,
       canEditProducts: false,
       canDeleteProducts: false,
       canManageCategories: false,
+      canViewBarcodes: false,
+      canGenerateBarcodes: false,
+      canDeleteBarcodes: false,
+      canManageBarcodes: false,
+
+      // Inventory Management Permissions
       canViewInventory: false,
       canManageInventory: false,
       canAdjustStock: false,
+
+      // Supplier Management Permissions
+      canViewSuppliers: false,
+      canAddSuppliers: false,
+      canEditSuppliers: false,
+      canDeleteSuppliers: false,
+      canManageSuppliers: false,
 
       // Customer Management Permissions
       canViewCustomers: false,
@@ -80,7 +108,6 @@ export default function NewUserCreate() {
       canViewReports: false,
       canExportReports: false,
       canViewAnalytics: false,
-      canViewDashboard: true,
 
       // System Settings Permissions
       canManageSettings: false,
@@ -129,8 +156,11 @@ export default function NewUserCreate() {
   };
 
   // Get default permissions for each role
-  const getDefaultPermissions = (role: string) => {
+  const getDefaultPermissions = (role: string): PermissionsRecord => {
     const basePermissions = {
+      // Dashboard
+      canViewDashboard: true,
+      
       // POS & Sales
       canViewSales: false,
       canCreateSales: false,
@@ -138,38 +168,66 @@ export default function NewUserCreate() {
       canDeleteSales: false,
       canProcessRefunds: false,
       canViewSalesReports: false,
+
+      // Orders
+      canViewOrders: false,
+      canCreateOrders: false,
+      canEditOrders: false,
+      canDeleteOrders: false,
+      canApproveOrders: false,
+      canCancelOrders: false,
+
       // Products
       canViewProducts: false,
       canAddProducts: false,
       canEditProducts: false,
       canDeleteProducts: false,
       canManageCategories: false,
+
+      // Barcodes
+      canViewBarcodes: false,
+      canGenerateBarcodes: false,
+      canDeleteBarcodes: false,
+      canManageBarcodes: false,
+
+      // Inventory
       canViewInventory: false,
       canManageInventory: false,
       canAdjustStock: false,
+
+      // Suppliers
+      canViewSuppliers: false,
+      canAddSuppliers: false,
+      canEditSuppliers: false,
+      canDeleteSuppliers: false,
+      canManageSuppliers: false,
+
       // Customers
       canViewCustomers: false,
       canAddCustomers: false,
       canEditCustomers: false,
       canDeleteCustomers: false,
       canViewCustomerHistory: false,
+
       // Users
       canViewUsers: false,
       canAddUsers: false,
       canEditUsers: false,
       canDeleteUsers: false,
       canManageRoles: false,
+
       // Stores
       canViewStores: false,
       canAddStores: false,
       canEditStores: false,
       canDeleteStores: false,
       canManageStoreSettings: false,
+
       // Reports
       canViewReports: false,
       canExportReports: false,
       canViewAnalytics: false,
-      canViewDashboard: true,
+
       // Settings
       canManageSettings: false,
       canManagePaymentMethods: false,
@@ -336,17 +394,17 @@ export default function NewUserCreate() {
             }`}
           >
             <MdArrowBack className="text-xl" />
-            Back to Users
+            {t("back") || "Back to Users"}
           </button>
           <h1
             className={`text-3xl font-bold mb-2 ${
               isDarkMode ? "text-gray-100" : "text-gray-900"
             }`}
           >
-            Create New User
+            {t("createNewUser") || "Create New User"}
           </h1>
           <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-            Add a new team member to your system
+            {t("addNewTeamMember") || "Add a new team member to your system"}
           </p>
         </div>
 
@@ -354,9 +412,7 @@ export default function NewUserCreate() {
           <UserFormSkeleton isDarkMode={isDarkMode} />
         ) : (
           <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Basic Information */}
-          <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6">
             {/* Profile Image Section */}
             <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -540,45 +596,46 @@ export default function NewUserCreate() {
                         <IoMdEye className="w-5 h-5" />
                       )}
                     </button>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column - Role & Permissions */}
-          <div className="space-y-6">
-            {/* Role Selection */}
+              {/* Role Selection - Full Width */}
             <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
+              <h3 className={`text-lg font-semibold mb-2 flex items-center ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+                <MdAdminPanelSettings className="w-5 h-5 mr-2 text-indigo-600" />
                 Role & Access
               </h3>
+              <p className={`text-sm mb-6 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                Select user role to auto-configure default permissions
+              </p>
 
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
                   {
                     value: "cashier",
                     label: "Cashier",
-                    icon: <MdAttachMoney className="w-5 h-5" />,
+                    icon: <MdAttachMoney className="w-6 h-6" />,
                   },
                   {
                     value: "manager",
                     label: "Manager",
-                    icon: <MdSupervisorAccount className="w-5 h-5" />,
+                    icon: <MdSupervisorAccount className="w-6 h-6" />,
                   },
                   {
                     value: "admin",
                     label: "Admin",
-                    icon: <MdAdminPanelSettings className="w-5 h-5" />,
+                    icon: <MdAdminPanelSettings className="w-6 h-6" />,
                   },
                 ].map((role) => (
                   <label
                     key={role.value}
-                    className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    className={`flex flex-col items-center justify-center p-6 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${
                       formData.role === role.value
                         ? isDarkMode
-                          ? "border-indigo-500 bg-indigo-900/30"
-                          : "border-indigo-500 bg-indigo-50"
+                          ? "border-indigo-500 bg-indigo-900/30 shadow-lg"
+                          : "border-indigo-500 bg-indigo-50 shadow-lg"
                         : isDarkMode
                         ? "border-gray-600 hover:border-gray-500"
                         : "border-gray-200 hover:border-gray-300"
@@ -592,11 +649,10 @@ export default function NewUserCreate() {
               onChange={(e) => handleRoleChange(e.target.value)}
                       className="sr-only"
                     />
-                    <div className="flex items-center space-x-3">
                       <div
-                        className={`p-2 rounded-lg ${
+                      className={`p-4 rounded-full mb-3 ${
                           formData.role === role.value
-                            ? "bg-indigo-100 text-indigo-600"
+                          ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
                             : isDarkMode
                             ? "bg-gray-700 text-gray-400"
                             : "bg-gray-100 text-gray-600"
@@ -604,13 +660,12 @@ export default function NewUserCreate() {
                       >
                         {role.icon}
                       </div>
-                      <div>
-                        <div className={`font-medium ${isDarkMode ? "text-gray-200" : "text-gray-900"}`}>
+                    <div className="text-center">
+                      <div className={`font-semibold text-lg mb-1 ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
                           {role.label}
                         </div>
-                        <div className="text-sm text-gray-500">
+                      <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                           {getRoleDescription(role.value)}
-                        </div>
                       </div>
                     </div>
                   </label>
@@ -618,564 +673,42 @@ export default function NewUserCreate() {
               </div>
             </div>
 
-            {/* Permissions */}
+              {/* Access Permissions - Full Width */}
             <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
-              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+              <h3 className={`text-lg font-semibold mb-2 flex items-center ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
                 <MdSettings className="w-5 h-5 mr-2 text-indigo-600" />
                 Access Permissions
               </h3>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className={`text-sm mb-6 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                 Configure user access rights for different modules
               </p>
 
-              <div className="space-y-5">
-                {/* POS & Sales Permissions */}
-                <div className="border border-green-200 rounded-lg p-4 bg-gradient-to-br from-green-50 to-white hover:shadow-md transition-shadow">
-                  <h4 className="text-xs font-bold text-green-700 mb-3 flex items-center uppercase tracking-wider">
-                    <MdAttachMoney className="w-4 h-4 mr-2" />
-                    POS & Sales
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      {
-                        key: "canViewSales",
-                        label: "View Sales",
-                        description: "Access sales data and reports",
-                      },
-                      {
-                        key: "canCreateSales",
-                        label: "Create Sales",
-                        description: "Process new transactions",
-                      },
-                      {
-                        key: "canEditSales",
-                        label: "Edit Sales",
-                        description: "Modify existing transactions",
-                      },
-                      {
-                        key: "canDeleteSales",
-                        label: "Delete Sales",
-                        description: "Remove sales records",
-                      },
-                      {
-                        key: "canProcessRefunds",
-                        label: "Process Refunds",
-                        description: "Handle refund transactions",
-                      },
-                      {
-                        key: "canViewSalesReports",
-                        label: "View Sales Reports",
-                        description: "Access sales analytics",
-                      },
-                    ].map((permission) => (
-                      <label
-                        key={permission.key}
-                        className="flex items-center justify-between p-2.5 bg-white rounded-md border border-gray-200 hover:border-green-400 hover:bg-green-50/50 transition-all cursor-pointer group"
-                      >
-                        <div className="flex-1 min-w-0 pr-3">
-                          <div className="text-sm font-medium text-gray-900 group-hover:text-green-700">
-                            {permission.label}
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                            }
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                permissions: {
-                                  ...formData.permissions,
-                                  [permission.key]: e.target.checked,
-                                },
-                              })
-                            }
-                            className="sr-only"
-                          />
-                          <div
-                            className={`w-9 h-5 rounded-full transition-colors ${
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                                ? "bg-green-600"
-                                : "bg-gray-300"
-                            }`}
-                          >
-                            <div
-                              className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
-                                formData.permissions[
-                                  permission.key as keyof typeof formData.permissions
-                                ]
-                                  ? "translate-x-4"
-                                  : "translate-x-0.5"
-                              } mt-0.5`}
-                            />
-                          </div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+              <PermissionSelector
+                permissions={formData.permissions}
+                onChange={(newPermissions) =>
+                  setFormData({ ...formData, permissions: newPermissions })
+                }
+                isDarkMode={isDarkMode}
+              />
                 </div>
 
-                {/* Product Management Permissions */}
-                <div className="border border-blue-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-white hover:shadow-md transition-shadow">
-                  <h4 className="text-xs font-bold text-blue-700 mb-3 flex items-center uppercase tracking-wider">
-                    <MdStore className="w-4 h-4 mr-2" />
-                    Product Management
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      {
-                        key: "canViewProducts",
-                        label: "View Products",
-                        description: "See product catalog",
-                      },
-                      {
-                        key: "canAddProducts",
-                        label: "Add Products",
-                        description: "Create new products",
-                      },
-                      {
-                        key: "canEditProducts",
-                        label: "Edit Products",
-                        description: "Modify product details",
-                      },
-                      {
-                        key: "canDeleteProducts",
-                        label: "Delete Products",
-                        description: "Remove products",
-                      },
-                      {
-                        key: "canManageCategories",
-                        label: "Manage Categories",
-                        description: "Organize product categories",
-                      },
-                      {
-                        key: "canViewInventory",
-                        label: "View Inventory",
-                        description: "See stock levels",
-                      },
-                      {
-                        key: "canManageInventory",
-                        label: "Manage Inventory",
-                        description: "Update stock quantities",
-                      },
-                      {
-                        key: "canAdjustStock",
-                        label: "Adjust Stock",
-                        description: "Make stock adjustments",
-                      },
-                    ].map((permission) => (
-                      <label
-                        key={permission.key}
-                        className="flex items-center justify-between p-2.5 bg-white rounded-md border border-gray-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer group"
-                      >
-                        <div className="flex-1 min-w-0 pr-3">
-                          <div className="text-sm font-medium text-gray-900 group-hover:text-blue-700">
-                            {permission.label}
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                            }
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                permissions: {
-                                  ...formData.permissions,
-                                  [permission.key]: e.target.checked,
-                                },
-                              })
-                            }
-                            className="sr-only"
-                          />
-                          <div
-                            className={`w-9 h-5 rounded-full transition-colors ${
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                                ? "bg-blue-600"
-                                : "bg-gray-300"
-                            }`}
-                          >
-                            <div
-                              className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
-                                formData.permissions[
-                                  permission.key as keyof typeof formData.permissions
-                                ]
-                                  ? "translate-x-4"
-                                  : "translate-x-0.5"
-                              } mt-0.5`}
-                            />
-                          </div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Customer Management Permissions */}
-                <div className="border border-purple-200 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-white hover:shadow-md transition-shadow">
-                  <h4 className="text-xs font-bold text-purple-700 mb-3 flex items-center uppercase tracking-wider">
-                    <IoMdPerson className="w-4 h-4 mr-2" />
-                    Customer Management
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      {
-                        key: "canViewCustomers",
-                        label: "View Customers",
-                        description: "See customer list",
-                      },
-                      {
-                        key: "canAddCustomers",
-                        label: "Add Customers",
-                        description: "Create new customers",
-                      },
-                      {
-                        key: "canEditCustomers",
-                        label: "Edit Customers",
-                        description: "Modify customer details",
-                      },
-                      {
-                        key: "canDeleteCustomers",
-                        label: "Delete Customers",
-                        description: "Remove customers",
-                      },
-                      {
-                        key: "canViewCustomerHistory",
-                        label: "View Customer History",
-                        description: "See purchase history",
-                      },
-                    ].map((permission) => (
-                      <label
-                        key={permission.key}
-                        className="flex items-center justify-between p-2.5 bg-white rounded-md border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all cursor-pointer group"
-                      >
-                        <div className="flex-1 min-w-0 pr-3">
-                          <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-700">
-                            {permission.label}
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                            }
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                permissions: {
-                                  ...formData.permissions,
-                                  [permission.key]: e.target.checked,
-                                },
-                              })
-                            }
-                            className="sr-only"
-                          />
-                          <div
-                            className={`w-9 h-5 rounded-full transition-colors ${
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                                ? "bg-indigo-600"
-                                : "bg-gray-300"
-                            }`}
-                          >
-                            <div
-                              className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
-                                formData.permissions[
-                                  permission.key as keyof typeof formData.permissions
-                                ]
-                                  ? "translate-x-4"
-                                  : "translate-x-0.5"
-                              } mt-0.5`}
-                            />
-                          </div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* User Management Permissions */}
-                <div className="border border-orange-200 rounded-lg p-4 bg-gradient-to-br from-orange-50 to-white hover:shadow-md transition-shadow">
-                  <h4 className="text-xs font-bold text-orange-700 mb-3 flex items-center uppercase tracking-wider">
-                    <MdSupervisorAccount className="w-4 h-4 mr-2" />
-                    User Management
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      {
-                        key: "canViewUsers",
-                        label: "View Users",
-                        description: "See user list and profiles",
-                      },
-                      {
-                        key: "canAddUsers",
-                        label: "Add Users",
-                        description: "Create new user accounts",
-                      },
-                      {
-                        key: "canEditUsers",
-                        label: "Edit Users",
-                        description: "Modify user details",
-                      },
-                      {
-                        key: "canDeleteUsers",
-                        label: "Delete Users",
-                        description: "Remove user accounts",
-                      },
-                      {
-                        key: "canManageRoles",
-                        label: "Manage Roles",
-                        description: "Assign and modify roles",
-                      },
-                    ].map((permission) => (
-                      <label
-                        key={permission.key}
-                        className="flex items-center justify-between p-2.5 bg-white rounded-md border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all cursor-pointer group"
-                      >
-                        <div className="flex-1 min-w-0 pr-3">
-                          <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-700">
-                            {permission.label}
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                            }
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                permissions: {
-                                  ...formData.permissions,
-                                  [permission.key]: e.target.checked,
-                                },
-                              })
-                            }
-                            className="sr-only"
-                          />
-                          <div
-                            className={`w-9 h-5 rounded-full transition-colors ${
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                                ? "bg-indigo-600"
-                                : "bg-gray-300"
-                            }`}
-                          >
-                            <div
-                              className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
-                                formData.permissions[
-                                  permission.key as keyof typeof formData.permissions
-                                ]
-                                  ? "translate-x-4"
-                                  : "translate-x-0.5"
-                              } mt-0.5`}
-                            />
-                          </div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Reports & Analytics Permissions */}
-                <div className="border border-indigo-200 rounded-lg p-4 bg-gradient-to-br from-indigo-50 to-white hover:shadow-md transition-shadow">
-                  <h4 className="text-xs font-bold text-indigo-700 mb-3 flex items-center uppercase tracking-wider">
-                    <MdSettings className="w-4 h-4 mr-2" />
-                    Reports & Analytics
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      {
-                        key: "canViewDashboard",
-                        label: "View Dashboard",
-                        description: "Access main dashboard",
-                      },
-                      {
-                        key: "canViewReports",
-                        label: "View Reports",
-                        description: "Access analytics and reports",
-                      },
-                      {
-                        key: "canExportReports",
-                        label: "Export Reports",
-                        description: "Download report data",
-                      },
-                      {
-                        key: "canViewAnalytics",
-                        label: "View Analytics",
-                        description: "Access detailed analytics",
-                      },
-                    ].map((permission) => (
-                      <label
-                        key={permission.key}
-                        className="flex items-center justify-between p-2.5 bg-white rounded-md border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all cursor-pointer group"
-                      >
-                        <div className="flex-1 min-w-0 pr-3">
-                          <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-700">
-                            {permission.label}
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                            }
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                permissions: {
-                                  ...formData.permissions,
-                                  [permission.key]: e.target.checked,
-                                },
-                              })
-                            }
-                            className="sr-only"
-                          />
-                          <div
-                            className={`w-9 h-5 rounded-full transition-colors ${
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                                ? "bg-indigo-600"
-                                : "bg-gray-300"
-                            }`}
-                          >
-                            <div
-                              className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
-                                formData.permissions[
-                                  permission.key as keyof typeof formData.permissions
-                                ]
-                                  ? "translate-x-4"
-                                  : "translate-x-0.5"
-                              } mt-0.5`}
-                            />
-                          </div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* System Settings Permissions */}
-                <div className="border border-red-200 rounded-lg p-4 bg-gradient-to-br from-red-50 to-white hover:shadow-md transition-shadow">
-                  <h4 className="text-xs font-bold text-red-700 mb-3 flex items-center uppercase tracking-wider">
-                    <MdAdminPanelSettings className="w-4 h-4 mr-2" />
-                    System Settings
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      {
-                        key: "canManageSettings",
-                        label: "Manage Settings",
-                        description: "Configure system settings",
-                      },
-                      {
-                        key: "canManagePaymentMethods",
-                        label: "Manage Payment Methods",
-                        description: "Configure payment options",
-                      },
-                      {
-                        key: "canManageTaxSettings",
-                        label: "Manage Tax Settings",
-                        description: "Configure tax rates",
-                      },
-                      {
-                        key: "canManageReceiptSettings",
-                        label: "Manage Receipt Settings",
-                        description: "Configure receipt templates",
-                      },
-                      {
-                        key: "canViewSystemLogs",
-                        label: "View System Logs",
-                        description: "Access system activity logs",
-                      },
-                    ].map((permission) => (
-                      <label
-                        key={permission.key}
-                        className="flex items-center justify-between p-2.5 bg-white rounded-md border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/50 transition-all cursor-pointer group"
-                      >
-                        <div className="flex-1 min-w-0 pr-3">
-                          <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-700">
-                            {permission.label}
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                            }
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                permissions: {
-                                  ...formData.permissions,
-                                  [permission.key]: e.target.checked,
-                                },
-                              })
-                            }
-                            className="sr-only"
-                          />
-                          <div
-                            className={`w-9 h-5 rounded-full transition-colors ${
-                              formData.permissions[
-                                permission.key as keyof typeof formData.permissions
-                              ]
-                                ? "bg-indigo-600"
-                                : "bg-gray-300"
-                            }`}
-                          >
-                            <div
-                              className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${
-                                formData.permissions[
-                                  permission.key as keyof typeof formData.permissions
-                                ]
-                                  ? "translate-x-4"
-                                  : "translate-x-0.5"
-                              } mt-0.5`}
-                            />
-                          </div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-          </div>
-
-          {/* Action Buttons */}
-            <div className={`rounded-2xl border p-6 shadow-sm ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
-              <div className="space-y-4">
+              {/* Action Buttons */}
+              <div className="flex gap-4 justify-end">
+                <Link
+                  href="/users"
+                  className={`px-8 py-3 border-2 rounded-xl transition-colors text-center font-semibold ${
+                    isDarkMode
+                      ? "border-gray-600 hover:bg-gray-700 text-gray-200"
+                      : "border-gray-300 hover:bg-gray-50 text-gray-900"
+                  }`}
+                >
+                  Cancel
+                </Link>
             <button
               type="submit"
               disabled={loading}
                   onClick={handleSubmit}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -1205,19 +738,6 @@ export default function NewUserCreate() {
                 "Create User"
               )}
             </button>
-
-            <Link
-              href="/users"
-              className={`w-full px-6 py-3 border-2 rounded-xl transition-colors text-center font-semibold block ${
-                isDarkMode
-                  ? "border-gray-600 hover:bg-gray-700 text-gray-200"
-                  : "border-gray-300 hover:bg-gray-50 text-gray-900"
-              }`}
-            >
-              Cancel
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   </form>

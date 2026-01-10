@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-interface Permissions {
+export interface Permissions {
+  // Dashboard
+  canViewDashboard?: boolean;
+
   // POS & Sales
   canViewSales?: boolean;
   canCreateSales?: boolean;
@@ -9,6 +12,14 @@ interface Permissions {
   canDeleteSales?: boolean;
   canProcessRefunds?: boolean;
   canViewSalesReports?: boolean;
+
+  // Orders
+  canViewOrders?: boolean;
+  canCreateOrders?: boolean;
+  canEditOrders?: boolean;
+  canDeleteOrders?: boolean;
+  canApproveOrders?: boolean;
+  canCancelOrders?: boolean;
 
   // Products
   canViewProducts?: boolean;
@@ -19,6 +30,13 @@ interface Permissions {
   canViewInventory?: boolean;
   canManageInventory?: boolean;
   canAdjustStock?: boolean;
+
+  // Suppliers
+  canViewSuppliers?: boolean;
+  canAddSuppliers?: boolean;
+  canEditSuppliers?: boolean;
+  canDeleteSuppliers?: boolean;
+  canManageSuppliers?: boolean;
 
   // Customers
   canViewCustomers?: boolean;
@@ -41,11 +59,16 @@ interface Permissions {
   canDeleteStores?: boolean;
   canManageStoreSettings?: boolean;
 
+  // Barcodes
+  canViewBarcodes?: boolean;
+  canGenerateBarcodes?: boolean;
+  canDeleteBarcodes?: boolean;
+  canManageBarcodes?: boolean;
+
   // Reports & Analytics
   canViewReports?: boolean;
   canExportReports?: boolean;
   canViewAnalytics?: boolean;
-  canViewDashboard?: boolean;
 
   // System Settings
   canManageSettings?: boolean;

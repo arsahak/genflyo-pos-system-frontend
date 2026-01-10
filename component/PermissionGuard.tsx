@@ -1,7 +1,8 @@
 "use client";
 
 import { ReactNode } from "react";
-import { usePermission, useHasRole, PermissionKey } from "@/lib/permissions";
+import { useHasRole, PermissionKey } from "@/lib/permissions";
+import { useStore } from "@/lib/store";
 
 interface PermissionGuardProps {
   children: ReactNode;
@@ -26,7 +27,7 @@ export default function PermissionGuard({
   fallback = null,
   requireAll = false,
 }: PermissionGuardProps) {
-  const checkPermission = usePermission;
+  const { hasPermission } = useStore();
   const hasRole = useHasRole;
 
   // Check role requirement
@@ -42,8 +43,8 @@ export default function PermissionGuard({
     const permissions = Array.isArray(permission) ? permission : [permission];
 
     const hasAccess = requireAll
-      ? permissions.every((perm) => checkPermission(perm))
-      : permissions.some((perm) => checkPermission(perm));
+      ? permissions.every((perm) => hasPermission(perm))
+      : permissions.some((perm) => hasPermission(perm));
 
     if (!hasAccess) {
       return <>{fallback}</>;

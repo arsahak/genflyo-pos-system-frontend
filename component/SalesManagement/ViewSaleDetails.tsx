@@ -105,67 +105,65 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
 
   return (
     <ProtectedRoute requiredPermission="canViewSales">
-      <div className={`min-h-screen p-6 transition-colors duration-300 ${
-        isDarkMode ? "bg-gray-950" : "bg-slate-50"
+      <div className={`min-h-screen p-6 transition-colors duration-300 font-sans ${
+        isDarkMode ? "bg-gray-950 text-gray-100" : "bg-slate-50 text-gray-900"
       }`}>
       <div className="max-w-[1920px] mx-auto">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => router.back()}
-            className={`flex items-center gap-2 mb-4 ${
-              isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-800"
-            }`}
-          >
-            <MdArrowBack className="text-xl" />
-            Back to Sales
-          </button>
-          <h1
-            className={`text-3xl font-bold mb-2 ${
+      <div className="mb-6">
+        <button
+          onClick={() => router.back()}
+          className={`flex items-center gap-2 mb-4 transition-colors ${
+            isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-800"
+          }`}
+        >
+          <MdArrowBack className="text-xl" />
+          Back to Sales
+        </button>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className={`text-3xl font-bold mb-2 ${
               isDarkMode ? "text-gray-100" : "text-gray-900"
-            }`}
-          >
-            Sale Details
-          </h1>
-          <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-            {sale.saleNo}
-          </p>
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={handlePrint}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
-          >
-            <MdPrint className="text-lg" />
-            Print
-          </button>
-          <button
-            onClick={() => router.push(`/sales/edit-sale/${sale._id}`)}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
-          >
-            <MdEdit className="text-lg" />
-            Edit
-          </button>
+            }`}>
+              Sale Details
+            </h1>
+            <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+              Invoice: {sale.saleNo}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handlePrint}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
+            >
+              <MdPrint className="text-lg" />
+              Print
+            </button>
+            <button
+              onClick={() => router.push(`/sales/edit-sale/${sale._id}`)}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-medium"
+            >
+              <MdEdit className="text-lg" />
+              Edit
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Sale Information Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Customer Info */}
-        <div
-          className={`p-6 rounded-2xl shadow-xl border ${
-            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
-          }`}
-        >
+        <div className={`rounded-2xl border p-6 shadow-sm ${
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}>
           <div className="flex items-center gap-3 mb-4">
-            <MdPerson className="text-3xl text-indigo-600" />
-            <h2
-              className={`text-xl font-semibold ${
-                isDarkMode ? "text-gray-100" : "text-gray-900"
-              }`}
-            >
+            <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+              <MdPerson className="text-2xl text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <h2 className={`text-lg font-semibold ${
+              isDarkMode ? "text-gray-100" : "text-gray-900"
+            }`}>
               Customer
             </h2>
           </div>
@@ -198,18 +196,16 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
         </div>
 
         {/* Store Info */}
-        <div
-          className={`p-6 rounded-2xl shadow-xl border ${
-            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
-          }`}
-        >
+        <div className={`rounded-2xl border p-6 shadow-sm ${
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}>
           <div className="flex items-center gap-3 mb-4">
-            <MdStore className="text-3xl text-green-600" />
-            <h2
-              className={`text-xl font-semibold ${
-                isDarkMode ? "text-gray-100" : "text-gray-900"
-              }`}
-            >
+            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+              <MdStore className="text-2xl text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className={`text-lg font-semibold ${
+              isDarkMode ? "text-gray-100" : "text-gray-900"
+            }`}>
               Store
             </h2>
           </div>
@@ -248,18 +244,16 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
         </div>
 
         {/* Sale Info */}
-        <div
-          className={`p-6 rounded-2xl shadow-xl border ${
-            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
-          }`}
-        >
+        <div className={`rounded-2xl border p-6 shadow-sm ${
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}>
           <div className="flex items-center gap-3 mb-4">
-            <MdReceipt className="text-3xl text-orange-600" />
-            <h2
-              className={`text-xl font-semibold ${
-                isDarkMode ? "text-gray-100" : "text-gray-900"
-              }`}
-            >
+            <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+              <MdReceipt className="text-2xl text-orange-600 dark:text-orange-400" />
+            </div>
+            <h2 className={`text-lg font-semibold ${
+              isDarkMode ? "text-gray-100" : "text-gray-900"
+            }`}>
               Sale Info
             </h2>
           </div>
@@ -291,29 +285,25 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
       </div>
 
       {/* Items Table */}
-      <div
-        className={`p-6 rounded-2xl shadow-xl border mb-6 ${
-          isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
-        }`}
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <MdShoppingCart className="text-2xl text-indigo-600" />
-          <h2
-            className={`text-xl font-semibold ${
-              isDarkMode ? "text-gray-100" : "text-gray-900"
-            }`}
-          >
+      <div className={`rounded-2xl border p-6 shadow-sm ${
+        isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+      }`}>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+            <MdShoppingCart className="text-2xl text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <h2 className={`text-lg font-semibold ${
+            isDarkMode ? "text-gray-100" : "text-gray-900"
+          }`}>
             Sale Items
           </h2>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead
-              className={
-                isDarkMode ? "bg-gray-700 text-gray-100" : "bg-gray-100 text-gray-900"
-              }
-            >
+            <thead className={`text-left text-xs font-semibold uppercase tracking-wider ${
+              isDarkMode ? "bg-gray-900/50 text-gray-400" : "bg-gray-50/80 text-gray-500"
+            }`}>
               <tr>
                 <th className="px-4 py-3 text-left">Product</th>
                 <th className="px-4 py-3 text-center">Quantity</th>
@@ -323,14 +313,13 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
                 <th className="px-4 py-3 text-right">Total</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className={`divide-y ${
+              isDarkMode ? "divide-gray-700" : "divide-gray-100"
+            }`}>
               {sale.items.map((item: any, index: number) => (
-                <tr
-                  key={index}
-                  className={`border-t ${
-                    isDarkMode ? "border-gray-700" : "border-gray-200"
-                  }`}
-                >
+                <tr key={index} className={`transition-colors ${
+                  isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-indigo-50/30"
+                }`}>
                   <td className="px-4 py-3">
                     <p
                       className={`font-semibold ${
@@ -382,18 +371,16 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
       {/* Payment & Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payment Information */}
-        <div
-          className={`p-6 rounded-2xl shadow-xl border ${
-            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
-          }`}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <MdPayment className="text-2xl text-green-600" />
-            <h2
-              className={`text-xl font-semibold ${
-                isDarkMode ? "text-gray-100" : "text-gray-900"
-              }`}
-            >
+        <div className={`rounded-2xl border p-6 shadow-sm ${
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+              <MdPayment className="text-2xl text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className={`text-lg font-semibold ${
+              isDarkMode ? "text-gray-100" : "text-gray-900"
+            }`}>
               Payment Details
             </h2>
           </div>
@@ -432,18 +419,16 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
         </div>
 
         {/* Sale Summary */}
-        <div
-          className={`p-6 rounded-2xl shadow-xl border ${
-            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
-          }`}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <MdAttachMoney className="text-2xl text-purple-600" />
-            <h2
-              className={`text-xl font-semibold ${
-                isDarkMode ? "text-gray-100" : "text-gray-900"
-              }`}
-            >
+        <div className={`rounded-2xl border p-6 shadow-sm ${
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+              <MdAttachMoney className="text-2xl text-purple-600 dark:text-purple-400" />
+            </div>
+            <h2 className={`text-lg font-semibold ${
+              isDarkMode ? "text-gray-100" : "text-gray-900"
+            }`}>
               Summary
             </h2>
           </div>
@@ -502,16 +487,12 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
 
       {/* Notes */}
       {sale.notes && (
-        <div
-          className={`p-6 rounded-2xl shadow-xl border mt-6 ${
-            isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
-          }`}
-        >
-          <h3
-            className={`text-lg font-semibold mb-2 ${
-              isDarkMode ? "text-gray-100" : "text-gray-900"
-            }`}
-          >
+        <div className={`rounded-2xl border p-6 shadow-sm ${
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+        }`}>
+          <h3 className={`text-lg font-semibold mb-3 ${
+            isDarkMode ? "text-gray-100" : "text-gray-900"
+          }`}>
             Notes
           </h3>
           <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
@@ -520,7 +501,8 @@ const ViewSaleDetails = ({ saleId }: ViewSaleDetailsProps) => {
         </div>
       )}
       </div>
-    </div>
+      </div>
+      </div>
     </ProtectedRoute>
   );
 };

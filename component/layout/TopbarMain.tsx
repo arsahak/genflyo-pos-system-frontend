@@ -39,6 +39,12 @@ export default function TopbarMain({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [languageMounted, setLanguageMounted] = useState(false);
+
+  // Wait for language to be loaded from localStorage
+  React.useEffect(() => {
+    setLanguageMounted(true);
+  }, []);
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
@@ -82,6 +88,7 @@ export default function TopbarMain({
   };
 
   const getLanguageDisplay = () => {
+    if (!languageMounted) return "EN";
     return language === "en" ? "EN" : "বাংলা";
   };
 
@@ -151,6 +158,7 @@ export default function TopbarMain({
                 className={`text-sm font-medium ${
                   isDarkMode ? "text-gray-300" : "text-gray-700"
                 }`}
+                suppressHydrationWarning
               >
                 {getLanguageDisplay()}
               </span>

@@ -1,33 +1,68 @@
-import { getAllBarcodes } from "@/app/actions/barcode";
+"use client";
+
+import { getAllBarcodes, Barcode } from "@/app/actions/barcode";
 import { getAllProducts } from "@/app/actions/product";
 import BarcodePageContent from "@/component/brcodeManagement/BarcodePageContent";
+import ProtectedRoute from "@/component/ProtectedRoute";
+import { Product } from "@/component/inventoryManagement/types";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
 
-interface PageProps {
-  searchParams: Promise<{ page?: string }>;
-}
+function BarcodeContent() {
+  const searchParams = useSearchParams();
+  const page = Number(searchParams.get("page")) || 1;
+  
+  const [barcodes, setBarcodes] = useState<Barcode[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-export default async function BarcodePage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const page = Number(params.page) || 1;
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const [barcodesResult, productsResult] = await Promise.all([
+        getAllBarcodes({ page, limit: 20 }),
+        getAllProducts({ limit: 1000 }),
+      ]);
 
-  // Fetch barcodes and products in parallel
-  const [barcodesResult, productsResult] = await Promise.all([
-    getAllBarcodes({ page, limit: 20 }),
-    getAllProducts({ limit: 1000 }),
-  ]);
+      setBarcodes(barcodesResult.success ? barcodesResult.data?.barcodes || [] : []);
+      setTotalPages(barcodesResult.success ? barcodesResult.data?.totalPages || 1 : 1);
+      setTotal(barcodesResult.success ? barcodesResult.data?.total || 0 : 0);
+      setProducts(productsResult.success ? productsResult.data?.products || [] : []);
+      setLoading(false);
+    };
 
-  const barcodes = barcodesResult.success ? barcodesResult.data?.barcodes || [] : [];
-  const totalPages = barcodesResult.success ? barcodesResult.data?.totalPages || 1 : 1;
-  const total = barcodesResult.success ? barcodesResult.data?.total || 0 : 0;
-  const products = productsResult.success ? productsResult.data?.products || [] : [];
+    fetchData();
+  }, [page]);
 
   return (
-    <BarcodePageContent
-      barcodes={barcodes}
-      totalPages={totalPages}
-      currentPage={page}
-      total={total}
-      products={products}
-    />
+    <ProtectedRoute requiredPermission="canViewBarcodes">
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <BarcodePageContent
+          barcodes={barcodes}
+          totalPages={totalPages}
+          currentPage={page}
+          total={total}
+          products={products}
+        />
+      )}
+    </ProtectedRoute>
+  );
+}
+
+export default function BarcodePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <BarcodeContent />
+    </Suspense>
   );
 }

@@ -2,6 +2,7 @@
 import { useSidebar } from "@/lib/SidebarContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import ProtectedRoute from "@/component/ProtectedRoute";
 import {
   MdPointOfSale,
   MdArrowForward,
@@ -14,6 +15,7 @@ const AddSalePage = () => {
   const router = useRouter();
 
   return (
+    <ProtectedRoute requiredPermission="canCreateSales">
     <div className="p-6 flex items-center justify-center min-h-screen">
       <div
         className={`max-w-2xl w-full p-8 rounded-2xl border-2 text-center ${
@@ -121,6 +123,7 @@ const AddSalePage = () => {
         </p>
       </div>
     </div>
+    </ProtectedRoute>
   );
 };
 
