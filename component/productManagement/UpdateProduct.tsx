@@ -45,6 +45,7 @@ export default function UpdateProduct() {
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
 
   // --- Data States ---
   const [categories, setCategories] = useState<Category[]>([]);
@@ -303,6 +304,16 @@ export default function UpdateProduct() {
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+    
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const newErrors = {...prev};
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -311,6 +322,16 @@ export default function UpdateProduct() {
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = e.target.value;
+    
+    // Clear category validation error
+    if (validationErrors.category) {
+      setValidationErrors(prev => {
+        const newErrors = {...prev};
+        delete newErrors.category;
+        return newErrors;
+      });
+    }
+    
     const cat = categories.find((c) => c._id === selectedId);
     if (!cat) {
       setFormData((prev) => ({
@@ -355,8 +376,54 @@ export default function UpdateProduct() {
     setSelectedSupplier(e.target.value);
   };
 
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+
+    // Required fields validation
+    if (!formData.name.trim()) {
+      newErrors.name = "Product Name is required";
+    }
+    if (!formData.genericName.trim()) {
+      newErrors.genericName = "Generic Name (Salt) is required";
+    }
+    if (!formData.category.trim()) {
+      newErrors.category = "Please select a category";
+    }
+    if (!formData.salesPrice || parseFloat(formData.salesPrice) <= 0) {
+      newErrors.salesPrice = "Sale Price is required and must be greater than 0";
+    }
+
+    setValidationErrors(newErrors);
+
+    // Show error toast with summary
+    if (Object.keys(newErrors).length > 0) {
+      toast.error(`Please fill in all required fields (${Object.keys(newErrors).length} errors)`, { 
+        duration: 5000,
+        icon: "⚠️"
+      });
+      
+      // Scroll to first error
+      const firstErrorField = Object.keys(newErrors)[0];
+      const element = document.querySelector(`[name="${firstErrorField}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        (element as HTMLElement).focus();
+      }
+      
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -640,14 +707,20 @@ export default function UpdateProduct() {
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      required
-                      className={`w-full h-11 px-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
-                        isDarkMode
-                          ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500"
-                          : "bg-white border-slate-300 text-slate-900 placeholder-slate-400"
+                      className={`w-full h-11 px-4 rounded-lg border focus:ring-2 transition-all ${
+                        validationErrors.name
+                          ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                          : isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500"
+                          : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:ring-indigo-500"
                       }`}
                       placeholder="e.g. Napa Extra 500mg"
                     />
+                    {validationErrors.name && (
+                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                        <span>⚠️</span> {validationErrors.name}
+                      </p>
+                    )}
                   </div>
                   <div className="md:col-span-2">
                     <label
@@ -669,15 +742,21 @@ export default function UpdateProduct() {
                         name="genericName"
                         value={formData.genericName}
                         onChange={handleChange}
-                        required
-                        className={`w-full h-11 pl-10 pr-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
-                          isDarkMode
-                            ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500"
-                            : "bg-indigo-50/30 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white"
+                        className={`w-full h-11 pl-10 pr-4 rounded-lg border focus:ring-2 transition-all ${
+                          validationErrors.genericName
+                            ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                            : isDarkMode
+                            ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500"
+                            : "bg-indigo-50/30 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-indigo-500"
                         }`}
                         placeholder="e.g. Paracetamol + Caffeine"
                       />
                     </div>
+                    {validationErrors.genericName && (
+                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                        <span>⚠️</span> {validationErrors.genericName}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
@@ -1013,15 +1092,21 @@ export default function UpdateProduct() {
                             name="salesPrice"
                             value={formData.salesPrice}
                             onChange={handleChange}
-                            required
-                            className={`w-full h-10 pl-7 pr-3 rounded-lg border font-bold focus:ring-2 focus:ring-emerald-500 ${
-                              isDarkMode
-                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800"
-                                : "bg-white border-emerald-300 text-emerald-800"
+                            className={`w-full h-10 pl-7 pr-3 rounded-lg border font-bold focus:ring-2 transition-all ${
+                              validationErrors.salesPrice
+                                ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                                : isDarkMode
+                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800 focus:ring-emerald-500"
+                                : "bg-white border-emerald-300 text-emerald-800 focus:ring-emerald-500"
                             }`}
                             placeholder="0.00"
                           />
                         </div>
+                        {validationErrors.salesPrice && (
+                          <p className="mt-1 text-sm text-red-500 flex items-center gap-1 col-span-2 md:col-span-1">
+                            <span>⚠️</span> {validationErrors.salesPrice}
+                          </p>
+                        )}
                       </div>
 
                       <div>
@@ -1135,6 +1220,20 @@ export default function UpdateProduct() {
                           <option>Injection</option>
                           <option>Cream</option>
                           <option>Drops</option>
+                          <option>Ointment</option>
+                          <option>Jelly</option>
+                          <option>Lotion</option>
+                          <option>Toothpaste</option>
+                          <option>Shampoo</option>
+                          <option>Condoms</option>
+                          <option>Pill</option>
+                          <option>Napkin</option>
+                          <option>Diaper</option>
+                          <option>Surgical</option>
+                          <option>Insulin</option>
+                          <option>Suppository</option>
+                          <option>Suspension</option>
+                          <option>Vaccine</option>
                         </select>
                       </div>
                       <div>
@@ -1310,6 +1409,58 @@ export default function UpdateProduct() {
                               : "bg-white border-slate-300 text-slate-900"
                           }`}
                         />
+                      </div>
+                    </div>
+
+                    {/* Low Stock Alert */}
+                    <div
+                      className={`p-4 rounded-xl border ${
+                        isDarkMode
+                          ? "bg-red-900/10 border-red-900/30"
+                          : "bg-red-50 border-red-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <MdWarning
+                          className={`${
+                            isDarkMode ? "text-red-400" : "text-red-600"
+                          }`}
+                          size={18}
+                        />
+                        <label
+                          className={`text-sm font-bold ${
+                            isDarkMode ? "text-red-400" : "text-red-800"
+                          }`}
+                        >
+                          Low Stock Alert
+                        </label>
+                      </div>
+                      <input
+                        type="number"
+                        name="minStock"
+                        value={formData.minStock}
+                        onChange={handleChange}
+                        min="0"
+                        className={`w-full h-10 px-3 border rounded-lg focus:ring-2 focus:ring-red-500 ${
+                          isDarkMode
+                            ? "bg-gray-800 border-red-900/50 text-white"
+                            : "bg-white border-red-200 text-slate-900"
+                        }`}
+                        placeholder="e.g. 10"
+                      />
+                      <div
+                        className={`mt-2 text-xs flex items-center gap-1 ${
+                          isDarkMode ? "text-red-400/80" : "text-red-700"
+                        }`}
+                      >
+                        <span>⚠️ Alert when stock drops below this quantity</span>
+                      </div>
+                      <div
+                        className={`mt-1 text-xs font-medium ${
+                          isDarkMode ? "text-red-400" : "text-red-600"
+                        }`}
+                      >
+                        Unit: {formData.sellingUnit || "Strip"}
                       </div>
                     </div>
                   </div>

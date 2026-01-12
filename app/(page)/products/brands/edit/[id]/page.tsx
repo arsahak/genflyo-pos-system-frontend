@@ -1,15 +1,17 @@
 import UpdateBrand from "@/component/brandsManagement/UpdateBrand";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-const page = ({ params }: PageProps) => {
+const page = async ({ params }: PageProps) => {
+  const { id } = await params;
+  
   return (
     <div>
-      <UpdateBrand brandId={params.id} />
+      <UpdateBrand brandId={id} />
     </div>
   );
 };

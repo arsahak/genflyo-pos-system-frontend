@@ -1,8 +1,8 @@
 "use client";
 
-import { createProduct } from "@/app/actions/product";
-import { getAllCategories } from "@/app/actions/categories";
 import { getAllBrands } from "@/app/actions/brands";
+import { getAllCategories } from "@/app/actions/categories";
+import { createProduct } from "@/app/actions/product";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
@@ -49,6 +49,9 @@ export default function AddNewProduct() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
 
   // --- Data States ---
   const [categories, setCategories] = useState<Category[]>([]);
@@ -152,7 +155,7 @@ export default function AddNewProduct() {
         const [categoriesRes, brandsRes, suppliersRes] = await Promise.all([
           getAllCategories({ limit: 100 }),
           getAllBrands({ limit: 1000, isActive: true }),
-          getAllSuppliers({ limit: 1000, isActive: true })
+          getAllSuppliers({ limit: 1000, isActive: true }),
         ]);
 
         if (categoriesRes.success && categoriesRes.data?.categories) {
@@ -187,6 +190,16 @@ export default function AddNewProduct() {
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -195,6 +208,16 @@ export default function AddNewProduct() {
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = e.target.value;
+
+    // Clear category validation error
+    if (validationErrors.category) {
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.category;
+        return newErrors;
+      });
+    }
+
     const cat = categories.find((c) => c._id === selectedId);
     if (!cat) {
       setFormData((prev) => ({
@@ -239,12 +262,64 @@ export default function AddNewProduct() {
     }
   };
 
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    // Required fields validation
+    if (!formData.name.trim()) {
+      newErrors.name = "Product Name is required";
+    }
+    if (!formData.genericName.trim()) {
+      newErrors.genericName = "Generic Name (Salt) is required";
+    }
+    if (!formData.category.trim()) {
+      newErrors.category = "Please select a category";
+    }
+    if (!formData.salesPrice || parseFloat(formData.salesPrice) <= 0) {
+      newErrors.salesPrice =
+        "Sale Price is required and must be greater than 0";
+    }
+
+    setValidationErrors(newErrors);
+
+    // Show error toast with summary
+    if (Object.keys(newErrors).length > 0) {
+      toast.error(
+        `Please fill in all required fields (${
+          Object.keys(newErrors).length
+        } errors)`,
+        {
+          duration: 5000,
+          icon: "⚠️",
+        }
+      );
+
+      // Scroll to first error
+      const firstErrorField = Object.keys(newErrors)[0];
+      const element = document.querySelector(`[name="${firstErrorField}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        (element as HTMLElement).focus();
+      }
+
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
     try {
       const data = new FormData();
-      
+
       // Upload images
       if (mainImageFile) data.append("mainImage", mainImageFile);
       featureImageFiles.forEach((f) => data.append("featureImages", f));
@@ -253,20 +328,25 @@ export default function AddNewProduct() {
       data.append("name", formData.name);
       if (formData.sku) data.append("sku", formData.sku);
       if (formData.barcode) data.append("barcode", formData.barcode);
-      if (formData.description) data.append("description", formData.description);
-      if (formData.genericName) data.append("genericName", formData.genericName);
+      if (formData.description)
+        data.append("description", formData.description);
+      if (formData.genericName)
+        data.append("genericName", formData.genericName);
       if (formData.brand) data.append("brand", formData.brand);
-      if (formData.manufacturer) data.append("manufacturer", formData.manufacturer);
+      if (formData.manufacturer)
+        data.append("manufacturer", formData.manufacturer);
 
       // Category (required)
       data.append("category", formData.category);
-      if (formData.subCategory) data.append("subCategory", formData.subCategory);
+      if (formData.subCategory)
+        data.append("subCategory", formData.subCategory);
 
       // Pricing - Map frontend fields to backend fields
       if (formData.salesPrice) data.append("price", formData.salesPrice);
       if (formData.costPerUnit) data.append("cost", formData.costPerUnit);
       if (formData.mrp) data.append("wholesalePrice", formData.mrp); // Using mrp as wholesalePrice
-      if (formData.discountPercent) data.append("discountPercentage", formData.discountPercent);
+      if (formData.discountPercent)
+        data.append("discountPercentage", formData.discountPercent);
       if (formData.taxRate) data.append("taxRate", formData.taxRate);
       if (formData.hsnCode) data.append("hsnCode", formData.hsnCode);
 
@@ -274,17 +354,17 @@ export default function AddNewProduct() {
       if (formData.stock) data.append("stock", formData.stock);
       if (formData.minStock) data.append("minStock", formData.minStock);
       if (formData.minStock) data.append("reorderLevel", formData.minStock); // Using minStock as reorderLevel
-      
+
       // Unit - Map sellingUnit to backend unit enum
       const unitMap: { [key: string]: string } = {
-        "Strip": "strip",
-        "Piece": "pcs",
-        "Bottle": "bottle",
-        "Ampoule": "injection",
-        "Box": "box",
-        "Carton": "box",
-        "Jar": "bottle",
-        "Pack": "pack"
+        Strip: "strip",
+        Piece: "pcs",
+        Bottle: "bottle",
+        Ampoule: "injection",
+        Box: "box",
+        Carton: "box",
+        Jar: "bottle",
+        Pack: "pack",
       };
       const backendUnit = unitMap[formData.sellingUnit] || "pcs";
       data.append("unit", backendUnit);
@@ -310,22 +390,26 @@ export default function AddNewProduct() {
       data.append("isControlled", formData.isControlled.toString());
       if (formData.strength) data.append("strength", formData.strength);
       if (formData.dosage) data.append("dosage", formData.dosage);
-      
+
       // Additional medical details - store in notes or description
-      let medicalNotes = [];
+      const medicalNotes = [];
       if (formData.drugForm) medicalNotes.push(`Form: ${formData.drugForm}`);
-      if (formData.packSize) medicalNotes.push(`Pack Size: ${formData.packSize}`);
-      if (formData.sideEffects) medicalNotes.push(`Side Effects: ${formData.sideEffects}`);
-      if (formData.requiresRefrigeration) medicalNotes.push("Requires Refrigeration");
-      if (formData.isAntibiotic) medicalNotes.push("Full Course Alert (Antibiotic)");
-      
+      if (formData.packSize)
+        medicalNotes.push(`Pack Size: ${formData.packSize}`);
+      if (formData.sideEffects)
+        medicalNotes.push(`Side Effects: ${formData.sideEffects}`);
+      if (formData.requiresRefrigeration)
+        medicalNotes.push("Requires Refrigeration");
+      if (formData.isAntibiotic)
+        medicalNotes.push("Full Course Alert (Antibiotic)");
+
       // Location - Map rackLocation to location object
       if (formData.rackLocation) {
         const locationParts = formData.rackLocation.split(/[-_\/]/);
         const locationObj = {
           shelf: locationParts[0] || formData.rackLocation,
           bin: locationParts[1] || "",
-          aisle: locationParts[2] || ""
+          aisle: locationParts[2] || "",
         };
         data.append("location", JSON.stringify(locationObj));
       }
@@ -503,14 +587,20 @@ export default function AddNewProduct() {
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      required
-                      className={`w-full h-11 px-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
-                        isDarkMode
-                          ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500"
-                          : "bg-white border-slate-300 text-slate-900 placeholder-slate-400"
+                      className={`w-full h-11 px-4 rounded-lg border focus:ring-2 transition-all ${
+                        validationErrors.name
+                          ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                          : isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500"
+                          : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:ring-indigo-500"
                       }`}
                       placeholder="e.g. Napa Extra 500mg"
                     />
+                    {validationErrors.name && (
+                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                        <span>⚠️</span> {validationErrors.name}
+                      </p>
+                    )}
                   </div>
                   <div className="md:col-span-2">
                     <label
@@ -532,15 +622,21 @@ export default function AddNewProduct() {
                         name="genericName"
                         value={formData.genericName}
                         onChange={handleChange}
-                        required
-                        className={`w-full h-11 pl-10 pr-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
-                          isDarkMode
-                            ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500"
-                            : "bg-indigo-50/30 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white"
+                        className={`w-full h-11 pl-10 pr-4 rounded-lg border focus:ring-2 transition-all ${
+                          validationErrors.genericName
+                            ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                            : isDarkMode
+                            ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500"
+                            : "bg-indigo-50/30 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-indigo-500"
                         }`}
                         placeholder="e.g. Paracetamol + Caffeine"
                       />
                     </div>
+                    {validationErrors.genericName && (
+                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                        <span>⚠️</span> {validationErrors.genericName}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
@@ -881,15 +977,21 @@ export default function AddNewProduct() {
                             name="salesPrice"
                             value={formData.salesPrice}
                             onChange={handleChange}
-                            required
-                            className={`w-full h-10 pl-7 pr-3 rounded-lg border font-bold focus:ring-2 focus:ring-emerald-500 ${
-                              isDarkMode
-                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800"
-                                : "bg-white border-emerald-300 text-emerald-800"
+                            className={`w-full h-10 pl-7 pr-3 rounded-lg border font-bold focus:ring-2 transition-all ${
+                              validationErrors.salesPrice
+                                ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                                : isDarkMode
+                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800 focus:ring-emerald-500"
+                                : "bg-white border-emerald-300 text-emerald-800 focus:ring-emerald-500"
                             }`}
                             placeholder="0.00"
                           />
                         </div>
+                        {validationErrors.salesPrice && (
+                          <p className="mt-1 text-sm text-red-500 flex items-center gap-1 col-span-2 md:col-span-1">
+                            <span>⚠️</span> {validationErrors.salesPrice}
+                          </p>
+                        )}
                       </div>
 
                       <div>
@@ -1003,6 +1105,20 @@ export default function AddNewProduct() {
                           <option>Injection</option>
                           <option>Cream</option>
                           <option>Drops</option>
+                          <option>Ointment</option>
+                          <option>Jelly</option>
+                          <option>Lotion</option>
+                          <option>Toothpaste</option>
+                          <option>Shampoo</option>
+                          <option>Condoms</option>
+                          <option>Pill</option>
+                          <option>Napkin</option>
+                          <option>Diaper</option>
+                          <option>Surgical</option>
+                          <option>Insulin</option>
+                          <option>Suppository</option>
+                          <option>Suspension</option>
+                          <option>Vaccine</option>
                         </select>
                       </div>
                       <div>
@@ -1180,6 +1296,60 @@ export default function AddNewProduct() {
                         />
                       </div>
                     </div>
+
+                    {/* Low Stock Alert */}
+                    <div
+                      className={`p-4 rounded-xl border ${
+                        isDarkMode
+                          ? "bg-red-900/10 border-red-900/30"
+                          : "bg-red-50 border-red-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <MdWarning
+                          className={`${
+                            isDarkMode ? "text-red-400" : "text-red-600"
+                          }`}
+                          size={18}
+                        />
+                        <label
+                          className={`text-sm font-bold ${
+                            isDarkMode ? "text-red-400" : "text-red-800"
+                          }`}
+                        >
+                          Low Stock Alert
+                        </label>
+                      </div>
+                      <input
+                        type="number"
+                        name="minStock"
+                        value={formData.minStock}
+                        onChange={handleChange}
+                        min="0"
+                        className={`w-full h-10 px-3 border rounded-lg focus:ring-2 focus:ring-red-500 ${
+                          isDarkMode
+                            ? "bg-gray-800 border-red-900/50 text-white"
+                            : "bg-white border-red-200 text-slate-900"
+                        }`}
+                        placeholder="e.g. 10"
+                      />
+                      <div
+                        className={`mt-2 text-xs flex items-center gap-1 ${
+                          isDarkMode ? "text-red-400/80" : "text-red-700"
+                        }`}
+                      >
+                        <span>
+                          ⚠️ Alert when stock drops below this quantity
+                        </span>
+                      </div>
+                      <div
+                        className={`mt-1 text-xs font-medium ${
+                          isDarkMode ? "text-red-400" : "text-red-600"
+                        }`}
+                      >
+                        Unit: {formData.sellingUnit || "Strip"}
+                      </div>
+                    </div>
                   </div>
                 </section>
               </div>
@@ -1297,13 +1467,15 @@ export default function AddNewProduct() {
                     <select
                       value={formData.subCategoryId || formData.categoryId}
                       onChange={handleCategoryChange}
-                      className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                        isDarkMode
-                          ? "bg-gray-800 border-gray-700 text-white"
-                          : "bg-white border-slate-300 text-slate-900"
+                      className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 transition-all ${
+                        validationErrors.category
+                          ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                          : isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white focus:ring-indigo-500"
+                          : "bg-white border-slate-300 text-slate-900 focus:ring-indigo-500"
                       }`}
                     >
-                      <option value="">Select Category</option>
+                      <option value="">Select Category *</option>
                       {mainCategories.map((cat) => (
                         <optgroup key={cat._id} label={cat.name}>
                           <option value={cat._id}>{cat.name}</option>
@@ -1317,6 +1489,11 @@ export default function AddNewProduct() {
                         </optgroup>
                       ))}
                     </select>
+                    {validationErrors.category && (
+                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                        <span>⚠️</span> {validationErrors.category}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
@@ -1423,7 +1600,6 @@ export default function AddNewProduct() {
                   />
                 </div>
               </div>
-
             </div>
           </form>
         </div>

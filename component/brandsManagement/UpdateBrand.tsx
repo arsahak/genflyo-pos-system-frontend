@@ -11,6 +11,8 @@ import {
   MdBusiness,
   MdSave,
   MdDescription,
+  MdPublic,
+  MdPhone,
 } from "react-icons/md";
 
 interface UpdateBrandProps {
@@ -27,6 +29,8 @@ export default function UpdateBrand({ brandId }: UpdateBrandProps) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    country: "",
+    contact: "",
     isActive: true,
   });
 
@@ -47,6 +51,8 @@ export default function UpdateBrand({ brandId }: UpdateBrandProps) {
         setFormData({
           name: brand.name || "",
           description: brand.description || "",
+          country: brand.country || "",
+          contact: brand.contact || "",
           isActive: brand.isActive ?? true,
         });
       } catch (error: any) {
@@ -82,11 +88,15 @@ export default function UpdateBrand({ brandId }: UpdateBrandProps) {
     setLoading(true);
     try {
       const data = new FormData();
+      // Append all fields including empty strings (backend expects them)
       Object.entries(formData).forEach(([key, value]) => {
-        if (value !== "" && value !== null && value !== undefined) {
-          data.append(key, value.toString());
-        }
+        data.append(key, value !== null && value !== undefined ? value.toString() : "");
       });
+
+      console.log("📦 Updating brand data:");
+      for (let [key, value] of data.entries()) {
+        console.log(`  ${key}:`, value);
+      }
 
       const result = await updateBrand(brandId, data);
 
@@ -300,6 +310,66 @@ export default function UpdateBrand({ brandId }: UpdateBrandProps) {
                           : "bg-white border-slate-300 text-slate-900 placeholder-slate-400"
                       }`}
                       placeholder="Brief description about the brand..."
+                    />
+                  </div>
+                </div>
+
+                {/* Country */}
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-1.5 ${
+                      isDarkMode ? "text-gray-300" : "text-slate-700"
+                    }`}
+                  >
+                    Country
+                  </label>
+                  <div className="relative">
+                    <MdPublic
+                      className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-lg ${
+                        isDarkMode ? "text-gray-500" : "text-slate-400"
+                      }`}
+                    />
+                    <input
+                      type="text"
+                      name="country"
+                      value={formData.country}
+                      onChange={handleChange}
+                      className={`w-full h-11 pl-10 pr-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                          : "bg-white border-slate-300 text-slate-900 placeholder-slate-400"
+                      }`}
+                      placeholder="e.g. Bangladesh, USA, India"
+                    />
+                  </div>
+                </div>
+
+                {/* Contact */}
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-1.5 ${
+                      isDarkMode ? "text-gray-300" : "text-slate-700"
+                    }`}
+                  >
+                    Contact
+                  </label>
+                  <div className="relative">
+                    <MdPhone
+                      className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-lg ${
+                        isDarkMode ? "text-gray-500" : "text-slate-400"
+                      }`}
+                    />
+                    <input
+                      type="text"
+                      name="contact"
+                      value={formData.contact}
+                      onChange={handleChange}
+                      className={`w-full h-11 pl-10 pr-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
+                        isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                          : "bg-white border-slate-300 text-slate-900 placeholder-slate-400"
+                      }`}
+                      placeholder="e.g. +880-1234567890"
                     />
                   </div>
                 </div>

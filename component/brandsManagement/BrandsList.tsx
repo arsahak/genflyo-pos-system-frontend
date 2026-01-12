@@ -1,11 +1,11 @@
 "use client";
 
+import { deleteBrand, getAllBrands } from "@/app/actions/brands";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { getAllBrands, deleteBrand } from "@/app/actions/brands";
 import BrandFilters from "./components/BrandFilters";
 import BrandListHeader from "./components/BrandListHeader";
 import { BrandListSkeleton } from "./components/BrandListSkeleton";
@@ -16,19 +16,12 @@ export interface Brand {
   _id: string;
   name: string;
   description?: string;
-  isActive: boolean;
-  logo?: {
-    url?: string;
-    thumbUrl?: string;
-    displayUrl?: string;
-  };
-  website?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
   country?: string;
+  contact?: string;
+  isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
+  __v?: number;
 }
 
 export default function BrandsList() {
@@ -57,15 +50,21 @@ export default function BrandsList() {
         page: currentPage,
         limit: 50,
         search: searchTerm || undefined,
-        isActive: statusFilter !== "all" ? statusFilter === "active" : undefined,
+        isActive:
+          statusFilter !== "all" ? statusFilter === "active" : undefined,
         sortBy,
         sortOrder,
       });
 
       if (result.success && result.data?.brands) {
         setBrands(result.data.brands);
-        setTotalBrands(result.data.pagination?.total || result.data.brands.length);
-        setTotalPages(result.data.pagination?.pages || Math.ceil(result.data.brands.length / 50));
+        setTotalBrands(
+          result.data.pagination?.total || result.data.brands.length
+        );
+        setTotalPages(
+          result.data.pagination?.pages ||
+            Math.ceil(result.data.brands.length / 50)
+        );
       } else {
         toast.error(result.error || "Failed to load brands");
         setBrands([]);
@@ -117,6 +116,8 @@ export default function BrandsList() {
   };
 
   if (!user) return null;
+
+  console.log("brands", brands);
 
   return (
     <div

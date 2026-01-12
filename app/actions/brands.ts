@@ -23,7 +23,10 @@ export async function getBrandStats() {
 
     if (!response.ok) {
       const error = await response.json();
-      return { success: false, error: error.message || "Failed to fetch brand stats" };
+      return {
+        success: false,
+        error: error.message || "Failed to fetch brand stats",
+      };
     }
 
     const data = await response.json();
@@ -51,16 +54,22 @@ export async function getAllBrands(params?: {
     if (params?.page) queryParams.append("page", params.page.toString());
     if (params?.limit) queryParams.append("limit", params.limit.toString());
     if (params?.search) queryParams.append("search", params.search);
-    if (params?.isActive !== undefined) queryParams.append("isActive", params.isActive.toString());
+    if (params?.isActive !== undefined)
+      queryParams.append("isActive", params.isActive.toString());
     if (params?.sortBy) queryParams.append("sortBy", params.sortBy);
     if (params?.sortOrder) queryParams.append("sortOrder", params.sortOrder);
 
-    const url = `${API_URL}/api/brands${queryParams.toString() ? `?${queryParams}` : ""}`;
+    const url = `${API_URL}/api/brands${
+      queryParams.toString() ? `?${queryParams}` : ""
+    }`;
     const response = await fetch(url, { headers, cache: "no-store" });
 
     if (!response.ok) {
       const error = await response.json();
-      return { success: false, error: error.message || "Failed to fetch brands" };
+      return {
+        success: false,
+        error: error.message || "Failed to fetch brands",
+      };
     }
 
     const data = await response.json();
@@ -76,18 +85,26 @@ export async function getAllBrands(params?: {
  */
 export async function getBrandById(id: string) {
   try {
+    console.log("🔍 Fetching brand with ID:", id);
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/api/brands/${id}`, { headers });
+    const url = `${API_URL}/api/brands/${id}`;
+    console.log("📍 Request URL:", url);
+
+    const response = await fetch(url, { headers, cache: "no-store" });
+
+    console.log("📡 Response status:", response.status);
 
     if (!response.ok) {
       const error = await response.json();
+      console.error("❌ Failed to fetch brand:", error);
       return { success: false, error: error.message || "Brand not found" };
     }
 
     const data = await response.json();
+    console.log("✅ Brand fetched successfully:", data);
     return { success: true, data };
   } catch (error) {
-    console.error("Get brand by ID error:", error);
+    console.error("❌ Get brand by ID error:", error);
     return { success: false, error: "An unexpected error occurred" };
   }
 }
@@ -97,12 +114,33 @@ export async function getBrandById(id: string) {
  */
 export async function createBrand(formData: FormData) {
   try {
+    console.log("📝 FormData entries:");
+    for (const [key, value] of formData.entries()) {
+      console.log(`  ${key}: "${value}"`);
+    }
+
     const headers = await getAuthHeaders();
     const brandData = {
       name: formData.get("name") as string,
       description: formData.get("description") as string,
+      country: formData.get("country") as string,
+      contact: formData.get("contact") as string,
       isActive: formData.get("isActive") === "true",
     };
+
+    console.log("🚀 Frontend sending to backend:", brandData);
+    console.log(
+      "🔍 Country type:",
+      typeof brandData.country,
+      "Value:",
+      brandData.country
+    );
+    console.log(
+      "🔍 Contact type:",
+      typeof brandData.contact,
+      "Value:",
+      brandData.contact
+    );
 
     const response = await fetch(`${API_URL}/api/brands`, {
       method: "POST",
@@ -112,7 +150,10 @@ export async function createBrand(formData: FormData) {
 
     if (!response.ok) {
       const error = await response.json();
-      return { success: false, error: error.message || "Failed to create brand" };
+      return {
+        success: false,
+        error: error.message || "Failed to create brand",
+      };
     }
 
     const data = await response.json();
@@ -132,8 +173,12 @@ export async function updateBrand(id: string, formData: FormData) {
     const brandData = {
       name: formData.get("name") as string,
       description: formData.get("description") as string,
+      country: formData.get("country") as string,
+      contact: formData.get("contact") as string,
       isActive: formData.get("isActive") === "true",
     };
+
+    console.log("🚀 Frontend sending update to backend:", brandData);
 
     const response = await fetch(`${API_URL}/api/brands/${id}`, {
       method: "PUT",
@@ -143,7 +188,10 @@ export async function updateBrand(id: string, formData: FormData) {
 
     if (!response.ok) {
       const error = await response.json();
-      return { success: false, error: error.message || "Failed to update brand" };
+      return {
+        success: false,
+        error: error.message || "Failed to update brand",
+      };
     }
 
     const data = await response.json();
@@ -167,7 +215,10 @@ export async function deleteBrand(id: string) {
 
     if (!response.ok) {
       const error = await response.json();
-      return { success: false, error: error.message || "Failed to delete brand" };
+      return {
+        success: false,
+        error: error.message || "Failed to delete brand",
+      };
     }
 
     const data = await response.json();

@@ -1,11 +1,11 @@
 import {
-  MdEdit,
-  MdDelete,
-  MdArrowUpward,
   MdArrowDownward,
+  MdArrowUpward,
   MdBusiness,
   MdChevronLeft,
   MdChevronRight,
+  MdDelete,
+  MdEdit,
 } from "react-icons/md";
 import { Brand } from "../BrandsList";
 
@@ -22,6 +22,23 @@ interface BrandTableProps {
   isDarkMode: boolean;
 }
 
+const SortIcon = ({
+  field,
+  sortBy,
+  sortOrder,
+}: {
+  field: string;
+  sortBy: string;
+  sortOrder: "asc" | "desc";
+}) => {
+  if (sortBy !== field) return null;
+  return sortOrder === "asc" ? (
+    <MdArrowUpward size={16} />
+  ) : (
+    <MdArrowDownward size={16} />
+  );
+};
+
 export default function BrandTable({
   brands,
   currentPage,
@@ -34,15 +51,6 @@ export default function BrandTable({
   onPageChange,
   isDarkMode,
 }: BrandTableProps) {
-  const SortIcon = ({ field }: { field: string }) => {
-    if (sortBy !== field) return null;
-    return sortOrder === "asc" ? (
-      <MdArrowUpward size={16} />
-    ) : (
-      <MdArrowDownward size={16} />
-    );
-  };
-
   if (brands.length === 0) {
     return (
       <div
@@ -103,7 +111,11 @@ export default function BrandTable({
                 >
                   <div className="flex items-center gap-2">
                     Brand Name
-                    <SortIcon field="name" />
+                    <SortIcon
+                      field="name"
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                    />
                   </div>
                 </th>
                 <th
@@ -121,7 +133,11 @@ export default function BrandTable({
                 >
                   <div className="flex items-center gap-2">
                     Country
-                    <SortIcon field="country" />
+                    <SortIcon
+                      field="country"
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                    />
                   </div>
                 </th>
                 <th
@@ -156,9 +172,7 @@ export default function BrandTable({
                 <tr
                   key={brand._id}
                   className={`transition-colors ${
-                    isDarkMode
-                      ? "hover:bg-gray-800/50"
-                      : "hover:bg-slate-50"
+                    isDarkMode ? "hover:bg-gray-800/50" : "hover:bg-slate-50"
                   }`}
                 >
                   <td className="px-6 py-4">
@@ -175,28 +189,12 @@ export default function BrandTable({
                           size={20}
                         />
                       </div>
-                      <div>
-                        <div
-                          className={`font-semibold ${
-                            isDarkMode ? "text-gray-100" : "text-slate-900"
-                          }`}
-                        >
-                          {brand.name}
-                        </div>
-                        {brand.website && (
-                          <a
-                            href={brand.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`text-xs ${
-                              isDarkMode
-                                ? "text-indigo-400 hover:text-indigo-300"
-                                : "text-indigo-600 hover:text-indigo-700"
-                            }`}
-                          >
-                            {brand.website}
-                          </a>
-                        )}
+                      <div
+                        className={`font-semibold ${
+                          isDarkMode ? "text-gray-100" : "text-slate-900"
+                        }`}
+                      >
+                        {brand.name}
                       </div>
                     </div>
                   </td>
@@ -215,7 +213,7 @@ export default function BrandTable({
                         isDarkMode ? "text-gray-300" : "text-slate-700"
                       }`}
                     >
-                      {brand.country || "-"}
+                      {(brand.country && brand.country.trim()) || "-"}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -224,9 +222,7 @@ export default function BrandTable({
                         isDarkMode ? "text-gray-400" : "text-slate-600"
                       }`}
                     >
-                      {brand.email && <div>{brand.email}</div>}
-                      {brand.phone && <div>{brand.phone}</div>}
-                      {!brand.email && !brand.phone && "-"}
+                      {(brand.contact && brand.contact.trim()) || "-"}
                     </div>
                   </td>
                   <td className="px-6 py-4">

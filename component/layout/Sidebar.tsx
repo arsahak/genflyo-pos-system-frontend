@@ -10,20 +10,20 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaTruck } from "react-icons/fa";
 import {
-    IoIosArrowDown,
-    IoMdAnalytics,
-    IoMdCard,
-    IoMdCube,
-    IoMdDocument,
-    IoMdHome,
-    IoMdMoon,
-    IoMdPeople,
-    IoMdPerson,
-    IoMdSettings,
-    IoMdSunny,
-    IoMdTrendingUp,
+  IoIosArrowDown,
+  IoMdAnalytics,
+  IoMdCard,
+  IoMdCube,
+  IoMdDocument,
+  IoMdHome,
+  IoMdMoon,
+  IoMdPeople,
+  IoMdPerson,
+  IoMdSettings,
+  IoMdSunny,
+  IoMdTrendingUp,
 } from "react-icons/io";
-import { MdQrCode2, MdStore, MdShoppingCart } from "react-icons/md";
+import { MdQrCode2, MdShoppingCart, MdStore } from "react-icons/md";
 import { RxDoubleArrowLeft } from "react-icons/rx";
 
 interface MenuItem {
@@ -257,11 +257,6 @@ const getMenuItems = (language: string): MenuItem[] => [
         label: getTranslation("addStore", language),
         path: "/stores/add",
         permission: "canAddStores",
-      },
-      {
-        label: getTranslation("storeSettings", language),
-        path: "/stores/settings",
-        permission: "canManageStoreSettings",
       },
     ],
   },

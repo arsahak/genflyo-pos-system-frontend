@@ -15,6 +15,7 @@ import {
   MdToggleOn,
   MdToggleOff,
 } from "react-icons/md";
+import { StoreFormSkeleton } from "./components/StoreFormSkeleton";
 
 interface StoreSettingsProps {
   storeId: string;
@@ -149,11 +150,7 @@ const StoreSettings = ({ storeId }: StoreSettingsProps) => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <StoreFormSkeleton isDarkMode={isDarkMode} />;
   }
 
   return (
@@ -538,6 +535,7 @@ const StoreSettings = ({ storeId }: StoreSettingsProps) => {
                         : "bg-gray-50 border-gray-300 text-gray-900"
                     }`}
                   >
+                    <option value="BDT">BDT (৳)</option>
                     <option value="USD">USD ($)</option>
                     <option value="EUR">EUR (€)</option>
                     <option value="GBP">GBP (£)</option>
@@ -564,6 +562,7 @@ const StoreSettings = ({ storeId }: StoreSettingsProps) => {
                         : "bg-gray-50 border-gray-300 text-gray-900"
                     }`}
                   >
+                    <option value="Asia/Dhaka">Bangladesh Time (GMT+6)</option>
                     <option value="UTC">UTC</option>
                     <option value="America/New_York">Eastern Time</option>
                     <option value="America/Chicago">Central Time</option>

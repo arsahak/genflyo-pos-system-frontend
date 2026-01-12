@@ -139,17 +139,24 @@ export async function createStore(formData: FormData): Promise<ActionResponse> {
       Authorization: `Bearer ${session.accessToken}`,
     };
 
+    // Parse JSON strings from FormData
+    const addressString = formData.get("address") as string;
+    const settingsString = formData.get("settings") as string;
+
     const storeData = {
       name: formData.get("name") as string,
-      location: formData.get("location") as string,
-      address: formData.get("address") as string,
+      code: formData.get("code") as string,
+      type: formData.get("type") as string,
+      address: addressString ? JSON.parse(addressString) : {},
       phone: formData.get("phone") as string,
       email: formData.get("email") as string,
-      manager: formData.get("manager") as string,
+      timezone: formData.get("timezone") as string,
+      settings: settingsString ? JSON.parse(settingsString) : {},
       isActive: formData.get("isActive") === "true",
     };
 
     console.log("Creating store with API URL:", `${API_URL}/api/stores`);
+    console.log("Store data:", storeData);
 
     const response = await fetch(`${API_URL}/api/stores`, {
       method: "POST",
@@ -200,17 +207,24 @@ export async function updateStore(id: string, formData: FormData): Promise<Actio
       Authorization: `Bearer ${session.accessToken}`,
     };
 
+    // Parse JSON strings from FormData
+    const addressString = formData.get("address") as string;
+    const settingsString = formData.get("settings") as string;
+
     const storeData = {
       name: formData.get("name") as string,
-      location: formData.get("location") as string,
-      address: formData.get("address") as string,
+      code: formData.get("code") as string,
+      type: formData.get("type") as string,
+      address: addressString ? JSON.parse(addressString) : {},
       phone: formData.get("phone") as string,
       email: formData.get("email") as string,
-      manager: formData.get("manager") as string,
+      timezone: formData.get("timezone") as string,
+      settings: settingsString ? JSON.parse(settingsString) : {},
       isActive: formData.get("isActive") === "true",
     };
 
     console.log("Updating store with ID:", id);
+    console.log("Store data:", storeData);
 
     const response = await fetch(`${API_URL}/api/stores/${id}`, {
       method: "PUT",
