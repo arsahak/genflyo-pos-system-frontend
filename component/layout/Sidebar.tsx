@@ -23,7 +23,8 @@ import {
   IoMdSunny,
   IoMdTrendingUp,
 } from "react-icons/io";
-import { MdQrCode2, MdShoppingCart, MdStore } from "react-icons/md";
+import { MdShoppingCart, MdStore } from "react-icons/md";
+import { BiBarcodeReader } from "react-icons/bi";
 import { RxDoubleArrowLeft } from "react-icons/rx";
 
 interface MenuItem {
@@ -145,30 +146,30 @@ const getMenuItems = (language: string): MenuItem[] => [
       },
     ],
   },
-  {
-    icon: <MdShoppingCart className="w-5 h-5" />,
-    label: getTranslation("orders", language),
-    path: "/orders",
-    permission: "canViewOrders",
-    expandable: true,
-    subItems: [
-      {
-        label: getTranslation("allOrders", language),
-        path: "/orders",
-        permission: "canViewOrders",
-      },
-      {
-        label: getTranslation("pendingOrders", language),
-        path: "/orders/pending",
-        permission: "canViewOrders",
-      },
-      {
-        label: getTranslation("completedOrders", language),
-        path: "/orders/completed",
-        permission: "canViewOrders",
-      },
-    ],
-  },
+  // {
+  //   icon: <MdShoppingCart className="w-5 h-5" />,
+  //   label: getTranslation("orders", language),
+  //   path: "/orders",
+  //   permission: "canViewOrders",
+  //   expandable: true,
+  //   subItems: [
+  //     {
+  //       label: getTranslation("allOrders", language),
+  //       path: "/orders",
+  //       permission: "canViewOrders",
+  //     },
+  //     {
+  //       label: getTranslation("pendingOrders", language),
+  //       path: "/orders/pending",
+  //       permission: "canViewOrders",
+  //     },
+  //     {
+  //       label: getTranslation("completedOrders", language),
+  //       path: "/orders/completed",
+  //       permission: "canViewOrders",
+  //     },
+  //   ],
+  // },
   {
     icon: <IoMdPeople className="w-5 h-5" />,
     label: getTranslation("customers", language),
@@ -261,7 +262,7 @@ const getMenuItems = (language: string): MenuItem[] => [
     ],
   },
   {
-    icon: <MdQrCode2 className="w-5 h-5" />,
+    icon: <BiBarcodeReader className="w-5 h-5" />,
     label: getTranslation("barcode", language),
     path: "/barcode",
     permission: "canViewBarcodes",

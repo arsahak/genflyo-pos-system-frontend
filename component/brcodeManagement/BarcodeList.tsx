@@ -7,7 +7,8 @@ import { getTranslation } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
-import { MdDelete, MdPrint, MdQrCode2, MdSearch } from "react-icons/md";
+import { MdDelete, MdNavigateBefore, MdNavigateNext, MdPrint, MdSearch } from "react-icons/md";
+import { BiBarcodeReader } from "react-icons/bi";
 
 interface BarcodeListProps {
   initialBarcodes: Barcode[];
@@ -15,6 +16,7 @@ interface BarcodeListProps {
   currentPage: number;
   total: number;
   language: "en" | "bn";
+  onRefresh?: () => void;
 }
 
 export default function BarcodeList({
@@ -23,6 +25,7 @@ export default function BarcodeList({
   currentPage,
   total,
   language,
+  onRefresh,
 }: BarcodeListProps) {
   const { isDarkMode } = useSidebar();
   const router = useRouter();
@@ -40,6 +43,10 @@ export default function BarcodeList({
 
     if (result.success) {
       toast.success(getTranslation("barcodeDeletedSuccess", language));
+      // Call onRefresh to reload data from parent
+      if (onRefresh) {
+        onRefresh();
+      }
       startTransition(() => {
         router.refresh();
       });
@@ -49,8 +56,8 @@ export default function BarcodeList({
     setDeletingId(null);
   };
 
-  const handlePrint = (barcode: string, productName: string, sku: string) => {
-    printBarcode(barcode, productName, sku);
+  const handlePrint = (barcode: string, productName: string, price: number) => {
+    printBarcode(barcode, productName, price);
   };
 
   const filteredBarcodes = initialBarcodes.filter(
@@ -104,7 +111,7 @@ export default function BarcodeList({
               : "border-gray-300 bg-gray-50"
           }`}
         >
-          <MdQrCode2
+          <BiBarcodeReader
             className={`w-16 h-16 mx-auto mb-4 ${
               isDarkMode ? "text-gray-600" : "text-gray-400"
             }`}
@@ -197,7 +204,7 @@ export default function BarcodeList({
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <MdQrCode2 className="w-5 h-5 text-blue-500" />
+                        <BiBarcodeReader className="w-5 h-5 text-blue-500" />
                         <span className="font-mono text-sm font-medium">
                           {barcode.barcode}
                         </span>
@@ -244,7 +251,7 @@ export default function BarcodeList({
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => handlePrint(barcode.barcode, barcode.productId.name, barcode.productId.sku)}
+                          onClick={() => handlePrint(barcode.barcode, barcode.productId.name, barcode.productId.price)}
                           className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                             isDarkMode
                               ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
@@ -280,44 +287,64 @@ export default function BarcodeList({
         </div>
       )}
 
-      {/* Pagination */}
+      {/* Pagination Footer */}
       {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <button
-            onClick={() => router.push(`/barcode?page=${currentPage - 1}`)}
-            disabled={currentPage === 1}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isDarkMode
-                ? "bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:bg-gray-800/50"
-                : "bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100"
-            } border ${
-              isDarkMode ? "border-gray-700" : "border-gray-300"
-            } disabled:cursor-not-allowed disabled:opacity-50`}
-          >
-            Previous
-          </button>
+        <div className={`mt-6 px-6 py-4 rounded-xl border flex items-center justify-between ${
+          isDarkMode ? "border-gray-700 bg-gray-800/50" : "border-gray-100 bg-gray-50/50"
+        }`}>
+          <div className={`text-sm ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>
+            Page <span className={`font-semibold ${isDarkMode ? "text-gray-200" : "text-gray-900"}`}>{currentPage}</span> of {totalPages}
+          </div>
 
-          <span
-            className={`text-sm ${
-              isDarkMode ? "text-gray-400" : "text-gray-600"
-            }`}
-          >
-            Page {currentPage} of {totalPages}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push(`/barcode?page=${currentPage - 1}`)}
+              disabled={currentPage === 1}
+              className={`p-2 rounded-lg transition-all ${
+                isDarkMode
+                  ? "hover:bg-gray-700 text-gray-400 disabled:opacity-30"
+                  : "hover:bg-gray-200 text-gray-600 disabled:opacity-30"
+              }`}
+            >
+              <MdNavigateBefore size={24} />
+            </button>
+            <div className="flex gap-1">
+              {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                let pageNum = i + 1;
+                if (currentPage > 3 && totalPages > 5) {
+                  pageNum = currentPage - 2 + i;
+                }
+                if (pageNum > totalPages) return null;
 
-          <button
-            onClick={() => router.push(`/barcode?page=${currentPage + 1}`)}
-            disabled={currentPage === totalPages}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isDarkMode
-                ? "bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:bg-gray-800/50"
-                : "bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100"
-            } border ${
-              isDarkMode ? "border-gray-700" : "border-gray-300"
-            } disabled:cursor-not-allowed disabled:opacity-50`}
-          >
-            Next
-          </button>
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => router.push(`/barcode?page=${pageNum}`)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                      currentPage === pageNum
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30"
+                        : isDarkMode
+                          ? "hover:bg-gray-700 text-gray-400"
+                          : "hover:bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => router.push(`/barcode?page=${currentPage + 1}`)}
+              disabled={currentPage === totalPages}
+              className={`p-2 rounded-lg transition-all ${
+                isDarkMode
+                  ? "hover:bg-gray-700 text-gray-400 disabled:opacity-30"
+                  : "hover:bg-gray-200 text-gray-600 disabled:opacity-30"
+              }`}
+            >
+              <MdNavigateNext size={24} />
+            </button>
+          </div>
         </div>
       )}
     </div>

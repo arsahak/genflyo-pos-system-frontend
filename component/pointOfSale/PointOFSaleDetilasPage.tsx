@@ -517,7 +517,9 @@ const PointOFSaleDetilasPage = () => {
 
     if (paymentMethod === "cash") {
       const received = parseFloat(receivedAmount);
-      if (!received || received < grandTotal) {
+      // Accept payment if received amount covers at least the floor of grand total
+      // e.g., if total is 500.50, accepting 500 is valid
+      if (!received || received < Math.floor(grandTotal)) {
         toast.error("Insufficient amount!");
         return;
       }

@@ -5,7 +5,7 @@ import BarcodeGenerator from "@/component/brcodeManagement/BarcodeGenerator";
 import BarcodeList from "@/component/brcodeManagement/BarcodeList";
 import { useLanguage } from "@/lib/LanguageContext";
 import { getTranslation } from "@/lib/translations";
-import { MdQrCode2 } from "react-icons/md";
+import { BiBarcodeReader } from "react-icons/bi";
 
 interface Product {
   _id: string;
@@ -19,6 +19,7 @@ interface BarcodePageContentProps {
   currentPage: number;
   total: number;
   products: any[];
+  onRefresh?: () => void;
 }
 
 export default function BarcodePageContent({
@@ -27,6 +28,7 @@ export default function BarcodePageContent({
   currentPage,
   total,
   products,
+  onRefresh,
 }: BarcodePageContentProps) {
   const { language } = useLanguage();
 
@@ -36,7 +38,7 @@ export default function BarcodePageContent({
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-blue-500 rounded-lg">
-            <MdQrCode2 className="w-6 h-6 text-white" />
+            <BiBarcodeReader className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold">
@@ -57,6 +59,7 @@ export default function BarcodePageContent({
               _id: p._id,
               name: p.name,
               sku: p.sku,
+              price: p.price || 0,
             }))}
             language={language as "en" | "bn"}
           />
@@ -70,6 +73,7 @@ export default function BarcodePageContent({
             currentPage={currentPage}
             total={total}
             language={language as "en" | "bn"}
+            onRefresh={onRefresh}
           />
         </div>
       </div>

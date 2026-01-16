@@ -104,15 +104,10 @@ export async function getCustomerById(id: string) {
 export async function createCustomer(formData: FormData) {
   try {
     const headers = await getAuthHeaders();
-    const customerData = {
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      address: formData.get("address") as string,
-      city: formData.get("city") as string,
-      country: formData.get("country") as string,
-      loyaltyPoints: parseInt(formData.get("loyaltyPoints") as string) || 0,
-    };
+
+    // Parse the customerData JSON string from the form
+    const customerDataJson = formData.get("customerData") as string;
+    const customerData = JSON.parse(customerDataJson);
 
     const response = await fetch(`${API_URL}/api/customers`, {
       method: "POST",
@@ -139,15 +134,10 @@ export async function createCustomer(formData: FormData) {
 export async function updateCustomer(id: string, formData: FormData) {
   try {
     const headers = await getAuthHeaders();
-    const customerData = {
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      address: formData.get("address") as string,
-      city: formData.get("city") as string,
-      country: formData.get("country") as string,
-      loyaltyPoints: parseInt(formData.get("loyaltyPoints") as string) || 0,
-    };
+
+    // Parse the customerData JSON string from the form
+    const customerDataJson = formData.get("customerData") as string;
+    const customerData = JSON.parse(customerDataJson);
 
     const response = await fetch(`${API_URL}/api/customers/${id}`, {
       method: "PUT",

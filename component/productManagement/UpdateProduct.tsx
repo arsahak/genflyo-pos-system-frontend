@@ -36,6 +36,13 @@ interface Category {
   };
 }
 
+interface Brand {
+  _id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
 export default function UpdateProduct() {
   const { user } = useStore();
   const { isDarkMode } = useSidebar();
@@ -51,7 +58,7 @@ export default function UpdateProduct() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [mainCategories, setMainCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<Category[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<string>("");
 
@@ -75,10 +82,10 @@ export default function UpdateProduct() {
     manufacturer: "",
     rackLocation: "",
 
-    // Units & Pricing
-    purchaseUnit: "Box",
-    sellingUnit: "Strip",
-    conversionFactor: "10",
+    // Units & Pricing (The Logic Core)
+    purchaseUnit: "Box", // Buying Unit
+    sellingUnit: "Strip", // Selling Unit
+    conversionFactor: "30", // 1 Box = 30 Strips
     purchasePriceBox: "",
     mrp: "",
     salesPrice: "",
@@ -192,11 +199,16 @@ export default function UpdateProduct() {
       }
 
       const product = response.data;
+      console.log("Loaded product data:", product); // Debug log
 
       // Format dates for input fields
       const formatDate = (date: string) => {
         if (!date) return "";
-        return new Date(date).toISOString().split("T")[0];
+        try {
+          return new Date(date).toISOString().split("T")[0];
+        } catch {
+          return "";
+        }
       };
 
       // Map unit back to selling unit
@@ -210,9 +222,74 @@ export default function UpdateProduct() {
       };
 
       // Extract location from location object
-      const rackLocation = product.location?.shelf
-        ? `${product.location.shelf}${product.location.bin ? "-" + product.location.bin : ""}`
-        : "";
+      let rackLocation = "";
+      if (product.location) {
+        if (typeof product.location === "string") {
+          rackLocation = product.location;
+        } else if (product.location.shelf) {
+          rackLocation = `${product.location.shelf}${product.location.bin ? "-" + product.location.bin : ""}`;
+        }
+      }
+
+      // Parse notes to extract medical details (drugForm, sideEffects, etc.)
+      let drugForm = "Tablet";
+      let packSize = "";
+      let sideEffects = "";
+      let requiresRefrigeration = false;
+      let isAntibiotic = false;
+
+      if (product.notes) {
+        const notes = product.notes;
+        // Extract Form
+        const formMatch = notes.match(/Form:\s*([^\n]+)/i);
+        if (formMatch) drugForm = formMatch[1].trim();
+        // Extract Pack Size
+        const packMatch = notes.match(/Pack Size:\s*([^\n]+)/i);
+        if (packMatch) packSize = packMatch[1].trim();
+        // Extract Side Effects
+        const sideMatch = notes.match(/Side Effects:\s*([^\n]+)/i);
+        if (sideMatch) sideEffects = sideMatch[1].trim();
+        // Check flags
+        if (notes.includes("Requires Refrigeration")) requiresRefrigeration = true;
+        if (notes.includes("Full Course Alert")) isAntibiotic = true;
+      }
+
+      // Also check for drugForm field directly if exists
+      if (product.drugForm) {
+        drugForm = product.drugForm;
+      }
+
+      // Calculate conversionFactor - default to 30 or use existing if available
+      const conversionFactor = product.conversionFactor?.toString() || "30";
+
+      // Calculate opening stock boxes from total stock
+      const totalStock = parseFloat(product.stock?.toString() || "0");
+      const factor = parseFloat(conversionFactor) || 30;
+      const openingStockBoxes = factor > 0 ? Math.floor(totalStock / factor).toString() : "0";
+
+      // Find category and subcategory IDs from loaded categories
+      let categoryId = "";
+      let subCategoryId = "";
+
+      // Try to match category by name
+      if (product.category && categories.length > 0) {
+        const mainCat = categories.find(c => c.name === product.category && !c.parentCategory);
+        if (mainCat) {
+          categoryId = mainCat._id;
+        }
+      }
+
+      // Try to match subcategory by name
+      if (product.subCategory && categories.length > 0) {
+        const subCat = categories.find(c => c.name === product.subCategory && c.parentCategory);
+        if (subCat) {
+          subCategoryId = subCat._id;
+          // Also set parent category if found
+          if (subCat.parentCategory) {
+            categoryId = subCat.parentCategory._id;
+          }
+        }
+      }
 
       setFormData({
         // Identity
@@ -221,46 +298,46 @@ export default function UpdateProduct() {
         sku: product.sku || "",
         barcode: product.barcode || "",
         category: product.category || "",
-        categoryId: "",
+        categoryId: categoryId,
         subCategory: product.subCategory || "",
-        subCategoryId: "",
+        subCategoryId: subCategoryId,
         brand: product.brand || "",
         manufacturer: product.manufacturer || "",
         rackLocation: rackLocation,
 
         // Units & Pricing
-        purchaseUnit: "Box",
-        sellingUnit: unitMap[product.unit] || "Strip",
-        conversionFactor: "10",
-        purchasePriceBox: "",
-        mrp: product.wholesalePrice?.toString() || "",
-        salesPrice: product.price?.toString() || "",
-        costPerUnit: product.cost?.toString() || "",
+        purchaseUnit: product.purchaseUnit || "Box",
+        sellingUnit: unitMap[product.unit] || product.sellingUnit || "Strip",
+        conversionFactor: conversionFactor,
+        purchasePriceBox: product.purchasePriceBox?.toString() || "",
+        mrp: product.wholesalePrice?.toString() || product.mrp?.toString() || "",
+        salesPrice: product.price?.toString() || product.salesPrice?.toString() || "",
+        costPerUnit: product.cost?.toString() || product.costPerUnit?.toString() || "",
         taxRate: product.taxRate?.toString() || "0",
         hsnCode: product.hsnCode || "",
-        discountPercent: product.discountPercentage?.toString() || "0",
+        discountPercent: product.discountPercentage?.toString() || product.discountPercent?.toString() || "0",
 
         // Inventory & Batch
-        openingStockBoxes: "0",
+        openingStockBoxes: openingStockBoxes,
         stock: product.stock?.toString() || "0",
-        minStock: product.minStock?.toString() || "10",
+        minStock: product.minStock?.toString() || product.reorderLevel?.toString() || "10",
         batchNumber: product.batchNumber || "",
         expiryDate: formatDate(product.expiryDate),
         manufacturingDate: formatDate(product.manufacturingDate),
         expiryAlertDays: product.expiryAlertDays?.toString() || "90",
 
         // Medical Details
-        drugForm: "Tablet",
+        drugForm: drugForm,
         strength: product.strength || "",
-        packSize: "",
+        packSize: packSize || product.packSize || "",
         dosage: product.dosage || "",
-        sideEffects: "",
+        sideEffects: sideEffects || product.sideEffects || "",
 
         // Safety Flags
         isPrescription: product.isPrescription || false,
         isControlled: product.isControlled || false,
-        requiresRefrigeration: false,
-        isAntibiotic: false,
+        requiresRefrigeration: requiresRefrigeration || product.requiresRefrigeration || false,
+        isAntibiotic: isAntibiotic || product.isAntibiotic || false,
 
         // Meta
         description: product.description || "",
@@ -269,12 +346,15 @@ export default function UpdateProduct() {
 
       // Set selected supplier if exists
       if (product.suppliers && product.suppliers.length > 0) {
-        setSelectedSupplier(product.suppliers[0]._id || product.suppliers[0]);
+        const supplierId = product.suppliers[0]._id || product.suppliers[0];
+        setSelectedSupplier(supplierId);
       }
 
       // Set main image if exists
       if (product.mainImage?.url) {
         setMainImagePreview(product.mainImage.url);
+      } else if (product.mainImage && typeof product.mainImage === "string") {
+        setMainImagePreview(product.mainImage);
       } else if (product.images && product.images.length > 0) {
         const imageUrl = product.images[0].url || product.images[0].thumbUrl || product.images[0];
         if (imageUrl) {
@@ -764,20 +844,25 @@ export default function UpdateProduct() {
                         isDarkMode ? "text-gray-300" : "text-slate-700"
                       }`}
                     >
-                      Brand / Manufacturer
+                      Brand
                     </label>
-                    <input
-                      type="text"
-                      name="manufacturer"
-                      value={formData.manufacturer}
+                    <select
+                      name="brand"
+                      value={formData.brand}
                       onChange={handleChange}
                       className={`w-full h-11 px-4 rounded-lg border focus:ring-2 focus:ring-indigo-500 transition-all ${
                         isDarkMode
                           ? "bg-gray-800 border-gray-700 text-white"
                           : "bg-white border-slate-300 text-slate-900"
                       }`}
-                      placeholder="e.g. Beximco Pharma"
-                    />
+                    >
+                      <option value="">Select Brand</option>
+                      {brands.map((brand) => (
+                        <option key={brand._id} value={brand.name}>
+                          {brand.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label
@@ -1580,13 +1665,15 @@ export default function UpdateProduct() {
                     <select
                       value={formData.subCategoryId || formData.categoryId}
                       onChange={handleCategoryChange}
-                      className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 ${
-                        isDarkMode
-                          ? "bg-gray-800 border-gray-700 text-white"
-                          : "bg-white border-slate-300 text-slate-900"
+                      className={`w-full h-10 px-3 border rounded-lg text-sm focus:ring-2 transition-all ${
+                        validationErrors.category
+                          ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                          : isDarkMode
+                          ? "bg-gray-800 border-gray-700 text-white focus:ring-indigo-500"
+                          : "bg-white border-slate-300 text-slate-900 focus:ring-indigo-500"
                       }`}
                     >
-                      <option value="">Select Category</option>
+                      <option value="">Select Category *</option>
                       {mainCategories.map((cat) => (
                         <optgroup key={cat._id} label={cat.name}>
                           <option value={cat._id}>{cat.name}</option>
@@ -1600,6 +1687,11 @@ export default function UpdateProduct() {
                         </optgroup>
                       ))}
                     </select>
+                    {validationErrors.category && (
+                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                        <span>⚠️</span> {validationErrors.category}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label

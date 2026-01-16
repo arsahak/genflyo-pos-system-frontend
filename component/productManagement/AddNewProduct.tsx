@@ -87,7 +87,7 @@ export default function AddNewProduct() {
     // Units & Pricing (The Logic Core)
     purchaseUnit: "Box", // Buying Unit
     sellingUnit: "Strip", // Selling Unit
-    conversionFactor: "10", // 1 Box = 10 Strips
+    conversionFactor: "30", // 1 Box = 10 Strips
     purchasePriceBox: "", // Price per Box
     mrp: "", // MRP per Strip
     salesPrice: "", // Selling Price per Strip
@@ -873,8 +873,8 @@ export default function AddNewProduct() {
                                 : "bg-white border-slate-300 text-slate-900"
                             }`}
                           >
-                            <option>Strip</option>
                             <option>Piece</option>
+                            <option>Strip</option>
                             <option>Bottle</option>
                             <option>Ampoule</option>
                           </select>

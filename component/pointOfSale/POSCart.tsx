@@ -23,6 +23,7 @@ interface POSCartProps {
   setItemDiscount: (val: { [key: string]: number }) => void;
   clearCart: () => void;
   updateQuantity: (id: string, delta: number) => void;
+  setQuantity?: (id: string, quantity: number) => void;
   removeFromCart: (id: string) => void;
   getItemFinalPrice: (item: CartItem) => number;
   calculateSubtotal: () => number;
@@ -66,6 +67,7 @@ export const POSCart = ({
   setItemDiscount,
   clearCart,
   updateQuantity,
+  setQuantity,
   removeFromCart,
   getItemFinalPrice,
   calculateSubtotal,
@@ -457,7 +459,26 @@ export const POSCart = ({
                         >
                           <MdRemove className="text-xs" />
                         </button>
-                        <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newQty = parseInt(e.target.value) || 1;
+                            if (newQty > 0) {
+                              if (setQuantity) {
+                                setQuantity(item.id, newQty);
+                              } else {
+                                const delta = newQty - item.quantity;
+                                updateQuantity(item.id, delta);
+                              }
+                            }
+                          }}
+                          onFocus={(e) => e.target.select()}
+                          className={`w-10 text-center text-xs font-bold outline-none border-0 bg-transparent ${
+                            isDarkMode ? "text-gray-100" : "text-gray-900"
+                          } [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                        />
                         <button
                           onClick={() => updateQuantity(item.id, 1)}
                           className="w-7 h-7 hover:text-green-500 flex items-center justify-center"

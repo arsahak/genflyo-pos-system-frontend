@@ -7,12 +7,14 @@ import { getTranslation } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
-import { MdAdd, MdPrint, MdQrCode2 } from "react-icons/md";
+import { MdAdd, MdPrint } from "react-icons/md";
+import { BiBarcodeReader } from "react-icons/bi";
 
 interface Product {
   _id: string;
   name: string;
   sku: string;
+  price: number;
 }
 
 interface BarcodeGeneratorProps {
@@ -76,7 +78,7 @@ export default function BarcodeGenerator({ products, language }: BarcodeGenerato
   const handlePrint = () => {
     const product = products.find((p) => p._id === selectedProduct);
     if (product && generatedBarcode) {
-      printBarcode(generatedBarcode, product.name, product.sku);
+      printBarcode(generatedBarcode, product.name, product.price);
     }
   };
 
@@ -93,7 +95,7 @@ export default function BarcodeGenerator({ products, language }: BarcodeGenerato
           isDarkMode ? "text-gray-100" : "text-gray-900"
         }`}
       >
-        <MdQrCode2 className="w-5 h-5 text-blue-500" />
+        <BiBarcodeReader className="w-5 h-5 text-blue-500" />
         {getTranslation("generateNewBarcode", language)}
       </h3>
 
@@ -135,7 +137,7 @@ export default function BarcodeGenerator({ products, language }: BarcodeGenerato
               : "bg-blue-500 hover:bg-blue-600 text-white"
           } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
         >
-          <MdQrCode2 className="w-5 h-5" />
+          <BiBarcodeReader className="w-5 h-5" />
           {isGenerating ? getTranslation("generating", language) : getTranslation("generateBarcode", language)}
         </button>
 

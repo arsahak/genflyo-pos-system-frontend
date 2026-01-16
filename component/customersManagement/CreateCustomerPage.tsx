@@ -114,11 +114,13 @@ const CreateCustomerPage = () => {
         </div>
 
         {/* Form */}
+
         <div
           className={`rounded-2xl shadow-xl border max-w-4xl ${
             isDarkMode ? "bg-gray-800 border-gray-700 shadow-gray-900/20" : "bg-white border-gray-100 shadow-slate-200/50"
           }`}
         >
+          
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-6">
             {/* Basic Information Section */}

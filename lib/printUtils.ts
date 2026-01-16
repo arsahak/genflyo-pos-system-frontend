@@ -1,7 +1,7 @@
 export function printBarcode(
   barcode: string,
   productName: string,
-  sku: string
+  price: number
 ) {
   const win = window.open("", "", "width=600,height=600");
   if (!win) return;
@@ -20,21 +20,22 @@ export function printBarcode(
           }
           .container {
             border: 1px dashed #ccc;
-            padding: 20px;
+            padding: 10px 15px;
             display: inline-block;
-            border-radius: 8px;
+            border-radius: 6px;
           }
           .product-name {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 2px;
             margin-top: 0;
             color: #000;
           }
-          .sku {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 10px;
+          .price {
+            font-size: 11px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
           }
           svg {
             max-width: 100%;
@@ -55,7 +56,7 @@ export function printBarcode(
       <body>
         <div class="container">
           <h2 class="product-name">${productName}</h2>
-          <div class="sku">SKU: ${sku}</div>
+          <div class="price">MRP: ৳${price.toFixed(2)}</div>
           <svg id="barcode"></svg>
         </div>
 
@@ -65,10 +66,10 @@ export function printBarcode(
             JsBarcode("#barcode", "${barcode}", {
               format: "EAN13",
               displayValue: true,
-              fontSize: 20,
-              margin: 10,
-              height: 60,
-              width: 2
+              fontSize: 14,
+              margin: 5,
+              height: 50,
+              width: 1.5
             });
             // Small delay to ensure rendering
             setTimeout(function() {
