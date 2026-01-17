@@ -358,10 +358,16 @@ export default function AddNewProduct() {
       if (formData.salesPrice) data.append("price", formData.salesPrice);
       if (formData.costPerUnit) data.append("cost", formData.costPerUnit);
       if (formData.mrp) data.append("wholesalePrice", formData.mrp); // Using mrp as wholesalePrice
+      if (formData.purchasePriceBox) data.append("purchasePriceBox", formData.purchasePriceBox);
       if (formData.discountPercent)
         data.append("discountPercentage", formData.discountPercent);
       if (formData.taxRate) data.append("taxRate", formData.taxRate);
       if (formData.hsnCode) data.append("hsnCode", formData.hsnCode);
+
+      // Unit conversion fields
+      if (formData.purchaseUnit) data.append("purchaseUnit", formData.purchaseUnit);
+      if (formData.sellingUnit) data.append("sellingUnit", formData.sellingUnit);
+      if (formData.conversionFactor) data.append("conversionFactor", formData.conversionFactor);
 
       // Stock Management
       if (formData.stock) data.append("stock", formData.stock);

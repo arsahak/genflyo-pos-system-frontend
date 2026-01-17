@@ -25,6 +25,11 @@ interface Product {
   category: string;
   stock: number;
   price: number;
+  location?: {
+    shelf?: string;
+    bin?: string;
+    aisle?: string;
+  } | string;
 }
 
 // Skeleton Component
@@ -141,6 +146,22 @@ const StockAdjustments = () => {
     setSelectedProduct(product);
     setProducts([]);
     setSearchQuery("");
+
+    // Set location from product.location.shelf if available
+    let shelfValue = "";
+    if (product.location) {
+      if (typeof product.location === "string") {
+        try {
+          const loc = JSON.parse(product.location);
+          shelfValue = loc.shelf || "";
+        } catch {
+          shelfValue = product.location;
+        }
+      } else if (typeof product.location === "object") {
+        shelfValue = product.location.shelf || "";
+      }
+    }
+    setLocation(shelfValue);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

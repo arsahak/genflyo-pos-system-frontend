@@ -6,23 +6,23 @@ import { getProductById, updateProduct } from "@/app/actions/product";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
-    MdArrowBack,
-    MdAttachMoney,
-    MdCategory,
-    MdClose,
-    MdCloudUpload,
-    MdDateRange,
-    MdDescription,
-    MdInventory,
-    MdLabel,
-    MdLocalPharmacy,
-    MdPercent,
-    MdQrCode,
-    MdSave,
-    MdWarning,
+  MdArrowBack,
+  MdAttachMoney,
+  MdCategory,
+  MdClose,
+  MdCloudUpload,
+  MdDateRange,
+  MdDescription,
+  MdInventory,
+  MdLabel,
+  MdLocalPharmacy,
+  MdPercent,
+  MdQrCode,
+  MdSave,
+  MdWarning,
 } from "react-icons/md";
 import { ProductFormSkeleton } from "./components/ProductFormSkeleton";
 
@@ -52,7 +52,9 @@ export default function UpdateProduct() {
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
 
   // --- Data States ---
   const [categories, setCategories] = useState<Category[]>([]);
@@ -157,6 +159,9 @@ export default function UpdateProduct() {
     }));
   }, [formData.openingStockBoxes, formData.conversionFactor]);
 
+  // Track if categories have loaded
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
+
   // 3. Load Categories, Brands, and Suppliers
   useEffect(() => {
     const loadData = async () => {
@@ -165,7 +170,7 @@ export default function UpdateProduct() {
         const [categoriesRes, brandsRes, suppliersRes] = await Promise.all([
           getAllCategories({ limit: 100 }),
           getAllBrands({ limit: 1000, isActive: true }),
-          getAllSuppliers({ limit: 1000, isActive: true })
+          getAllSuppliers({ limit: 1000, isActive: true }),
         ]);
 
         if (categoriesRes.success && categoriesRes.data?.categories) {
@@ -173,6 +178,7 @@ export default function UpdateProduct() {
           setCategories(all);
           setMainCategories(all.filter((c: Category) => !c.parentCategory));
           setSubCategories(all.filter((c: Category) => c.parentCategory));
+          setCategoriesLoaded(true);
         }
 
         if (brandsRes.success && brandsRes.data?.brands) {
@@ -189,17 +195,8 @@ export default function UpdateProduct() {
     loadData();
   }, []);
 
-  // 4. Load Product
-  useEffect(() => {
-    if (!productId) {
-      toast.error("Product ID is required");
-      router.push("/products");
-      return;
-    }
-    loadProduct();
-  }, [productId]);
-
-  const loadProduct = async () => {
+  // Load Product function wrapped in useCallback
+  const loadProduct = useCallback(async () => {
     try {
       setFetching(true);
       const response = await getProductById(productId);
@@ -270,7 +267,8 @@ export default function UpdateProduct() {
         const sideMatch = notes.match(/Side Effects:\s*([^\n]+)/i);
         if (sideMatch) sideEffects = sideMatch[1].trim();
         // Check flags
-        if (notes.includes("Requires Refrigeration")) requiresRefrigeration = true;
+        if (notes.includes("Requires Refrigeration"))
+          requiresRefrigeration = true;
         if (notes.includes("Full Course Alert")) isAntibiotic = true;
       }
 
@@ -285,7 +283,8 @@ export default function UpdateProduct() {
       // Calculate opening stock boxes from total stock
       const totalStock = parseFloat(product.stock?.toString() || "0");
       const factor = parseFloat(conversionFactor) || 30;
-      const openingStockBoxes = factor > 0 ? Math.floor(totalStock / factor).toString() : "0";
+      const openingStockBoxes =
+        factor > 0 ? Math.floor(totalStock / factor).toString() : "0";
 
       // Find category and subcategory IDs from loaded categories
       let categoryId = "";
@@ -293,7 +292,9 @@ export default function UpdateProduct() {
 
       // Try to match category by name
       if (product.category && categories.length > 0) {
-        const mainCat = categories.find(c => c.name === product.category && !c.parentCategory);
+        const mainCat = categories.find(
+          (c) => c.name === product.category && !c.parentCategory,
+        );
         if (mainCat) {
           categoryId = mainCat._id;
         }
@@ -301,7 +302,9 @@ export default function UpdateProduct() {
 
       // Try to match subcategory by name
       if (product.subCategory && categories.length > 0) {
-        const subCat = categories.find(c => c.name === product.subCategory && c.parentCategory);
+        const subCat = categories.find(
+          (c) => c.name === product.subCategory && c.parentCategory,
+        );
         if (subCat) {
           subCategoryId = subCat._id;
           // Also set parent category if found
@@ -330,17 +333,26 @@ export default function UpdateProduct() {
         sellingUnit: unitMap[product.unit] || product.sellingUnit || "Strip",
         conversionFactor: conversionFactor,
         purchasePriceBox: product.purchasePriceBox?.toString() || "",
-        mrp: product.wholesalePrice?.toString() || product.mrp?.toString() || "",
-        salesPrice: product.price?.toString() || product.salesPrice?.toString() || "",
-        costPerUnit: product.cost?.toString() || product.costPerUnit?.toString() || "",
+        mrp:
+          product.wholesalePrice?.toString() || product.mrp?.toString() || "",
+        salesPrice:
+          product.price?.toString() || product.salesPrice?.toString() || "",
+        costPerUnit:
+          product.cost?.toString() || product.costPerUnit?.toString() || "",
         taxRate: product.taxRate?.toString() || "0",
         hsnCode: product.hsnCode || "",
-        discountPercent: product.discountPercentage?.toString() || product.discountPercent?.toString() || "0",
+        discountPercent:
+          product.discountPercentage?.toString() ||
+          product.discountPercent?.toString() ||
+          "0",
 
         // Inventory & Batch
         openingStockBoxes: openingStockBoxes,
         stock: product.stock?.toString() || "0",
-        minStock: product.minStock?.toString() || product.reorderLevel?.toString() || "10",
+        minStock:
+          product.minStock?.toString() ||
+          product.reorderLevel?.toString() ||
+          "10",
         batchNumber: product.batchNumber || "",
         expiryDate: formatDate(product.expiryDate),
         manufacturingDate: formatDate(product.manufacturingDate),
@@ -356,7 +368,8 @@ export default function UpdateProduct() {
         // Safety Flags
         isPrescription: product.isPrescription || false,
         isControlled: product.isControlled || false,
-        requiresRefrigeration: requiresRefrigeration || product.requiresRefrigeration || false,
+        requiresRefrigeration:
+          requiresRefrigeration || product.requiresRefrigeration || false,
         isAntibiotic: isAntibiotic || product.isAntibiotic || false,
 
         // Meta
@@ -376,7 +389,10 @@ export default function UpdateProduct() {
       } else if (product.mainImage && typeof product.mainImage === "string") {
         setMainImagePreview(product.mainImage);
       } else if (product.images && product.images.length > 0) {
-        const imageUrl = product.images[0].url || product.images[0].thumbUrl || product.images[0];
+        const imageUrl =
+          product.images[0].url ||
+          product.images[0].thumbUrl ||
+          product.images[0];
         if (imageUrl) {
           setMainImagePreview(imageUrl);
         }
@@ -388,32 +404,47 @@ export default function UpdateProduct() {
       setExistingImages(product.images || []);
     } catch (error: unknown) {
       console.error("Failed to load product:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to load product");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load product",
+      );
       router.push("/products");
     } finally {
       setFetching(false);
     }
-  };
+  }, [productId, categories, router]);
+
+  // 4. Load Product - wait for categories to load first
+  useEffect(() => {
+    if (!productId) {
+      toast.error("Product ID is required");
+      router.push("/products");
+      return;
+    }
+    // Only load product after categories are loaded to properly match category IDs
+    if (categoriesLoaded) {
+      loadProduct();
+    }
+  }, [productId, categoriesLoaded, loadProduct, router]);
 
   // --- Handlers ---
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    
+
     // Clear validation error for this field when user starts typing
     if (validationErrors[name]) {
-      setValidationErrors(prev => {
-        const newErrors = {...prev};
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -422,16 +453,16 @@ export default function UpdateProduct() {
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = e.target.value;
-    
+
     // Clear category validation error
     if (validationErrors.category) {
-      setValidationErrors(prev => {
-        const newErrors = {...prev};
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
         delete newErrors.category;
         return newErrors;
       });
     }
-    
+
     const cat = categories.find((c) => c._id === selectedId);
     if (!cat) {
       setFormData((prev) => ({
@@ -477,7 +508,7 @@ export default function UpdateProduct() {
   };
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
 
     // Required fields validation
     if (!formData.name.trim()) {
@@ -490,26 +521,30 @@ export default function UpdateProduct() {
       newErrors.category = "Please select a category";
     }
     if (!formData.salesPrice || parseFloat(formData.salesPrice) <= 0) {
-      newErrors.salesPrice = "Sale Price is required and must be greater than 0";
+      newErrors.salesPrice =
+        "Sale Price is required and must be greater than 0";
     }
 
     setValidationErrors(newErrors);
 
     // Show error toast with summary
     if (Object.keys(newErrors).length > 0) {
-      toast.error(`Please fill in all required fields (${Object.keys(newErrors).length} errors)`, { 
-        duration: 5000,
-        icon: "⚠️"
-      });
-      
+      toast.error(
+        `Please fill in all required fields (${Object.keys(newErrors).length} errors)`,
+        {
+          duration: 5000,
+          icon: "⚠️",
+        },
+      );
+
       // Scroll to first error
       const firstErrorField = Object.keys(newErrors)[0];
       const element = document.querySelector(`[name="${firstErrorField}"]`);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
         (element as HTMLElement).focus();
       }
-      
+
       return false;
     }
 
@@ -538,22 +573,37 @@ export default function UpdateProduct() {
       data.append("name", formData.name);
       if (formData.sku) data.append("sku", formData.sku);
       if (formData.barcode) data.append("barcode", formData.barcode);
-      if (formData.description) data.append("description", formData.description);
-      if (formData.genericName) data.append("genericName", formData.genericName);
+      if (formData.description)
+        data.append("description", formData.description);
+      if (formData.genericName)
+        data.append("genericName", formData.genericName);
       if (formData.brand) data.append("brand", formData.brand);
-      if (formData.manufacturer) data.append("manufacturer", formData.manufacturer);
+      if (formData.manufacturer)
+        data.append("manufacturer", formData.manufacturer);
 
       // Category (required)
       if (formData.category) data.append("category", formData.category);
-      if (formData.subCategory) data.append("subCategory", formData.subCategory);
+      if (formData.subCategory)
+        data.append("subCategory", formData.subCategory);
 
       // Pricing - Map frontend fields to backend fields
       if (formData.salesPrice) data.append("price", formData.salesPrice);
       if (formData.costPerUnit) data.append("cost", formData.costPerUnit);
       if (formData.mrp) data.append("wholesalePrice", formData.mrp);
-      if (formData.discountPercent) data.append("discountPercentage", formData.discountPercent);
+      if (formData.purchasePriceBox)
+        data.append("purchasePriceBox", formData.purchasePriceBox);
+      if (formData.discountPercent)
+        data.append("discountPercentage", formData.discountPercent);
       if (formData.taxRate) data.append("taxRate", formData.taxRate);
       if (formData.hsnCode) data.append("hsnCode", formData.hsnCode);
+
+      // Unit conversion fields
+      if (formData.purchaseUnit)
+        data.append("purchaseUnit", formData.purchaseUnit);
+      if (formData.sellingUnit)
+        data.append("sellingUnit", formData.sellingUnit);
+      if (formData.conversionFactor)
+        data.append("conversionFactor", formData.conversionFactor);
 
       // Stock Management
       if (formData.stock) data.append("stock", formData.stock);
@@ -599,10 +649,14 @@ export default function UpdateProduct() {
       // Additional medical details - store in notes or description
       const medicalNotes = [];
       if (formData.drugForm) medicalNotes.push(`Form: ${formData.drugForm}`);
-      if (formData.packSize) medicalNotes.push(`Pack Size: ${formData.packSize}`);
-      if (formData.sideEffects) medicalNotes.push(`Side Effects: ${formData.sideEffects}`);
-      if (formData.requiresRefrigeration) medicalNotes.push("Requires Refrigeration");
-      if (formData.isAntibiotic) medicalNotes.push("Full Course Alert (Antibiotic)");
+      if (formData.packSize)
+        medicalNotes.push(`Pack Size: ${formData.packSize}`);
+      if (formData.sideEffects)
+        medicalNotes.push(`Side Effects: ${formData.sideEffects}`);
+      if (formData.requiresRefrigeration)
+        medicalNotes.push("Requires Refrigeration");
+      if (formData.isAntibiotic)
+        medicalNotes.push("Full Course Alert (Antibiotic)");
 
       // Location - Map rackLocation to location object
       if (formData.rackLocation) {
@@ -638,7 +692,9 @@ export default function UpdateProduct() {
         toast.error(result.error || "Failed to update product");
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to update product");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update product",
+      );
     } finally {
       setLoading(false);
     }
@@ -811,8 +867,8 @@ export default function UpdateProduct() {
                         validationErrors.name
                           ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
                           : isDarkMode
-                          ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500"
-                          : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:ring-indigo-500"
+                            ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500"
+                            : "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:ring-indigo-500"
                       }`}
                       placeholder="e.g. Napa Extra 500mg"
                     />
@@ -846,8 +902,8 @@ export default function UpdateProduct() {
                           validationErrors.genericName
                             ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
                             : isDarkMode
-                            ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500"
-                            : "bg-indigo-50/30 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-indigo-500"
+                              ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-indigo-500"
+                              : "bg-indigo-50/30 border-slate-300 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-indigo-500"
                         }`}
                         placeholder="e.g. Paracetamol + Caffeine"
                       />
@@ -1213,7 +1269,8 @@ export default function UpdateProduct() {
                             isDarkMode ? "text-emerald-400" : "text-emerald-700"
                           }`}
                         >
-                          Sale Price Per {formData.sellingUnit} <span className="text-red-500">*</span>
+                          Sale Price Per {formData.sellingUnit}{" "}
+                          <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                           <span
@@ -1234,27 +1291,19 @@ export default function UpdateProduct() {
                               validationErrors.salesPrice
                                 ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
                                 : isDarkMode
-                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800 focus:ring-emerald-500"
-                                : "bg-white border-emerald-300 text-emerald-800 focus:ring-emerald-500"
+                                  ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800 focus:ring-emerald-500"
+                                  : "bg-white border-emerald-300 text-emerald-800 focus:ring-emerald-500"
                             }`}
                             placeholder="Auto from MRP"
                           />
                         </div>
-                        {formData.mrp && formData.conversionFactor && parseFloat(formData.mrp) > 0 && !validationErrors.salesPrice && (
-                          <p className={`mt-1 text-xs ${
-                            isDarkMode ? "text-emerald-500/70" : "text-emerald-600/70"
-                          }`}>
-                            ৳{formData.mrp} ÷ {formData.conversionFactor} = ৳{formData.salesPrice}
-                          </p>
-                        )}
+
                         {validationErrors.salesPrice && (
                           <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
                             <span>⚠️</span> {validationErrors.salesPrice}
                           </p>
                         )}
                       </div>
-
-
 
                       <div className="hidden md:block">
                         <label
@@ -1567,7 +1616,9 @@ export default function UpdateProduct() {
                           isDarkMode ? "text-red-400/80" : "text-red-700"
                         }`}
                       >
-                        <span>⚠️ Alert when stock drops below this quantity</span>
+                        <span>
+                          ⚠️ Alert when stock drops below this quantity
+                        </span>
                       </div>
                       <div
                         className={`mt-1 text-xs font-medium ${
@@ -1698,8 +1749,8 @@ export default function UpdateProduct() {
                         validationErrors.category
                           ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
                           : isDarkMode
-                          ? "bg-gray-800 border-gray-700 text-white focus:ring-indigo-500"
-                          : "bg-white border-slate-300 text-slate-900 focus:ring-indigo-500"
+                            ? "bg-gray-800 border-gray-700 text-white focus:ring-indigo-500"
+                            : "bg-white border-slate-300 text-slate-900 focus:ring-indigo-500"
                       }`}
                     >
                       <option value="">Select Category *</option>
@@ -1827,7 +1878,6 @@ export default function UpdateProduct() {
                   />
                 </div>
               </div>
-
             </div>
           </form>
         </div>

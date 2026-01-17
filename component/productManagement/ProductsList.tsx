@@ -165,7 +165,13 @@ export default function ProductsList() {
     }
   };
 
-  const handleDelete = async (productId: string) => {
+  const handleDelete = async (productId: string, productName: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete "${productName}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
     try {
       setDeleting(true);
       const result = await deleteProduct(productId);

@@ -45,7 +45,6 @@ const Viewsuppliers = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const fetchSuppliers = useCallback(async () => {
     setLoading(true);
@@ -77,7 +76,13 @@ const Viewsuppliers = () => {
     return () => clearTimeout(timeoutId);
   }, [fetchSuppliers]);
 
-  const handleDelete = async (supplierId: string) => {
+  const handleDelete = async (supplierId: string, supplierName: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete "${supplierName}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
     try {
       const { deleteSupplier } = await import("@/app/actions/suppliers");
       const result = await deleteSupplier(supplierId);
@@ -88,7 +93,6 @@ const Viewsuppliers = () => {
       } else {
         toast.error(result.error || "Failed to delete supplier");
       }
-      setDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting supplier:", error);
       toast.error("Failed to delete supplier");
@@ -408,7 +412,7 @@ const Viewsuppliers = () => {
                             <MdEdit />
                           </button>
                           <button
-                            onClick={() => setDeleteConfirm(supplier._id)}
+                            onClick={() => handleDelete(supplier._id, supplier.name)}
                             className="p-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl"
                             title="Delete"
                           >
@@ -420,52 +424,6 @@ const Viewsuppliers = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {deleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div
-              className={`max-w-md w-full rounded-2xl shadow-2xl ${
-                isDarkMode ? "bg-gray-800" : "bg-white"
-              }`}
-            >
-              <div className="p-6">
-                <h2
-                  className={`text-2xl font-bold mb-4 ${
-                    isDarkMode ? "text-gray-100" : "text-gray-900"
-                  }`}
-                >
-                  {getTranslation("deleteSupplier", language)}
-                </h2>
-                <p
-                  className={`mb-6 ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  {getTranslation("deleteSupplierConfirm", language)}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setDeleteConfirm(null)}
-                    className={`flex-1 px-4 py-3 rounded-xl font-semibold border-2 transition-all ${
-                      isDarkMode
-                        ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
-                        : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200"
-                    }`}
-                  >
-                    {getTranslation("cancel", language)}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(deleteConfirm)}
-                    className="flex-1 px-4 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-xl"
-                  >
-                    {getTranslation("delete", language)}
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         )}
