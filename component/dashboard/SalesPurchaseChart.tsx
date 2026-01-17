@@ -1,20 +1,20 @@
 "use client";
 
-import { useSidebar } from "@/lib/SidebarContext";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useSidebar } from "@/lib/SidebarContext";
 import { getTranslation } from "@/lib/translations";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { MdShoppingCart } from "react-icons/md";
+import {
+    CartesianGrid,
+    Legend,
+    Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts";
 
 interface SalesPurchaseData {
   date: string;
@@ -39,13 +39,12 @@ const SalesPurchaseChart = ({ data }: SalesPurchaseChartProps) => {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  // Format currency for tooltips
+  // Format currency for tooltips - Bangladesh Taka
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+    return `৳${value.toLocaleString("en-BD", {
       minimumFractionDigits: 0,
-    }).format(value);
+      maximumFractionDigits: 2,
+    })}`;
   };
 
   // Filter data based on selected period
@@ -276,7 +275,7 @@ const SalesPurchaseChart = ({ data }: SalesPurchaseChartProps) => {
                 stroke={isDarkMode ? "#9ca3af" : "#6b7280"}
                 style={{ fontSize: "12px" }}
                 tickFormatter={(value) =>
-                  value >= 1000 ? `$${(value / 1000).toFixed(0)}k` : `$${value}`
+                  value >= 1000 ? `৳${(value / 1000).toFixed(0)}k` : `৳${value}`
                 }
               />
               <Tooltip content={<CustomTooltip />} />

@@ -21,6 +21,7 @@ export interface Product {
   taxRate?: number;
   isLowStock?: boolean;
   reorderLevel?: number;
+  shelf?: string;
 }
 
 export interface CartItem extends Product {

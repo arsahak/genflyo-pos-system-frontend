@@ -1,15 +1,14 @@
 "use client";
+import { useLanguage } from "@/lib/LanguageContext";
+import { getTranslation } from "@/lib/translations";
+import toast from "react-hot-toast";
 import {
   MdAdd,
   MdCheck,
   MdDownload,
-  MdLocalPharmacy,
-  MdPrint,
+  MdPrint
 } from "react-icons/md";
-import { useLanguage } from "@/lib/LanguageContext";
-import { getTranslation } from "@/lib/translations";
 import { Invoice } from "./types";
-import toast from "react-hot-toast";
 
 interface InvoiceModalProps {
   showInvoiceModal: boolean;
@@ -173,8 +172,12 @@ export const InvoiceModal = ({
           >
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="flex justify-center mb-2">
-                <MdLocalPharmacy className="text-3xl text-[#1f2937]" />
+              <div className="flex justify-center mb-3">
+                <img 
+                  src="/invoicelogo.png" 
+                  alt="Logo" 
+                  className="w-12 h-12 object-contain"
+                />
               </div>
               <h3 className="font-extrabold text-xl uppercase tracking-widest border-b-2 border-[#000000] pb-2 mb-2">
                 {storeName}
@@ -205,7 +208,7 @@ export const InvoiceModal = ({
               {lastInvoice.customer?.name && (
                 <div className="flex justify-between py-0.5">
                   <span className="text-[#6b7280]">{t("customer")}:</span>
-                  <span className="font-bold text-right max-w-[150px] truncate">
+                  <span className="font-bold text-right break-words">
                     {lastInvoice.customer.name}
                   </span>
                 </div>
@@ -272,13 +275,6 @@ export const InvoiceModal = ({
                 </div>
               )}
               
-              <div className="flex justify-between">
-                <span className="text-[#6b7280]">{t("tax")} (5%)</span>
-                <span className="font-mono">
-                  {formatCurrency(lastInvoice.tax)}
-                </span>
-              </div>
-
               <div className="border-t-2 border-[#000000] my-2"></div>
 
               <div className="flex justify-between items-center text-sm">

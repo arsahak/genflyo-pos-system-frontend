@@ -1,28 +1,28 @@
 "use client";
 
+import { getAllBrands } from "@/app/actions/brands";
+import { getAllCategories } from "@/app/actions/categories";
+import { getProductById, updateProduct } from "@/app/actions/product";
 import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
-import { useRouter, useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { getProductById, updateProduct } from "@/app/actions/product";
-import { getAllCategories } from "@/app/actions/categories";
-import { getAllBrands } from "@/app/actions/brands";
 import {
-  MdArrowBack,
-  MdAttachMoney,
-  MdCategory,
-  MdClose,
-  MdCloudUpload,
-  MdDateRange,
-  MdDescription,
-  MdInventory,
-  MdLabel,
-  MdLocalPharmacy,
-  MdPercent,
-  MdQrCode,
-  MdSave,
-  MdWarning,
+    MdArrowBack,
+    MdAttachMoney,
+    MdCategory,
+    MdClose,
+    MdCloudUpload,
+    MdDateRange,
+    MdDescription,
+    MdInventory,
+    MdLabel,
+    MdLocalPharmacy,
+    MdPercent,
+    MdQrCode,
+    MdSave,
+    MdWarning,
 } from "react-icons/md";
 import { ProductFormSkeleton } from "./components/ProductFormSkeleton";
 
@@ -123,7 +123,7 @@ export default function UpdateProduct() {
 
   // --- Logic Effects ---
 
-  // 1. Calculate Cost Per Strip automatically
+  // 1. Calculate Cost Per Unit automatically from Purchase Price (Box)
   useEffect(() => {
     const boxPrice = parseFloat(formData.purchasePriceBox) || 0;
     const factor = parseFloat(formData.conversionFactor) || 1;
@@ -135,7 +135,19 @@ export default function UpdateProduct() {
     }
   }, [formData.purchasePriceBox, formData.conversionFactor]);
 
-  // 2. Calculate Total Stock (Strips) from Boxes
+  // 2. Calculate Sale Price (Per Unit) automatically from MRP (Box/Pack)
+  useEffect(() => {
+    const mrpBox = parseFloat(formData.mrp) || 0;
+    const factor = parseFloat(formData.conversionFactor) || 1;
+    if (mrpBox > 0 && factor > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        salesPrice: (mrpBox / factor).toFixed(2),
+      }));
+    }
+  }, [formData.mrp, formData.conversionFactor]);
+
+  // 3. Calculate Total Stock (Strips) from Boxes
   useEffect(() => {
     const boxes = parseFloat(formData.openingStockBoxes) || 0;
     const factor = parseFloat(formData.conversionFactor) || 1;
@@ -221,13 +233,21 @@ export default function UpdateProduct() {
         pack: "Pack",
       };
 
-      // Extract location from location object
+      // Extract location from location object - show only shelf value
       let rackLocation = "";
       if (product.location) {
         if (typeof product.location === "string") {
-          rackLocation = product.location;
-        } else if (product.location.shelf) {
-          rackLocation = `${product.location.shelf}${product.location.bin ? "-" + product.location.bin : ""}`;
+          // Try to parse JSON string
+          try {
+            const loc = JSON.parse(product.location);
+            rackLocation = loc.shelf || "";
+          } catch {
+            // If not valid JSON, use as-is
+            rackLocation = product.location;
+          }
+        } else if (typeof product.location === "object") {
+          // Already an object, get shelf value only
+          rackLocation = product.location.shelf || "";
         }
       }
 
@@ -1157,50 +1177,10 @@ export default function UpdateProduct() {
                       <div className="col-span-2 md:col-span-1">
                         <label
                           className={`block text-xs font-bold uppercase mb-1.5 ${
-                            isDarkMode ? "text-emerald-400" : "text-emerald-700"
-                          }`}
-                        >
-                          Sale Price <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span
-                            className={`absolute left-3 top-2.5 z-10 ${
-                              isDarkMode
-                                ? "text-emerald-500/70"
-                                : "text-emerald-600/70"
-                            }`}
-                          >
-                            $
-                          </span>
-                          <input
-                            type="number"
-                            name="salesPrice"
-                            value={formData.salesPrice}
-                            onChange={handleChange}
-                            className={`w-full h-10 pl-7 pr-3 rounded-lg border font-bold focus:ring-2 transition-all ${
-                              validationErrors.salesPrice
-                                ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
-                                : isDarkMode
-                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800 focus:ring-emerald-500"
-                                : "bg-white border-emerald-300 text-emerald-800 focus:ring-emerald-500"
-                            }`}
-                            placeholder="0.00"
-                          />
-                        </div>
-                        {validationErrors.salesPrice && (
-                          <p className="mt-1 text-sm text-red-500 flex items-center gap-1 col-span-2 md:col-span-1">
-                            <span>⚠️</span> {validationErrors.salesPrice}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label
-                          className={`block text-xs font-bold uppercase mb-1.5 ${
                             isDarkMode ? "text-gray-400" : "text-emerald-700"
                           }`}
                         >
-                          MRP
+                          MRP ({formData.purchaseUnit})
                         </label>
                         <div className="relative">
                           <span
@@ -1210,7 +1190,7 @@ export default function UpdateProduct() {
                                 : "text-emerald-600/50"
                             }`}
                           >
-                            $
+                            ৳
                           </span>
                           <input
                             type="number"
@@ -1226,6 +1206,55 @@ export default function UpdateProduct() {
                           />
                         </div>
                       </div>
+
+                      <div>
+                        <label
+                          className={`block text-xs font-bold uppercase mb-1.5 ${
+                            isDarkMode ? "text-emerald-400" : "text-emerald-700"
+                          }`}
+                        >
+                          Sale Price Per {formData.sellingUnit} <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <span
+                            className={`absolute left-3 top-2.5 z-10 ${
+                              isDarkMode
+                                ? "text-emerald-500/70"
+                                : "text-emerald-600/70"
+                            }`}
+                          >
+                            ৳
+                          </span>
+                          <input
+                            type="number"
+                            name="salesPrice"
+                            value={formData.salesPrice}
+                            onChange={handleChange}
+                            className={`w-full h-10 pl-7 pr-3 rounded-lg border font-bold focus:ring-2 transition-all ${
+                              validationErrors.salesPrice
+                                ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                                : isDarkMode
+                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800 focus:ring-emerald-500"
+                                : "bg-white border-emerald-300 text-emerald-800 focus:ring-emerald-500"
+                            }`}
+                            placeholder="Auto from MRP"
+                          />
+                        </div>
+                        {formData.mrp && formData.conversionFactor && parseFloat(formData.mrp) > 0 && !validationErrors.salesPrice && (
+                          <p className={`mt-1 text-xs ${
+                            isDarkMode ? "text-emerald-500/70" : "text-emerald-600/70"
+                          }`}>
+                            ৳{formData.mrp} ÷ {formData.conversionFactor} = ৳{formData.salesPrice}
+                          </p>
+                        )}
+                        {validationErrors.salesPrice && (
+                          <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                            <span>⚠️</span> {validationErrors.salesPrice}
+                          </p>
+                        )}
+                      </div>
+
+
 
                       <div className="hidden md:block">
                         <label

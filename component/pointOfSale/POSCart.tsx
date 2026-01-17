@@ -1,7 +1,7 @@
 "use client";
 import { useLanguage } from "@/lib/LanguageContext";
 import { getTranslation } from "@/lib/translations";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { IoMdCash } from "react-icons/io";
 import {
     MdAdd,
@@ -108,6 +108,25 @@ export const POSCart = ({
   const formatCurrency = (amount: number) => `৳${amount.toFixed(2)}`;
 
   const [showCustomerInput, setShowCustomerInput] = useState(false);
+
+  // Refs for quantity inputs to enable Enter-to-next-item navigation
+  const quantityInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+
+  // Handle Enter key to move to next item's quantity input
+  const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentIndex: number) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < cart.length) {
+        const nextItemId = cart[nextIndex].id;
+        const nextInput = quantityInputRefs.current[nextItemId];
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      }
+    }
+  };
 
   return (
     <div
@@ -413,7 +432,7 @@ export const POSCart = ({
 
           {/* Cart Items */}
           <div className="flex-1 overflow-y-auto px-4 py-2">
-            {cart.map((item) => (
+            {cart.map((item, index) => (
               <div
                 key={item.id}
                 className={`mb-2 p-2 rounded-lg border ${
@@ -460,6 +479,7 @@ export const POSCart = ({
                           <MdRemove className="text-xs" />
                         </button>
                         <input
+                          ref={(el) => { quantityInputRefs.current[item.id] = el; }}
                           type="number"
                           min="1"
                           value={item.quantity}
@@ -474,6 +494,7 @@ export const POSCart = ({
                               }
                             }
                           }}
+                          onKeyDown={(e) => handleQuantityKeyDown(e, index)}
                           onFocus={(e) => e.target.select()}
                           className={`w-10 text-center text-xs font-bold outline-none border-0 bg-transparent ${
                             isDarkMode ? "text-gray-100" : "text-gray-900"

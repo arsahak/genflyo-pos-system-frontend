@@ -67,7 +67,7 @@ const PointOFSaleDetilasPage = () => {
   // UI State
   const [scannerActive, setScannerActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showInvoiceAfterSale, setShowInvoiceAfterSale] = useState(false);
+  const [showInvoiceAfterSale, setShowInvoiceAfterSale] = useState(true);
 
   // Refs
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -182,30 +182,48 @@ const PointOFSaleDetilasPage = () => {
         }
 
         const transformedProducts = result.data.products.map(
-          (p: Record<string, any>) => ({
-            id: p._id,
-            name: p.name,
-            price: p.price || 0,
-            cost: p.cost,
-            category: p.category || "General",
-            stock: p.stock || 0,
-            sku: p.sku || "",
-            barcode: p.barcode || p.sku || "",
-            isPrescription: p.isPrescription || false,
-            isControlled: p.isControlled || false,
-            genericName: p.genericName,
-            dosage: p.dosage,
-            strength: p.strength,
-            unit: p.unit || "pcs",
-            manufacturer: p.manufacturer,
-            hasExpiry: p.hasExpiry,
-            expiryDate: p.expiryDate,
-            batchNumber: p.batchNumber,
-            taxRate: p.taxRate || 0,
-            isLowStock: p.stock <= (p.reorderLevel || 10),
-            reorderLevel: p.reorderLevel,
-            image: p.mainImage?.thumbUrl || p.mainImage?.url,
-          })
+          (p: Record<string, any>) => {
+            // Handle location - could be object or JSON string
+            let shelfValue = "";
+            if (p.location) {
+              if (typeof p.location === "string") {
+                try {
+                  const loc = JSON.parse(p.location);
+                  shelfValue = loc.shelf || "";
+                } catch {
+                  shelfValue = "";
+                }
+              } else if (typeof p.location === "object") {
+                shelfValue = p.location.shelf || "";
+              }
+            }
+
+            return {
+              id: p._id,
+              name: p.name,
+              price: p.price || 0,
+              cost: p.cost,
+              category: p.category || "General",
+              stock: p.stock || 0,
+              sku: p.sku || "",
+              barcode: p.barcode || p.sku || "",
+              isPrescription: p.isPrescription || false,
+              isControlled: p.isControlled || false,
+              genericName: p.genericName,
+              dosage: p.dosage,
+              strength: p.strength,
+              unit: p.unit || "pcs",
+              manufacturer: p.manufacturer,
+              hasExpiry: p.hasExpiry,
+              expiryDate: p.expiryDate,
+              batchNumber: p.batchNumber,
+              taxRate: p.taxRate || 0,
+              isLowStock: p.stock <= (p.reorderLevel || 10),
+              reorderLevel: p.reorderLevel,
+              image: p.mainImage?.thumbUrl || p.mainImage?.url,
+              shelf: shelfValue,
+            };
+          }
         );
 
         setProducts(transformedProducts);
@@ -303,7 +321,7 @@ const PointOFSaleDetilasPage = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cart]);
+  }, [cart, paymentMethod, receivedAmount]);
 
   // ==================== HANDLERS ====================
 
@@ -516,10 +534,10 @@ const PointOFSaleDetilasPage = () => {
     const grandTotal = calculateGrandTotal();
 
     if (paymentMethod === "cash") {
-      const received = parseFloat(receivedAmount);
+      const received = parseFloat(receivedAmount) || 0;
       // Accept payment if received amount covers at least the floor of grand total
-      // e.g., if total is 500.50, accepting 500 is valid
-      if (!received || received < Math.floor(grandTotal)) {
+      // e.g., if total is 19.80, accepting 19 is valid
+      if (received < Math.floor(grandTotal)) {
         toast.error("Insufficient amount!");
         return;
       }

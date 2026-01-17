@@ -77,7 +77,7 @@ export const POSProducts = ({
   const formatCurrency = (amount: number) => `৳${amount.toFixed(2)}`;
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 relative">
+    <div className="flex-1 flex flex-col min-w-0 min-h-0 relative overflow-hidden">
       {/* Search & Barcode - Floating Bar */}
       <div className="p-4 pb-0 z-10">
         <div
@@ -179,7 +179,7 @@ export const POSProducts = ({
       </div>
 
       {/* Products Grid */}
-      <div className="flex-1 px-4 pb-4 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 min-h-0 px-4 pb-4 overflow-y-auto custom-scrollbar">
         {isLoadingProducts ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {Array.from({ length: 12 }).map((_, index) => (
@@ -311,6 +311,21 @@ export const POSProducts = ({
                     )}
                   </div>
 
+                  {/* Shelf/Rack Badge - Bottom Left */}
+                  {product.shelf && (
+                    <div className="absolute bottom-2 left-2">
+                      <span
+                        className={`px-2 py-1 text-[10px] font-bold rounded-full backdrop-blur-md shadow-sm border border-white/10 ${
+                          isDarkMode
+                            ? "bg-indigo-600/90 text-white"
+                            : "bg-indigo-500/90 text-white"
+                        }`}
+                      >
+                        📍 {product.shelf}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Expired Overlay */}
                   {isExpired(product) && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[1px]">
@@ -330,7 +345,7 @@ export const POSProducts = ({
                   >
                     {product.name}
                   </h3>
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-1">
                     {product.genericName && (
                       <span className="text-[10px] text-gray-400 truncate max-w-[70%]">
                         {product.genericName}

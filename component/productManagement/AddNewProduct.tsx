@@ -86,12 +86,12 @@ export default function AddNewProduct() {
 
     // Units & Pricing (The Logic Core)
     purchaseUnit: "Box", // Buying Unit
-    sellingUnit: "Strip", // Selling Unit
+    sellingUnit: "Piece", // Selling Unit
     conversionFactor: "30", // 1 Box = 10 Strips
     purchasePriceBox: "", // Price per Box
-    mrp: "", // MRP per Strip
-    salesPrice: "", // Selling Price per Strip
-    costPerUnit: "", // Calculated Cost per Strip
+    mrp: "", // MRP per Purchase Unit (Box/Pack)
+    salesPrice: "", // Selling Price per Selling Unit (Auto from MRP)
+    costPerUnit: "", // Calculated Cost per Selling Unit (Auto from Purchase Price)
     taxRate: "0",
     hsnCode: "",
     discountPercent: "0",
@@ -125,7 +125,7 @@ export default function AddNewProduct() {
 
   // --- Logic Effects ---
 
-  // 1. Calculate Cost Per Strip automatically
+  // 1. Calculate Cost Per Unit automatically from Purchase Price (Box)
   useEffect(() => {
     const boxPrice = parseFloat(formData.purchasePriceBox) || 0;
     const factor = parseFloat(formData.conversionFactor) || 1;
@@ -137,7 +137,20 @@ export default function AddNewProduct() {
     }
   }, [formData.purchasePriceBox, formData.conversionFactor]);
 
-  // 2. Calculate Total Stock (Strips) from Boxes
+  // 2. Auto-calculate Sale Price from MRP (per purchase unit)
+  // MRP (Box) ÷ Conversion Factor = Sale Price (Per Selling Unit)
+  useEffect(() => {
+    const mrpBox = parseFloat(formData.mrp) || 0;
+    const factor = parseFloat(formData.conversionFactor) || 1;
+    if (mrpBox > 0 && factor > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        salesPrice: (mrpBox / factor).toFixed(2),
+      }));
+    }
+  }, [formData.mrp, formData.conversionFactor]);
+
+  // 3. Calculate Total Stock (Strips) from Boxes
   useEffect(() => {
     const boxes = parseFloat(formData.openingStockBoxes) || 0;
     const factor = parseFloat(formData.conversionFactor) || 1;
@@ -944,6 +957,13 @@ export default function AddNewProduct() {
                             }`}
                           />
                         </div>
+                        {formData.purchasePriceBox && formData.conversionFactor && parseFloat(formData.purchasePriceBox) > 0 && (
+                          <p className={`mt-1 text-xs ${
+                            isDarkMode ? "text-gray-500" : "text-slate-400"
+                          }`}>
+                            ৳{formData.purchasePriceBox} ÷ {formData.conversionFactor} = ৳{formData.costPerUnit}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -957,50 +977,11 @@ export default function AddNewProduct() {
                       <div className="col-span-2 md:col-span-1">
                         <label
                           className={`block text-xs font-bold uppercase mb-1.5 ${
-                            isDarkMode ? "text-emerald-400" : "text-emerald-700"
-                          }`}
-                        >
-                          Sale Price <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span
-                            className={`absolute left-3 top-2.5 z-10 ${
-                              isDarkMode
-                                ? "text-emerald-500/70"
-                                : "text-emerald-600/70"
-                            }`}
-                          >
-                            $
-                          </span>
-                          <input
-                            type="number"
-                            name="salesPrice"
-                            value={formData.salesPrice}
-                            onChange={handleChange}
-                            className={`w-full h-10 pl-7 pr-3 rounded-lg border font-bold focus:ring-2 transition-all ${
-                              validationErrors.salesPrice
-                                ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
-                                : isDarkMode
-                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800 focus:ring-emerald-500"
-                                : "bg-white border-emerald-300 text-emerald-800 focus:ring-emerald-500"
-                            }`}
-                            placeholder="0.00"
-                          />
-                        </div>
-                        {validationErrors.salesPrice && (
-                          <p className="mt-1 text-sm text-red-500 flex items-center gap-1 col-span-2 md:col-span-1">
-                            <span>⚠️</span> {validationErrors.salesPrice}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label
-                          className={`block text-xs font-bold uppercase mb-1.5 ${
                             isDarkMode ? "text-gray-400" : "text-emerald-700"
                           }`}
                         >
-                          MRP
+                          MRP ({formData.purchaseUnit})
+                         
                         </label>
                         <div className="relative">
                           <span
@@ -1010,7 +991,7 @@ export default function AddNewProduct() {
                                 : "text-emerald-600/50"
                             }`}
                           >
-                            $
+                            ৳
                           </span>
                           <input
                             type="number"
@@ -1025,6 +1006,47 @@ export default function AddNewProduct() {
                             placeholder="0.00"
                           />
                         </div>
+                      </div>
+
+                      <div>
+                        <label
+                          className={`block text-xs font-bold uppercase mb-1.5 ${
+                            isDarkMode ? "text-emerald-400" : "text-emerald-700"
+                          }`}
+                        >
+                          Sale Price Per {formData.sellingUnit} <span className="text-red-500">*</span>
+                        
+                        </label>
+                        <div className="relative">
+                          <span
+                            className={`absolute left-3 top-2.5 z-10 ${
+                              isDarkMode
+                                ? "text-emerald-500/70"
+                                : "text-emerald-600/70"
+                            }`}
+                          >
+                            ৳
+                          </span>
+                          <input
+                            type="number"
+                            name="salesPrice"
+                            value={formData.salesPrice}
+                            onChange={handleChange}
+                            className={`w-full h-10 pl-7 pr-3 rounded-lg border font-bold focus:ring-2 transition-all ${
+                              validationErrors.salesPrice
+                                ? "border-red-500 focus:ring-red-500 bg-red-50 dark:bg-red-900/10"
+                                : isDarkMode
+                                ? "bg-gray-900 border-emerald-800/50 text-emerald-400 focus:bg-gray-800 focus:ring-emerald-500"
+                                : "bg-white border-emerald-300 text-emerald-800 focus:ring-emerald-500"
+                            }`}
+                            placeholder="Auto from MRP"
+                          />
+                        </div>
+                        {validationErrors.salesPrice && (
+                          <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                            <span>⚠️</span> {validationErrors.salesPrice}
+                          </p>
+                        )}
                       </div>
 
                       <div className="hidden md:block">
