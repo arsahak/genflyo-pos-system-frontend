@@ -189,12 +189,12 @@ export default function BrandTable({
                           size={20}
                         />
                       </div>
-                      <div
-                        className={`font-semibold ${
-                          isDarkMode ? "text-gray-100" : "text-slate-900"
-                        }`}
-                      >
-                        {brand.name}
+                        <div
+                          className={`font-semibold ${
+                            isDarkMode ? "text-gray-100" : "text-slate-900"
+                          }`}
+                        >
+                          {brand.name}
                       </div>
                     </div>
                   </td>
