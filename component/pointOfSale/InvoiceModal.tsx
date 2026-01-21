@@ -316,24 +316,38 @@ export const InvoiceModal = ({
               pageBreakInside: 'avoid'
             }}
           >
-            {/* Header - Compact for 70mm */}
+            {/* Header - Logo first, then company name, then details */}
             <div className="text-center mb-6">
+              {/* Logo - Black & White optimized for thermal printer */}
               <div className="flex justify-center mb-2">
-                <img 
-                  src="/invoicelogo.png" 
-                  alt="Logo" 
-                  className="w-10 h-10 object-contain"
-                  style={{ imageRendering: '-webkit-optimize-contrast' }}
+                <img
+                  src="/invoicelogo.png"
+                  alt="Logo"
+                  className="w-12 h-12 object-contain"
+                  style={{
+                    imageRendering: '-webkit-optimize-contrast',
+                    filter: 'grayscale(100%) contrast(1.2)'
+                  }}
                 />
               </div>
+
+              {/* Company Name */}
               <h3 className="font-extrabold text-lg uppercase tracking-wide border-b-2 border-[#000000] pb-1.5 mb-1.5">
                 {storeName}
               </h3>
-              <p className="text-[9px] uppercase tracking-wide text-[#4b5563] mb-0.5 leading-tight">
-                {t("professionalHealthcare")}
+
+              {/* Proprietor & Details - Small font */}
+              <p className="text-[8px] text-[#374151] leading-tight">
+                Pro : DMF MD BAYAJID BOSTAMI PRAN
               </p>
-              <p className="text-[10px] font-semibold text-[#1f2937] leading-tight">
-                {storeAddress}
+              <p className="text-[8px] text-[#374151] leading-tight">
+                01780516773
+              </p>
+              <p className="text-[8px] text-[#374151] leading-tight">
+                F : Bayajid Pharmacy & Surgical
+              </p>
+              <p className="text-[8px] text-[#374151] leading-tight">
+                Wahed plaza, Tajmohol more, Birganj, Dinajpur
               </p>
             </div>
 
