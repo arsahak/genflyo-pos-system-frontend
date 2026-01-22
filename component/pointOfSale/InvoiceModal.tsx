@@ -373,7 +373,7 @@ export const InvoiceModal = ({
         </div>
 
         {/* Receipt Preview Area - Optimized for 58mm Deli 581PW */}
-        <div className="max-h-[350px] overflow-y-auto p-8 bg-gray-100 flex justify-center">
+        <div className="max-h-[500px] overflow-y-auto p-8 flex justify-center">
           <div
             id="receipt-print-area"
             data-original-receipt="true"
@@ -384,6 +384,8 @@ export const InvoiceModal = ({
               fontFamily: "'Courier New', Courier, monospace",
               width: '218px', // 58mm at 96 DPI (58mm ≈ 218px)
               maxWidth: '218px',
+              height: 'auto',
+              minHeight: 'auto',
               pageBreakAfter: 'avoid',
               pageBreakBefore: 'avoid',
               pageBreakInside: 'avoid'
