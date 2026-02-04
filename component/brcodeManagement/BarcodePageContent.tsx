@@ -60,6 +60,7 @@ export default function BarcodePageContent({
               name: p.name,
               sku: p.sku,
               price: p.price || 0,
+              barcode: p.barcode, // Pass existing barcode
             }))}
             language={language as "en" | "bn"}
           />
