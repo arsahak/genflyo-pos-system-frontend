@@ -8,6 +8,7 @@ import { getTranslation } from "@/lib/translations";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BiBarcodeReader } from "react-icons/bi";
 import { FaTruck } from "react-icons/fa";
 import {
   IoIosArrowDown,
@@ -23,8 +24,7 @@ import {
   IoMdSunny,
   IoMdTrendingUp,
 } from "react-icons/io";
-import { MdShoppingCart, MdStore } from "react-icons/md";
-import { BiBarcodeReader } from "react-icons/bi";
+import { MdPublic, MdStore } from "react-icons/md";
 import { RxDoubleArrowLeft } from "react-icons/rx";
 
 interface MenuItem {
@@ -97,6 +97,12 @@ const getMenuItems = (language: string): MenuItem[] => [
         permission: "canAddSuppliers",
       },
     ],
+  },
+  {
+    icon: <MdPublic className="w-5 h-5" />,
+    label: "External Source", // Static label as per user request to exact match
+    path: "/sourced-items",
+    permission: "canViewInventory",
   },
   {
     icon: <IoMdAnalytics className="w-5 h-5" />,

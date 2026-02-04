@@ -9,12 +9,10 @@ import {
   FaTablets,
 } from "react-icons/fa";
 import {
-  MdAdd,
   MdCategory,
   MdInventory,
-  MdMedicalServices,
   MdQrCodeScanner,
-  MdSearch,
+  MdSearch
 } from "react-icons/md";
 import { Product } from "./types";
 
@@ -75,6 +73,22 @@ export const POSProducts = ({
   };
 
   const formatCurrency = (amount: number) => `৳${amount.toFixed(2)}`;
+
+  // Get count of products per category
+  const getCategoryCount = (category: string) => {
+    if (category === "all") {
+      return filteredProducts.length;
+    }
+    return filteredProducts.filter(p => p.category === category).length;
+  };
+
+  // Get total products from all categories (unfiltered by search)
+  const getTotalProductsByCategory = (category: string) => {
+    if (category === "all") {
+      return filteredProducts.length;
+    }
+    return filteredProducts.filter(p => p.category === category).length;
+  };
 
   return (
     <div className="flex-1 flex flex-col min-w-0 min-h-0 relative overflow-hidden">
@@ -144,37 +158,62 @@ export const POSProducts = ({
         </div>
       </div>
 
-      {/* Categories - Pill Tabs */}
-      <div className="px-4 py-4 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setSelectedCategory("all")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all transform active:scale-95 ${
-              selectedCategory === "all"
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-600 ring-offset-2 ring-offset-slate-50 dark:ring-offset-gray-900"
-                : isDarkMode
-                ? "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                : "bg-white text-gray-600 shadow-sm hover:bg-white hover:text-indigo-600 hover:shadow-md"
-            }`}
-          >
-            <MdCategory /> {t("allProducts")}
-          </button>
-          {categories.map((category) => (
+      {/* Categories - Horizontal Scroll */}
+      <div className="px-4 py-2">
+        <div className="overflow-x-auto overflow-y-hidden custom-scrollbar p-2">
+          <div className="flex items-center gap-3">
             <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all transform active:scale-95 ${
-                selectedCategory === category
+              onClick={() => setSelectedCategory("all")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all transform active:scale-95 select-none ${
+                selectedCategory === "all"
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-600 ring-offset-2 ring-offset-slate-50 dark:ring-offset-gray-900"
                   : isDarkMode
                   ? "bg-gray-800 text-gray-400 hover:bg-gray-700"
                   : "bg-white text-gray-600 shadow-sm hover:bg-white hover:text-indigo-600 hover:shadow-md"
               }`}
             >
-              {getCategoryIcon(category)}
-              {category}
+              <MdCategory />
+              <span>{t("allProducts")}</span>
+              <span
+                className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                  selectedCategory === "all"
+                    ? "bg-white/20 text-white"
+                    : isDarkMode
+                    ? "bg-indigo-600/20 text-indigo-400"
+                    : "bg-indigo-100 text-indigo-600"
+                }`}
+              >
+                {getCategoryCount("all")}
+              </span>
             </button>
-          ))}
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all transform active:scale-95 select-none ${
+                  selectedCategory === category
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-600 ring-offset-2 ring-offset-slate-50 dark:ring-offset-gray-900"
+                    : isDarkMode
+                    ? "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                    : "bg-white text-gray-600 shadow-sm hover:bg-white hover:text-indigo-600 hover:shadow-md"
+                }`}
+              >
+                {getCategoryIcon(category)}
+                <span>{category}</span>
+                <span
+                  className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                    selectedCategory === category
+                      ? "bg-white/20 text-white"
+                      : isDarkMode
+                      ? "bg-indigo-600/20 text-indigo-400"
+                      : "bg-indigo-100 text-indigo-600"
+                  }`}
+                >
+                  {getTotalProductsByCategory(category)}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -249,11 +288,9 @@ export const POSProducts = ({
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                onClick={() => !isExpired(product) && addToCart(product)}
+                onClick={() => addToCart(product)}
                 className={`group relative flex flex-col p-3 rounded-2xl transition-all duration-300 ease-out cursor-pointer overflow-hidden ${
-                  isExpired(product)
-                    ? "opacity-60 grayscale"
-                    : isDarkMode
+                  isDarkMode
                     ? "bg-gray-800 hover:bg-gray-750 hover:shadow-xl hover:shadow-indigo-900/10"
                     : "bg-white hover:shadow-xl hover:shadow-indigo-100/50 hover:-translate-y-1"
                 }`}
@@ -275,14 +312,14 @@ export const POSProducts = ({
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                   ) : (
-                    <MdMedicalServices
+                    <MdInventory
                       className={`text-4xl ${
                         isDarkMode ? "text-gray-600" : "text-indigo-200"
                       }`}
                     />
                   )}
 
-                  {/* Stock Badge - Floating */}
+                  {/* Stock Badge */}
                   <div className="absolute top-2 left-2">
                     <span
                       className={`px-2 py-1 text-[10px] font-bold rounded-full backdrop-blur-md shadow-sm border border-white/10 ${
@@ -300,18 +337,15 @@ export const POSProducts = ({
                   </div>
 
                   {/* RX Badge */}
-                  <div className="absolute top-2 right-2 flex flex-col gap-1">
-                    {product.isPrescription && (
-                      <span
-                        className="w-6 h-6 flex items-center justify-center rounded-full bg-red-50 text-red-600 border border-red-100 shadow-sm text-xs font-bold font-serif"
-                        title="Prescription Required"
-                      >
+                  {product.isPrescription && (
+                    <div className="absolute top-2 right-2">
+                      <span className="w-6 h-6 flex items-center justify-center rounded-full bg-red-50 text-red-600 border border-red-100 shadow-sm text-xs font-bold font-serif">
                         Rx
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
-                  {/* Shelf/Rack Badge - Bottom Left */}
+                  {/* Shelf Badge */}
                   {product.shelf && (
                     <div className="absolute bottom-2 left-2">
                       <span
@@ -322,15 +356,6 @@ export const POSProducts = ({
                         }`}
                       >
                         📍 {product.shelf}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Expired Overlay */}
-                  {isExpired(product) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[1px]">
-                      <span className="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-lg shadow-lg rotate-12 transform">
-                        {t("expired")}
                       </span>
                     </div>
                   )}
@@ -372,17 +397,6 @@ export const POSProducts = ({
                     >
                       {formatCurrency(product.price)}
                     </span>
-
-                    {/* Hover Add Button */}
-                    <button
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                        isDarkMode
-                          ? "bg-gray-700 text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white"
-                          : "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white"
-                      }`}
-                    >
-                      <MdAdd />
-                    </button>
                   </div>
                 </div>
               </div>

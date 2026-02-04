@@ -1,18 +1,18 @@
 "use client";
 import { useLanguage } from "@/lib/LanguageContext";
 import { getTranslation } from "@/lib/translations";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { IoMdCash } from "react-icons/io";
 import {
-    MdAdd,
-    MdCheck,
-    MdClose,
-    MdCreditCard,
-    MdDelete,
-    MdLocalPharmacy,
-    MdPerson,
-    MdRemove,
-    MdShoppingCart,
+  MdAdd,
+  MdCheck,
+  MdClose,
+  MdCreditCard,
+  MdDelete,
+  MdLocalPharmacy,
+  MdPerson,
+  MdRemove,
+  MdShoppingCart,
 } from "react-icons/md";
 import { CartItem, Customer } from "./types";
 
@@ -58,6 +58,7 @@ interface POSCartProps {
   isProcessing: boolean;
   showInvoiceAfterSale: boolean;
   setShowInvoiceAfterSale: (val: boolean) => void;
+  onOpenSourcedModal: () => void;
 }
 
 export const POSCart = ({
@@ -102,6 +103,7 @@ export const POSCart = ({
   isProcessing,
   showInvoiceAfterSale,
   setShowInvoiceAfterSale,
+  onOpenSourcedModal,
 }: POSCartProps) => {
   const { language } = useLanguage();
   const t = (key: string) => getTranslation(key, language);
@@ -147,8 +149,29 @@ export const POSCart = ({
           </h2>
         </div>
         
-        {cart.length > 0 && (
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5">
+          {/* External Source Item Button */}
+          <button
+            onClick={onOpenSourcedModal}
+            className={`p-1.5 rounded-lg transition-all ${
+              isDarkMode
+                ? "bg-amber-900/30 text-amber-400 hover:bg-amber-900/50"
+                : "bg-amber-50 text-amber-600 hover:bg-amber-100"
+            }`}
+            title="Sourced / External Item"
+          >
+            <svg 
+              className="w-4 h-4" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </button>
+
+          {cart.length > 0 && (
+            <>
             {/* Payment Method Icons */}
             <button
               onClick={() => setPaymentMethod("cash")}
@@ -206,8 +229,9 @@ export const POSCart = ({
             >
               <MdDelete className="text-base" />
             </button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {cart.length > 0 ? (

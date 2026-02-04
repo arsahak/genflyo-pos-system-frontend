@@ -1,4 +1,5 @@
 "use client";
+
 import { createCustomer, getAllCustomers } from "@/app/actions/customers";
 import { getAllProducts } from "@/app/actions/product";
 import { createSale } from "@/app/actions/sales";
@@ -10,12 +11,15 @@ import { InvoiceModal } from "./InvoiceModal";
 import { POSCart } from "./POSCart";
 import { POSHeader } from "./POSHeader";
 import { POSProducts } from "./POSProducts";
+import { SourcedItemModal } from "./SourcedItemModal";
 import { CartItem, Customer, HeldOrder, Invoice, Product } from "./types";
+
 
 const PointOFSaleDetilasPage = () => {
   const { isDarkMode } = useSidebar();
 
   // Search & Products
+  const [showSourcedItemModal, setShowSourcedItemModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [barcodeInput, setBarcodeInput] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
@@ -175,69 +179,88 @@ const PointOFSaleDetilasPage = () => {
     const fetchProducts = async () => {
       try {
         setIsLoadingProducts(true);
-        const result = await getAllProducts({ limit: 500 });
+        
+        // 1. Fast Initial Load: Get first 200 products quickly
+        const initialResult = await getAllProducts({ limit: 200 });
 
-        if (!result.success || !result.data?.products) {
+        if (!initialResult.success || !initialResult.data?.products) {
           throw new Error("Failed to fetch products");
         }
 
-        const transformedProducts = result.data.products.map(
-          (p: Record<string, any>) => {
-            // Handle location - could be object or JSON string
-            let shelfValue = "";
-            if (p.location) {
-              if (typeof p.location === "string") {
-                try {
-                  const loc = JSON.parse(p.location);
-                  shelfValue = loc.shelf || "";
-                } catch {
-                  shelfValue = "";
-                }
-              } else if (typeof p.location === "object") {
-                shelfValue = p.location.shelf || "";
+        const transformProduct = (p: Record<string, any>) => {
+          // Handle location - could be object or JSON string
+          let shelfValue = "";
+          if (p.location) {
+            if (typeof p.location === "string") {
+              try {
+                const loc = JSON.parse(p.location);
+                shelfValue = loc.shelf || "";
+              } catch {
+                shelfValue = "";
               }
+            } else if (typeof p.location === "object") {
+              shelfValue = p.location.shelf || "";
             }
-
-            return {
-              id: p._id,
-              name: p.name,
-              price: p.price || 0,
-              cost: p.cost,
-              category: p.category || "General",
-              stock: p.stock || 0,
-              sku: p.sku || "",
-              barcode: p.barcode || p.sku || "",
-              isPrescription: p.isPrescription || false,
-              isControlled: p.isControlled || false,
-              genericName: p.genericName,
-              dosage: p.dosage,
-              strength: p.strength,
-              unit: p.unit || "pcs",
-              manufacturer: p.manufacturer,
-              hasExpiry: p.hasExpiry,
-              expiryDate: p.expiryDate,
-              batchNumber: p.batchNumber,
-              taxRate: p.taxRate || 0,
-              isLowStock: p.stock <= (p.reorderLevel || 10),
-              reorderLevel: p.reorderLevel,
-              image: p.mainImage?.thumbUrl || p.mainImage?.url,
-              shelf: shelfValue,
-            };
           }
-        );
 
-        setProducts(transformedProducts);
+          return {
+            id: p._id,
+            name: p.name,
+            price: p.price || 0,
+            cost: p.cost,
+            category: p.category || "General",
+            stock: p.stock || 0,
+            sku: p.sku || "",
+            barcode: p.barcode || p.sku || "",
+            isPrescription: p.isPrescription || false,
+            isControlled: p.isControlled || false,
+            genericName: p.genericName,
+            dosage: p.dosage,
+            strength: p.strength,
+            unit: p.unit || "pcs",
+            manufacturer: p.manufacturer,
+            hasExpiry: p.hasExpiry,
+            expiryDate: p.expiryDate,
+            batchNumber: p.batchNumber,
+            taxRate: p.taxRate || 0,
+            isLowStock: p.stock <= (p.reorderLevel || 10),
+            reorderLevel: p.reorderLevel,
+            image: p.mainImage?.thumbUrl || p.mainImage?.url,
+            shelf: shelfValue,
+          };
+        };
 
-        const uniqueCategories = [
-          ...new Set(
-            transformedProducts.map((p: { category: string }) => p.category)
-          ),
-        ].filter(Boolean) as string[];
-        setCategories(uniqueCategories.sort());
+        const initialProducts = initialResult.data.products.map(transformProduct);
+        setProducts(initialProducts);
+
+        // Extract categories from initial batch
+        const updateCategories = (prodList: any[]) => {
+          const uniqueCategories = [
+            ...new Set(prodList.map((p: any) => p.category)),
+          ].filter(Boolean) as string[];
+          setCategories(uniqueCategories.sort());
+        };
+        updateCategories(initialProducts);
+
+        setIsLoadingProducts(false); // Stop loader so UI becomes interactive
+
+        // 2. Background Load: Fetch the rest silently
+        const totalCount = initialResult.data.pagination?.total || 0;
+        if (initialProducts.length < totalCount) {
+          // Fetch remaining - using a small timeout to let the UI render first
+          setTimeout(async () => {
+             const remainingResult = await getAllProducts({ limit: 10000 });
+             if (remainingResult.success && remainingResult.data?.products) {
+               const allProducts = remainingResult.data.products.map(transformProduct);
+               setProducts(allProducts);
+               updateCategories(allProducts);
+             }
+          }, 100);
+        }
+
       } catch {
         toast.error("Failed to load products");
         setProducts([]);
-      } finally {
         setIsLoadingProducts(false);
       }
     };
@@ -611,6 +634,8 @@ const PointOFSaleDetilasPage = () => {
           productId: item.id,
           quantity: item.quantity,
           discount: getItemDiscount(item),
+          isSourced: item.isSourced,
+          sourcingCost: item.sourcingCost,
         })),
         payments: [
           {
@@ -696,6 +721,42 @@ const PointOFSaleDetilasPage = () => {
   const startNewSale = () => {
     setShowInvoiceModal(false);
     setLastInvoice(null);
+  };
+
+  const handleSourcedItemConfirm = (items: { product: Product; qty: number; cost: number; price: number }[]) => {
+    setCart((prevCart) => {
+      const newCart = [...prevCart];
+      
+      items.forEach(({ product, qty, cost, price }) => {
+        // Check if item exists in cart (must match both ID and be sourced)
+        const existingIndex = newCart.findIndex(
+          (item) => item.id === product.id && item.isSourced
+        );
+
+        if (existingIndex >= 0) {
+          // Update existing sourced item
+          newCart[existingIndex].quantity += qty;
+          newCart[existingIndex].subtotal = newCart[existingIndex].quantity * price;
+        } else {
+          // Add new sourced item
+          newCart.push({
+            ...product,
+            quantity: qty,
+            price: price, // Use custom sale price
+            cost: cost || product.cost, // Record source cost
+            subtotal: price * qty,
+            discount: 0,
+            isSourced: true,
+            sourcingCost: cost,
+            // Override stock to avoid validation errors in UI
+            stock: 999999,
+          });
+        }
+      });
+      
+      return newCart;
+    });
+    toast.success(`${items.length} Sourced Items Added`);
   };
 
   const quickCashAmounts = [50, 100, 200, 500, 1000];
@@ -791,6 +852,7 @@ const PointOFSaleDetilasPage = () => {
           isProcessing={isProcessing}
           showInvoiceAfterSale={showInvoiceAfterSale}
           setShowInvoiceAfterSale={setShowInvoiceAfterSale}
+          onOpenSourcedModal={() => setShowSourcedItemModal(true)}
         />
 
       {/* PaymentModal removed - payment is now inline in POSCart */}
@@ -800,6 +862,14 @@ const PointOFSaleDetilasPage = () => {
         lastInvoice={lastInvoice}
         storeName={storeName}
         startNewSale={startNewSale}
+      />
+
+      <SourcedItemModal
+        isOpen={showSourcedItemModal}
+        onClose={() => setShowSourcedItemModal(false)}
+        products={products}
+        onConfirm={handleSourcedItemConfirm}
+        isDarkMode={isDarkMode}
       />
 
       {/* Global Styles for Scrollbar */}

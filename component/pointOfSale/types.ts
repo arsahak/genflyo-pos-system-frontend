@@ -22,6 +22,8 @@ export interface Product {
   isLowStock?: boolean;
   reorderLevel?: number;
   shelf?: string;
+  isSourced?: boolean;
+  sourcingCost?: number;
 }
 
 export interface CartItem extends Product {
