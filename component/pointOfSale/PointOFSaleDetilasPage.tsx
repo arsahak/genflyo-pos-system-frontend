@@ -72,6 +72,7 @@ const PointOFSaleDetilasPage = () => {
   const [scannerActive, setScannerActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showInvoiceAfterSale, setShowInvoiceAfterSale] = useState(true);
+  const [showCashChangeOnInvoice, setShowCashChangeOnInvoice] = useState(true);
 
   // Refs
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -718,9 +719,154 @@ const PointOFSaleDetilasPage = () => {
     }
   };
 
+  const processDueSale = async () => {
+    if (cart.length === 0) {
+      toast.error("Cart is empty!");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // Handle customer
+      let customerId = selectedCustomer?._id || selectedCustomer?.id;
+      let customerData = selectedCustomer;
+
+      if (!customerId && customerPhone.trim()) {
+        try {
+          const checkResult = await getAllCustomers({ search: customerPhone.trim(), limit: 1 });
+          if (checkResult.success && checkResult.data?.customers?.length > 0) {
+            const existingCustomer = checkResult.data!.customers[0];
+            customerId = existingCustomer._id;
+            customerData = {
+              id: existingCustomer._id,
+              _id: existingCustomer._id,
+              name: existingCustomer.name || customerName.trim() || "Walk-in Customer",
+              phone: existingCustomer.phone || customerPhone.trim(),
+              email: existingCustomer.email || customerEmail.trim() || undefined,
+              membershipType: existingCustomer.membershipType || "regular",
+              loyaltyPoints: existingCustomer.loyaltyPoints || 0,
+              totalSpent: existingCustomer.totalSpent || 0,
+            };
+          } else {
+            const formData = new FormData();
+            formData.append("name", customerName.trim() || "Walk-in Customer");
+            formData.append("phone", customerPhone.trim());
+            if (customerEmail.trim()) formData.append("email", customerEmail.trim());
+            formData.append("loyaltyPoints", "0");
+
+            const createResult = await createCustomer(formData);
+            if (createResult.success && createResult.data) {
+              customerId = createResult.data._id;
+              customerData = {
+                id: createResult.data._id,
+                _id: createResult.data._id,
+                name: createResult.data.name || customerName.trim() || "Walk-in Customer",
+                phone: createResult.data.phone || customerPhone.trim(),
+                email: createResult.data.email || customerEmail.trim() || undefined,
+                membershipType: createResult.data.membershipType || "regular",
+                loyaltyPoints: createResult.data.loyaltyPoints || 0,
+                totalSpent: createResult.data.totalSpent || 0,
+              };
+              toast.success("New customer created");
+            }
+          }
+        } catch (error) {
+          console.error("Error handling customer:", error);
+        }
+      }
+
+      if (!storeId) {
+        toast.error("Store not configured!");
+        return;
+      }
+
+      const grandTotal = calculateGrandTotal();
+
+      const saleData = {
+        storeId,
+        customerId: customerId || undefined,
+        isDue: true,
+        items: cart.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          discount: getItemDiscount(item),
+          isSourced: item.isSourced,
+          sourcingCost: item.sourcingCost,
+        })),
+        payments: [{ method: "due", amount: 0 }],
+      };
+
+      const formData = new FormData();
+      formData.append("saleData", JSON.stringify(saleData));
+
+      const saleResult = await createSale(formData);
+
+      if (!saleResult.success || !saleResult.data) {
+        throw new Error(saleResult.error || "Failed to create due sale");
+      }
+
+      const savedSale = saleResult.data;
+
+      const invoice: Invoice = {
+        invoiceNumber: savedSale.saleNo,
+        date: savedSale.createdAt || new Date().toISOString(),
+        customer: customerData || {
+          name: customerName.trim() || "Walk-in Customer",
+          phone: customerPhone.trim() || "",
+        },
+        items: cart.map((item) => ({
+          id: item.id,
+          name: item.name,
+          sku: item.sku,
+          quantity: item.quantity,
+          price: item.price,
+          unit: item.unit,
+          discount: getItemDiscount(item),
+          finalPrice: getItemFinalPrice(item),
+        })),
+        subtotal: calculateSubtotal(),
+        itemDiscounts: calculateItemDiscounts(),
+        membershipDiscount: getMembershipDiscount(),
+        orderDiscount: calculateOrderDiscount(),
+        tax: calculateTax(),
+        grandTotal,
+        paymentMethod: "due",
+        receivedAmount: 0,
+        changeAmount: 0,
+        isDue: true,
+        dueAmount: grandTotal,
+      };
+
+      setLastInvoice(invoice);
+      setCart([]);
+      setItemDiscount({});
+      setAppliedDiscount(0);
+      setSelectedCustomer(null);
+      setReceivedAmount("");
+      setCustomerPhone("");
+      setCustomerName("");
+      setCustomerEmail("");
+
+      toast.success("Due sale recorded successfully!", { icon: "📋" });
+
+      if (showInvoiceAfterSale) {
+        setShowInvoiceModal(true);
+      }
+    } catch (error: any) {
+      console.error("Due sale error:", error);
+      toast.error(error.message || "Failed to record due sale!");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const startNewSale = () => {
     setShowInvoiceModal(false);
     setLastInvoice(null);
+    // Fully refresh POS state (products, cart, customer, etc.)
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
   };
 
   const handleSourcedItemConfirm = (items: { product: Product; qty: number; cost: number; price: number }[]) => {
@@ -852,7 +998,12 @@ const PointOFSaleDetilasPage = () => {
           isProcessing={isProcessing}
           showInvoiceAfterSale={showInvoiceAfterSale}
           setShowInvoiceAfterSale={setShowInvoiceAfterSale}
+          showCashChangeOnInvoice={showCashChangeOnInvoice}
+          onToggleCashChangeOnInvoice={() =>
+            setShowCashChangeOnInvoice((prev) => !prev)
+          }
           onOpenSourcedModal={() => setShowSourcedItemModal(true)}
+          processDueSale={processDueSale}
         />
 
       {/* PaymentModal removed - payment is now inline in POSCart */}
@@ -862,6 +1013,7 @@ const PointOFSaleDetilasPage = () => {
         lastInvoice={lastInvoice}
         storeName={storeName}
         startNewSale={startNewSale}
+        showCashChangeOnInvoice={showCashChangeOnInvoice}
       />
 
       <SourcedItemModal

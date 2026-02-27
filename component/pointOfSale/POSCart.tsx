@@ -13,6 +13,8 @@ import {
   MdPerson,
   MdRemove,
   MdShoppingCart,
+  MdReceiptLong,
+  MdOutlineAccountBalanceWallet,
 } from "react-icons/md";
 import { CartItem, Customer } from "./types";
 
@@ -58,7 +60,10 @@ interface POSCartProps {
   isProcessing: boolean;
   showInvoiceAfterSale: boolean;
   setShowInvoiceAfterSale: (val: boolean) => void;
+  showCashChangeOnInvoice: boolean;
+  onToggleCashChangeOnInvoice: () => void;
   onOpenSourcedModal: () => void;
+  processDueSale: () => void;
 }
 
 export const POSCart = ({
@@ -103,7 +108,10 @@ export const POSCart = ({
   isProcessing,
   showInvoiceAfterSale,
   setShowInvoiceAfterSale,
+  showCashChangeOnInvoice,
+  onToggleCashChangeOnInvoice,
   onOpenSourcedModal,
+  processDueSale,
 }: POSCartProps) => {
   const { language } = useLanguage();
   const t = (key: string) => getTranslation(key, language);
@@ -215,6 +223,25 @@ export const POSCart = ({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
+            </button>
+
+            {/* Cash Change on Invoice Toggle (simple icon) */}
+            <button
+              onClick={onToggleCashChangeOnInvoice}
+              className={`p-1.5 rounded-lg transition-all ${
+                showCashChangeOnInvoice
+                  ? "bg-green-600 text-white shadow-md hover:bg-green-500"
+                  : isDarkMode
+                  ? "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+              }`}
+              title={
+                showCashChangeOnInvoice
+                  ? "Cash change shown on invoice"
+                  : "Cash change hidden on invoice"
+              }
+            >
+              <MdReceiptLong className="text-base" />
             </button>
             
             {/* Clear Cart */}
@@ -636,9 +663,27 @@ export const POSCart = ({
 
               <div className="flex justify-between items-center pt-1.5 border-t border-dashed border-gray-300 dark:border-gray-700">
                 <span className={`font-bold text-sm ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>Total</span>
-                <span className={`text-lg font-bold ${isDarkMode ? "text-indigo-400" : "text-indigo-600"}`}>
-                  {formatCurrency(calculateGrandTotal())}
-                </span>
+                <div className="flex items-center gap-2">
+                  {/* Due Sale Button - beside Total */}
+                  <button
+                    onClick={processDueSale}
+                    disabled={isProcessing}
+                    title="Record as Due Sale (customer pays later)"
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
+                      isProcessing
+                        ? "opacity-50 cursor-not-allowed"
+                        : isDarkMode
+                        ? "border-orange-500/60 text-orange-400 hover:bg-orange-500/20 active:scale-95"
+                        : "border-orange-400 text-orange-600 hover:bg-orange-50 active:scale-95"
+                    }`}
+                  >
+                    <MdOutlineAccountBalanceWallet className="text-sm" />
+                    Due
+                  </button>
+                  <span className={`text-lg font-bold ${isDarkMode ? "text-indigo-400" : "text-indigo-600"}`}>
+                    {formatCurrency(calculateGrandTotal())}
+                  </span>
+                </div>
               </div>
             </div>
 

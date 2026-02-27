@@ -28,6 +28,46 @@ interface SalesPurchaseChartProps {
   data: SalesPurchaseData[];
 }
 
+interface TooltipEntry {
+  name: string;
+  value: number;
+  color: string;
+  payload: { date: string };
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: readonly TooltipEntry[];
+  isDarkMode: boolean;
+  formatCurrency: (v: number) => string;
+}
+
+const CustomTooltip = ({ active, payload, isDarkMode, formatCurrency }: CustomTooltipProps) => {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div
+      className={`p-3 rounded-lg shadow-lg border ${
+        isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+      }`}
+    >
+      <p className={`font-medium mb-2 ${isDarkMode ? "text-gray-200" : "text-gray-900"}`}>
+        {payload[0].payload.date}
+      </p>
+      {payload.map((entry, index) => (
+        <div key={index} className="flex items-center gap-2 text-sm">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+          <span className={isDarkMode ? "text-gray-300" : "text-gray-700"}>
+            {entry.name}:
+          </span>
+          <span className={`font-semibold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+            {formatCurrency(entry.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const SalesPurchaseChart = ({ data }: SalesPurchaseChartProps) => {
   const { isDarkMode } = useSidebar();
   const { language } = useLanguage();
@@ -79,50 +119,6 @@ const SalesPurchaseChart = ({ data }: SalesPurchaseChartProps) => {
     return { totalSales, totalPurchases, profit };
   }, [filteredData]);
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div
-          className={`p-3 rounded-lg shadow-lg border ${
-            isDarkMode
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-200"
-          }`}
-        >
-          <p
-            className={`font-medium mb-2 ${
-              isDarkMode ? "text-gray-200" : "text-gray-900"
-            }`}
-          >
-            {payload[0].payload.date}
-          </p>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center gap-2 text-sm">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              ></div>
-              <span
-                className={isDarkMode ? "text-gray-300" : "text-gray-700"}
-              >
-                {entry.name}:
-              </span>
-              <span
-                className={`font-semibold ${
-                  isDarkMode ? "text-gray-100" : "text-gray-900"
-                }`}
-              >
-                {formatCurrency(entry.value)}
-              </span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
   const periods = [
     { label: "7 Days", value: 7 },
     { label: "15 Days", value: 15 },
@@ -133,7 +129,7 @@ const SalesPurchaseChart = ({ data }: SalesPurchaseChartProps) => {
 
   return (
     <div
-      className={`p-6 rounded-xl shadow-md transition-colors duration-200 ${
+      className={`h-full p-6 rounded-xl shadow-md transition-colors duration-200 ${
         isDarkMode ? "bg-gray-800" : "bg-white"
       }`}
     >
@@ -250,17 +246,17 @@ const SalesPurchaseChart = ({ data }: SalesPurchaseChartProps) => {
       </div>
 
       {/* Chart */}
-      <div className="h-80">
-        {data.length === 0 ? (
-          <div
-            className={`h-full flex items-center justify-center ${
-              isDarkMode ? "text-gray-400" : "text-gray-500"
-            }`}
-          >
-            No data available
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
+      {data.length === 0 ? (
+        <div
+          className={`h-64 flex items-center justify-center ${
+            isDarkMode ? "text-gray-400" : "text-gray-500"
+          }`}
+        >
+          No data available
+        </div>
+      ) : (
+        <div>
+          <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
               <CartesianGrid
                 strokeDasharray="3 3"
@@ -278,7 +274,15 @@ const SalesPurchaseChart = ({ data }: SalesPurchaseChartProps) => {
                   value >= 1000 ? `৳${(value / 1000).toFixed(0)}k` : `৳${value}`
                 }
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip
+                content={(props) => (
+                  <CustomTooltip
+                    {...props}
+                    isDarkMode={isDarkMode}
+                    formatCurrency={formatCurrency}
+                  />
+                )}
+              />
               <Legend
                 wrapperStyle={{
                   paddingTop: "20px",
@@ -306,8 +310,8 @@ const SalesPurchaseChart = ({ data }: SalesPurchaseChartProps) => {
               />
             </LineChart>
           </ResponsiveContainer>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

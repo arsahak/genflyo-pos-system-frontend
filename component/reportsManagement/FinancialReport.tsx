@@ -103,9 +103,9 @@ const FinancialReport = () => {
 
   const formatCurrency = (amount: number | null | undefined) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
-      return "$0.00";
+      return "৳0.00";
     }
-    return `$${Number(amount).toFixed(2)}`;
+    return `৳${Number(amount).toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -412,12 +412,15 @@ const FinancialReport = () => {
               >
                 Payment Method Breakdown
               </h3>
-              <div className="space-y-4">
+              {(() => {
+                  const total = Object.values(reportData.paymentBreakdown).reduce(
+                    (sum, amt) => sum + amt,
+                    0
+                  );
+                  return (
+                <div className="space-y-4">
                 {Object.entries(reportData.paymentBreakdown).map(
                   ([method, amount]) => {
-                    const total = Object.values(
-                      reportData.paymentBreakdown
-                    ).reduce((sum, amt) => sum + amt, 0);
                     const percentage =
                       total > 0 ? ((amount / total) * 100).toFixed(1) : 0;
 
@@ -439,7 +442,7 @@ const FinancialReport = () => {
                             {formatCurrency(amount)} ({percentage}%)
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className={`w-full rounded-full h-2 ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}>
                           <div
                             className="bg-indigo-600 h-2 rounded-full transition-all"
                             style={{ width: `${percentage}%` }}
@@ -449,7 +452,9 @@ const FinancialReport = () => {
                     );
                   }
                 )}
-              </div>
+                </div>
+                  );
+                })()}
             </div>
           </div>
 

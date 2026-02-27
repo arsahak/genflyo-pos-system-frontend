@@ -5,6 +5,7 @@ import {
   getProductCategories,
   getProductBrands,
   getExpiringProducts,
+  getExpiredProducts,
   getLowStockProducts,
   deleteProduct,
   bulkImportProducts,
@@ -12,7 +13,7 @@ import {
 import { useSidebar } from "@/lib/SidebarContext";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ProductFilters } from "./components/ProductFilters";
 import { ProductImportModal } from "./components/ProductImportModal";
@@ -28,7 +29,12 @@ export default function ProductsList() {
   const { isDarkMode } = useSidebar();
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  // initialLoading: true only until the very first product fetch completes
+  const [initialLoading, setInitialLoading] = useState(true);
+  // tableLoading: true during any subsequent fetch (search / filter / page change)
+  const [tableLoading, setTableLoading] = useState(false);
+  const statsInitializedRef = useRef(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
@@ -45,7 +51,10 @@ export default function ProductsList() {
   const [categories, setCategories] = useState<string[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [expiringCount, setExpiringCount] = useState(0);
+  const [expiredCount, setExpiredCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
+  // Permanent total — never changes with filters so the stat card stays stable
+  const [totalAllProducts, setTotalAllProducts] = useState(0);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
@@ -53,36 +62,74 @@ export default function ProductsList() {
 
   const loadProducts = useCallback(async () => {
     try {
-      setLoading(true);
+      if (!statsInitializedRef.current) {
+        setInitialLoading(true);
+      } else {
+        setTableLoading(true);
+      }
 
-      const result = await getAllProducts({
+      // Map stockFilter to backend flags
+      const queryParams: {
+        page: number;
+        limit: number;
+        search?: string;
+        category?: string;
+        brand?: string;
+        lowStock?: boolean;
+        inStock?: boolean;
+        expiring?: boolean;
+        expired?: boolean;
+      } = {
         page: currentPage,
         limit: 20,
-        search: searchTerm || undefined,
-        category: categoryFilter || undefined,
-        brand: brandFilter || undefined,
-        status: stockFilter || undefined,
-      });
+      };
+
+      if (searchTerm) queryParams.search = searchTerm;
+      if (categoryFilter) queryParams.category = categoryFilter;
+      if (brandFilter) queryParams.brand = brandFilter;
+
+      if (stockFilter === "low") {
+        queryParams.lowStock = true;
+      } else if (stockFilter === "in") {
+        queryParams.inStock = true;
+      } else if (stockFilter === "out") {
+        queryParams.inStock = false;
+      } else if (stockFilter === "expiring") {
+        queryParams.expiring = true;
+      } else if (stockFilter === "expired") {
+        queryParams.expired = true;
+      }
+
+      const result = await getAllProducts(queryParams);
 
       if (result.success && result.data?.products) {
         setProducts(result.data.products);
-        setPagination(result.data.pagination || {
+        const pag = result.data.pagination || {
           total: result.data.products.length,
           page: currentPage,
           limit: 20,
           totalPages: Math.ceil(result.data.products.length / 20),
           hasMore: false,
-        });
+        };
+        setPagination(pag);
+        // Store the real total only on unfiltered initial load
+        if (!statsInitializedRef.current) {
+          setTotalAllProducts(pag.total);
+        }
       } else {
         toast.error(result.error || "Failed to load products");
         setProducts([]);
       }
+
+      statsInitializedRef.current = true;
     } catch (error: unknown) {
       console.error("Failed to load products:", error);
       toast.error("Failed to load products");
       setProducts([]);
+      statsInitializedRef.current = true;
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setTableLoading(false);
     }
   }, [currentPage, searchTerm, categoryFilter, brandFilter, stockFilter]);
 
@@ -106,13 +153,17 @@ export default function ProductsList() {
 
   const loadAlerts = useCallback(async () => {
     try {
-      const [expiringRes, lowStockRes] = await Promise.all([
+      const [expiringRes, expiredRes, lowStockRes] = await Promise.all([
         getExpiringProducts(),
+        getExpiredProducts(),
         getLowStockProducts(),
       ]);
 
       if (expiringRes.success && expiringRes.data) {
         setExpiringCount(expiringRes.data.count || 0);
+      }
+      if (expiredRes.success && expiredRes.data) {
+        setExpiredCount(expiredRes.data.count || 0);
       }
       if (lowStockRes.success && lowStockRes.data) {
         setLowStockCount(lowStockRes.data.count || 0);
@@ -124,17 +175,17 @@ export default function ProductsList() {
 
   // Load products when filters change
   useEffect(() => {
-    // Wait for user to be synced before loading
     if (!user) return;
     loadProducts();
   }, [user, loadProducts]);
 
-  // Load metadata and alerts only once on mount
+  // Load metadata and alerts only once on mount — never re-runs on filter changes
   useEffect(() => {
     if (!user) return;
     loadMetadata();
     loadAlerts();
-  }, [user, loadMetadata, loadAlerts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -215,6 +266,8 @@ export default function ProductsList() {
         brand: brandFilter || undefined,
         lowStock: stockFilter === "low" ? true : undefined,
         inStock: stockFilter === "in" ? true : stockFilter === "out" ? false : undefined,
+        expiring: stockFilter === "expiring" ? true : undefined,
+        expired: stockFilter === "expired" ? true : undefined,
       });
 
       if (!result.success) {
@@ -405,8 +458,8 @@ export default function ProductsList() {
     }
   };
 
-  // Show loading while waiting for session sync
-  if (!user) {
+  // Show full-page skeleton while waiting for session or the very first load
+  if (!user || initialLoading || deleting) {
     return (
       <div
         className={`min-h-screen p-6 transition-colors duration-300 font-sans ${
@@ -435,43 +488,41 @@ export default function ProductsList() {
           handleDownloadTemplate={handleDownloadTemplate}
         />
 
-        {(loading && products.length === 0) || deleting ? (
-          <ProductListSkeleton isDarkMode={isDarkMode} />
-        ) : (
-          <>
-            <ProductStats
-              isDarkMode={isDarkMode}
-              totalProducts={pagination.total}
-              currentProducts={products.length}
-              lowStockCount={lowStockCount}
-              expiringCount={expiringCount}
-              handleStockFilter={handleStockFilter}
-            />
+        {/* Stats always stay visible after first load — never hidden by search/filter */}
+        <ProductStats
+          isDarkMode={isDarkMode}
+          totalProducts={totalAllProducts}
+          currentProducts={products.length}
+          lowStockCount={lowStockCount}
+          expiringCount={expiringCount}
+          expiredCount={expiredCount}
+          activeFilter={stockFilter}
+          handleStockFilter={handleStockFilter}
+        />
 
-            <ProductFilters
-              isDarkMode={isDarkMode}
-              searchTerm={searchTerm}
-              handleSearch={handleSearch}
-              categoryFilter={categoryFilter}
-              handleCategoryFilter={handleCategoryFilter}
-              stockFilter={stockFilter}
-              handleStockFilter={handleStockFilter}
-              categories={categories}
-              clearAllFilters={clearAllFilters}
-            />
+        <ProductFilters
+          isDarkMode={isDarkMode}
+          searchTerm={searchTerm}
+          handleSearch={handleSearch}
+          categoryFilter={categoryFilter}
+          handleCategoryFilter={handleCategoryFilter}
+          stockFilter={stockFilter}
+          handleStockFilter={handleStockFilter}
+          categories={categories}
+          clearAllFilters={clearAllFilters}
+        />
 
-            <ProductTable
-              isDarkMode={isDarkMode}
-              loading={loading}
-              products={products}
-              pagination={pagination}
-              handlePageChange={handlePageChange}
-              canEditProducts={canEditProducts}
-              canDeleteProducts={canDeleteProducts}
-              handleDelete={handleDelete}
-            />
-          </>
-        )}
+        {/* Only the table area shows a loading state on search/filter */}
+        <ProductTable
+          isDarkMode={isDarkMode}
+          loading={tableLoading}
+          products={products}
+          pagination={pagination}
+          handlePageChange={handlePageChange}
+          canEditProducts={canEditProducts}
+          canDeleteProducts={canDeleteProducts}
+          handleDelete={handleDelete}
+        />
 
         <ProductImportModal
           isDarkMode={isDarkMode}

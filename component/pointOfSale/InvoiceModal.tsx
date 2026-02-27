@@ -7,6 +7,7 @@ import {
   MdAdd,
   MdCheck,
   MdDownload,
+  MdOutlineAccountBalanceWallet,
   MdPrint
 } from "react-icons/md";
 import { Invoice } from "./types";
@@ -17,6 +18,7 @@ interface InvoiceModalProps {
   storeName: string;
   storeAddress?: string;
   startNewSale: () => void;
+  showCashChangeOnInvoice?: boolean;
 }
 
 export const InvoiceModal = ({
@@ -25,6 +27,7 @@ export const InvoiceModal = ({
   storeName,
   storeAddress = "Birganj, Dinajpur",
   startNewSale,
+  showCashChangeOnInvoice = true,
 }: InvoiceModalProps) => {
   const { language } = useLanguage();
   const t = (key: string) => getTranslation(key, language);
@@ -324,8 +327,12 @@ export const InvoiceModal = ({
       </style>
 
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Success Header */}
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-8 text-center relative overflow-hidden">
+        {/* Success / Due Header */}
+        <div className={`p-8 text-center relative overflow-hidden ${
+          lastInvoice.isDue
+            ? "bg-gradient-to-br from-orange-500 to-amber-600"
+            : "bg-gradient-to-br from-emerald-500 to-teal-600"
+        }`}>
           <div
             className="absolute top-0 left-0 w-full h-full bg-white/10"
             style={{
@@ -336,13 +343,21 @@ export const InvoiceModal = ({
             }}
           ></div>
           <div className="relative z-10">
-            <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30 shadow-lg">
-              <MdCheck className="text-4xl text-white" />
+            <div className={`w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30 shadow-lg`}>
+              {lastInvoice.isDue ? (
+                <MdOutlineAccountBalanceWallet className="text-4xl text-white" />
+              ) : (
+                <MdCheck className="text-4xl text-white" />
+              )}
             </div>
             <h2 className="text-2xl font-bold text-white mb-1">
-              {t("paymentSuccessful")}
+              {lastInvoice.isDue ? "Due Sale Recorded" : t("paymentSuccessful")}
             </h2>
-            <p className="text-emerald-100">{t("transactionCompleted")}</p>
+            <p className={lastInvoice.isDue ? "text-orange-100" : "text-emerald-100"}>
+              {lastInvoice.isDue
+                ? `Due Amount: ${formatCurrency(lastInvoice.dueAmount || lastInvoice.grandTotal)}`
+                : t("transactionCompleted")}
+            </p>
           </div>
         </div>
 
@@ -425,6 +440,18 @@ export const InvoiceModal = ({
                 Wahed plaza, Tajmohol more, Birganj, Dinajpur
               </p>
             </div>
+
+            {/* DUE SALE Badge */}
+            {lastInvoice.isDue && (
+              <div className="border-2 border-dashed border-black my-2 py-1.5 text-center">
+                <p className="font-black text-[13px] uppercase tracking-widest">
+                  *** DUE SALE ***
+                </p>
+                <p className="text-[9px] font-bold mt-0.5">
+                  Amount Due: {formatCurrency(lastInvoice.dueAmount || lastInvoice.grandTotal)}
+                </p>
+              </div>
+            )}
 
             {/* Meta Info */}
             <div className="flex flex-col gap-1 text-[10px] mb-3 font-medium">
@@ -525,20 +552,40 @@ export const InvoiceModal = ({
               
               {/* Payment Details */}
               <div className="mt-2 pt-2 border-t-2 border-dashed border-gray-700 text-[9px] space-y-0.5 font-medium">
-                 <div className="flex justify-between">
-                   <span className="font-bold">{t("paymentMethod")}:</span>
-                   <span className="uppercase font-black">{lastInvoice.paymentMethod}</span>
-                 </div>
-                 {lastInvoice.paymentMethod === 'cash' && (
+                 {lastInvoice.isDue ? (
                    <>
                      <div className="flex justify-between">
-                       <span className="font-bold">{t("cashReceived")}:</span>
-                       <span className="font-mono font-black">{formatCurrency(lastInvoice.receivedAmount)}</span>
+                       <span className="font-bold">Status:</span>
+                       <span className="uppercase font-black">DUE / CREDIT</span>
                      </div>
                      <div className="flex justify-between">
-                       <span className="font-bold">{t("changeDue")}:</span>
-                       <span className="font-mono font-black">{formatCurrency(lastInvoice.changeAmount)}</span>
+                       <span className="font-bold">Amount Due:</span>
+                       <span className="font-mono font-black">
+                         {formatCurrency(lastInvoice.dueAmount || lastInvoice.grandTotal)}
+                       </span>
                      </div>
+                     <div className="text-[8px] text-center font-bold mt-1 pt-1 border-t border-dashed border-gray-600">
+                       Please pay at your earliest convenience
+                     </div>
+                   </>
+                 ) : (
+                   <>
+                     <div className="flex justify-between">
+                       <span className="font-bold">{t("paymentMethod")}:</span>
+                       <span className="uppercase font-black">{lastInvoice.paymentMethod}</span>
+                     </div>
+                     {lastInvoice.paymentMethod === 'cash' && showCashChangeOnInvoice && (
+                       <>
+                         <div className="flex justify-between">
+                           <span className="font-bold">{t("cashReceived")}:</span>
+                           <span className="font-mono font-black">{formatCurrency(lastInvoice.receivedAmount)}</span>
+                         </div>
+                         <div className="flex justify-between">
+                           <span className="font-bold">{t("changeDue")}:</span>
+                           <span className="font-mono font-black">{formatCurrency(lastInvoice.changeAmount)}</span>
+                         </div>
+                       </>
+                     )}
                    </>
                  )}
               </div>

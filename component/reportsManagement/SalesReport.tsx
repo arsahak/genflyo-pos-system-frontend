@@ -108,9 +108,9 @@ const SalesReport = () => {
 
   const formatCurrency = (amount: number | null | undefined) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
-      return "$0.00";
+      return "৳0.00";
     }
-    return `$${Number(amount).toFixed(2)}`;
+    return `৳${Number(amount).toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const exportReport = () => {
@@ -137,6 +137,7 @@ const SalesReport = () => {
     a.href = url;
     a.download = `sales-report-${dateFrom}-to-${dateTo}.csv`;
     a.click();
+    window.URL.revokeObjectURL(url);
     toast.success("Report exported successfully!");
   };
 
@@ -416,7 +417,7 @@ const SalesReport = () => {
                   : "bg-white border-gray-200"
               }`}
             >
-              <div className="p-4 border-b border-gray-700">
+              <div className={`p-4 border-b ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
                 <h3
                   className={`text-lg font-bold ${
                     isDarkMode ? "text-gray-100" : "text-gray-900"
@@ -489,12 +490,13 @@ const SalesReport = () => {
                 </h3>
               </div>
               <div className="space-y-3">
-                {Object.entries(reportData.paymentMethods).map(
+                {(() => {
+                  const total = Object.values(reportData.paymentMethods).reduce(
+                    (sum, m) => sum + m.total,
+                    0
+                  );
+                  return Object.entries(reportData.paymentMethods).map(
                   ([method, data]) => {
-                    const total = Object.values(reportData.paymentMethods).reduce(
-                      (sum, m) => sum + m.total,
-                      0
-                    );
                     const percentage = total > 0 ? (data.total / total) * 100 : 0;
 
                     return (
@@ -515,7 +517,7 @@ const SalesReport = () => {
                             {formatCurrency(data.total)} ({data.count} orders)
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className={`w-full rounded-full h-2 ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}>
                           <div
                             className="bg-indigo-600 h-2 rounded-full"
                             style={{ width: `${percentage}%` }}
@@ -523,8 +525,8 @@ const SalesReport = () => {
                         </div>
                       </div>
                     );
-                  }
-                )}
+                  });
+                })()}
               </div>
             </div>
           </div>

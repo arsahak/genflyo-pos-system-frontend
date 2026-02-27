@@ -91,6 +91,8 @@ export const ProductFilters = ({
               <option value="in">In Stock</option>
               <option value="low">Low Stock</option>
               <option value="out">Out of Stock</option>
+              <option value="expiring">Expiring Soon</option>
+              <option value="expired">Expired</option>
             </select>
           </div>
         </div>
@@ -123,9 +125,17 @@ export const ProductFilters = ({
 
           {stockFilter && (
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-              isDarkMode ? "bg-orange-900/30 text-orange-300 border border-orange-800" : "bg-orange-50 text-orange-700 border border-orange-100"
+              stockFilter === "expired"
+                ? isDarkMode ? "bg-red-900/40 text-red-300 border border-red-700" : "bg-red-100 text-red-700 border border-red-200"
+                : stockFilter === "expiring"
+                ? isDarkMode ? "bg-amber-900/30 text-amber-300 border border-amber-700" : "bg-amber-50 text-amber-700 border border-amber-200"
+                : isDarkMode ? "bg-orange-900/30 text-orange-300 border border-orange-800" : "bg-orange-50 text-orange-700 border border-orange-100"
             }`}>
-              Stock: {stockFilter}
+              {stockFilter === "in"       && "In Stock"}
+              {stockFilter === "low"      && "Low Stock"}
+              {stockFilter === "out"      && "Out of Stock"}
+              {stockFilter === "expiring" && "⚠ Expiring Soon"}
+              {stockFilter === "expired"  && "✕ Expired"}
               <button onClick={() => handleStockFilter("")} className="ml-2 hover:opacity-75">×</button>
             </span>
           )}

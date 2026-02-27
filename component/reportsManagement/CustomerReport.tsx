@@ -27,7 +27,7 @@ interface CustomerReportData {
     membershipTier: string;
     totalSpent: number;
     orderCount: number;
-    lastPurchase: string;
+    lastPurchase?: string;
   }>;
 }
 
@@ -81,9 +81,9 @@ const CustomerReport = () => {
 
   const formatCurrency = (amount: number | null | undefined) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
-      return "$0.00";
+      return "৳0.00";
     }
-    return `$${Number(amount).toFixed(2)}`;
+    return `৳${Number(amount).toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -305,7 +305,7 @@ const CustomerReport = () => {
                   : "bg-white border-gray-200"
               }`}
             >
-              <div className="p-4 border-b border-gray-700">
+              <div className={`p-4 border-b ${isDarkMode ? "border-gray-700" : "border-gray-200"}`}>
                 <h3
                   className={`text-lg font-bold ${
                     isDarkMode ? "text-gray-100" : "text-gray-900"
@@ -379,21 +379,23 @@ const CustomerReport = () => {
               >
                 Membership Breakdown
               </h3>
-              <div className="space-y-4">
+              {(() => {
+                  const tierColors: Record<string, string> = {
+                    regular: "bg-gray-500",
+                    silver: "bg-gray-400",
+                    gold: "bg-yellow-500",
+                    platinum: "bg-purple-500",
+                  };
+                  const total = Object.values(reportData.membershipBreakdown).reduce(
+                    (sum, c) => sum + c,
+                    0
+                  );
+                  return (
+                <div className="space-y-4">
                 {Object.entries(reportData.membershipBreakdown).map(
                   ([tier, count]) => {
-                    const total = Object.values(
-                      reportData.membershipBreakdown
-                    ).reduce((sum, c) => sum + c, 0);
                     const percentage =
                       total > 0 ? ((count / total) * 100).toFixed(1) : 0;
-
-                    const colors: any = {
-                      regular: "bg-gray-500",
-                      silver: "bg-gray-400",
-                      gold: "bg-yellow-500",
-                      platinum: "bg-purple-500",
-                    };
 
                     return (
                       <div key={tier}>
@@ -413,10 +415,10 @@ const CustomerReport = () => {
                             {count} ({percentage}%)
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className={`w-full rounded-full h-2 ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}>
                           <div
                             className={`${
-                              colors[tier] || "bg-indigo-600"
+                              tierColors[tier] || "bg-indigo-600"
                             } h-2 rounded-full transition-all`}
                             style={{ width: `${percentage}%` }}
                           ></div>
@@ -425,7 +427,9 @@ const CustomerReport = () => {
                     );
                   }
                 )}
-              </div>
+                </div>
+                  );
+                })()}
             </div>
           </div>
         </>

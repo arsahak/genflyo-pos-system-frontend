@@ -34,7 +34,7 @@ interface InventoryReportData {
     { items: number; quantity: number; value: number }
   >;
   lowStockItems: Array<{
-    productId: { name: string; sku: string; category: string };
+    productId: { name: string; sku: string; category: string } | null;
     quantity: number;
     minStock: number;
   }>;
@@ -98,9 +98,9 @@ const InventoryReport = () => {
 
   const formatCurrency = (amount: number | null | undefined) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
-      return "$0.00";
+      return "৳0.00";
     }
-    return `$${Number(amount).toFixed(2)}`;
+    return `৳${Number(amount).toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -392,10 +392,10 @@ const InventoryReport = () => {
                                   isDarkMode ? "text-gray-100" : "text-gray-900"
                                 }`}
                               >
-                                {item.productId.name}
+                                {item.productId?.name ?? "Unknown Product"}
                               </p>
                               <p className="text-xs text-gray-500">
-                                {item.productId.sku}
+                                {item.productId?.sku ?? "—"}
                               </p>
                             </div>
                           </td>

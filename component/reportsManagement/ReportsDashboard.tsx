@@ -186,7 +186,10 @@ const ReportsDashboard = () => {
           return (
             <div
               key={category.id}
+              role="button"
+              tabIndex={0}
               onClick={() => router.push(category.route)}
+              onKeyDown={(e) => e.key === "Enter" && router.push(category.route)}
               className={`rounded-lg border-2 p-6 cursor-pointer transition-all ${
                 isDarkMode
                   ? `${colors.bgDark} ${colors.borderDark} ${colors.hoverDark}`
@@ -250,16 +253,16 @@ const ReportsDashboard = () => {
                 ))}
               </div>
 
-              {/* View Button */}
-              <button
-                className={`w-full mt-4 px-4 py-2 rounded-lg font-semibold transition-colors ${
+              {/* View indicator */}
+              <div
+                className={`w-full mt-4 px-4 py-2 rounded-lg font-semibold text-center ${
                   isDarkMode
-                    ? `${colors.iconDark} bg-gray-800 hover:bg-gray-700`
-                    : `${colors.icon} bg-white hover:bg-gray-50`
+                    ? `${colors.iconDark} bg-gray-800`
+                    : `${colors.icon} bg-white`
                 }`}
               >
                 View {category.title}
-              </button>
+              </div>
             </div>
           );
         })}

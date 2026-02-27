@@ -25,6 +25,8 @@ export async function getAllProducts(params?: {
   status?: string;
   lowStock?: boolean;
   inStock?: boolean;
+  expiring?: boolean;
+  expired?: boolean;
 }) {
   try {
     const headers = await getAuthHeaders();
@@ -37,6 +39,8 @@ export async function getAllProducts(params?: {
     if (params?.status) queryParams.append("status", params.status);
     if (params?.lowStock !== undefined) queryParams.append("lowStock", params.lowStock.toString());
     if (params?.inStock !== undefined) queryParams.append("inStock", params.inStock.toString());
+    if (params?.expiring !== undefined) queryParams.append("expiring", params.expiring.toString());
+    if (params?.expired !== undefined) queryParams.append("expired", params.expired.toString());
 
     const url = `${API_URL}/api/products${queryParams.toString() ? `?${queryParams}` : ""}`;
     const response = await fetch(url, { headers, cache: "no-store" });
@@ -71,6 +75,27 @@ export async function getExpiringProducts() {
     return { success: true, data };
   } catch (error) {
     console.error("Get expiring products error:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+/**
+ * GET /api/products/alerts/expired - Get products that have already expired
+ */
+export async function getExpiredProducts() {
+  try {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/api/products/alerts/expired`, { headers });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { success: false, error: error.message || "Failed to fetch expired products" };
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error("Get expired products error:", error);
     return { success: false, error: "An unexpected error occurred" };
   }
 }

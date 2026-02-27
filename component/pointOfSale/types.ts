@@ -77,4 +77,6 @@ export interface Invoice {
   paymentMethod: string;
   receivedAmount: number;
   changeAmount: number;
+  isDue?: boolean;
+  dueAmount?: number;
 }

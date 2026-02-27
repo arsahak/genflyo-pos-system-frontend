@@ -115,11 +115,11 @@ export const ProductTable = ({
 
                 <td className="px-6 py-4">
                   <div className={`font-bold font-mono ${isDarkMode ? "text-indigo-400" : "text-indigo-600"}`}>
-                    ${product.price.toFixed(2)}
+                    ৳{product.price.toFixed(2)}
                   </div>
                   {product.cost && (
                     <div className="text-xs text-gray-400">
-                      Cost: ${product.cost.toFixed(2)}
+                      Cost: ৳{product.cost.toFixed(2)}
                     </div>
                   )}
                 </td>
