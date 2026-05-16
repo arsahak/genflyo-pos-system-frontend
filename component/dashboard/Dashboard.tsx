@@ -78,13 +78,12 @@ const Dashboard = ({ data, stats, error }: DashboardProps) => {
   };
 
   const filteredTopProducts = useMemo(() => {
-    if (!data?.topProducts) return [];
+    const products = data?.topProducts;
+    if (!products) return [];
     const q = topSearch.trim().toLowerCase();
-    if (!q) return data.topProducts;
-    return data.topProducts.filter((p) =>
-      p.name.toLowerCase().includes(q)
-    );
-  }, [data?.topProducts, topSearch]);
+    const list = q ? products.filter((p) => p.name.toLowerCase().includes(q)) : [...products];
+    return list.sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
+  }, [data, topSearch]);
 
   const card = `p-6 rounded-xl shadow-md transition-colors duration-200 ${
     isDarkMode ? "bg-gray-800" : "bg-white"
@@ -489,8 +488,8 @@ const Dashboard = ({ data, stats, error }: DashboardProps) => {
                         <tbody>
                           {filteredTopProducts.map((product, idx) => {
                             const rank = idx + 1;
-                            const maxRevenue = filteredTopProducts[0]?.revenue || 1;
-                            const pct = Math.round((product.revenue / maxRevenue) * 100);
+                            const maxQty = filteredTopProducts[0]?.quantity || 1;
+                            const pct = Math.round(((product.quantity || 0) / maxQty) * 100);
 
                             const rankBadge =
                               rank === 1

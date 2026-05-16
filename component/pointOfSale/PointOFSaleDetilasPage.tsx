@@ -72,7 +72,13 @@ const PointOFSaleDetilasPage = () => {
   const [scannerActive, setScannerActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showInvoiceAfterSale, setShowInvoiceAfterSale] = useState(true);
-  const [showCashChangeOnInvoice, setShowCashChangeOnInvoice] = useState(true);
+  const [showCashChangeOnInvoice, setShowCashChangeOnInvoice] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("showCashChangeOnInvoice");
+      return stored !== null ? stored === "true" : true;
+    }
+    return true;
+  });
 
   // Refs
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -1000,7 +1006,11 @@ const PointOFSaleDetilasPage = () => {
           setShowInvoiceAfterSale={setShowInvoiceAfterSale}
           showCashChangeOnInvoice={showCashChangeOnInvoice}
           onToggleCashChangeOnInvoice={() =>
-            setShowCashChangeOnInvoice((prev) => !prev)
+            setShowCashChangeOnInvoice((prev) => {
+              const next = !prev;
+              localStorage.setItem("showCashChangeOnInvoice", String(next));
+              return next;
+            })
           }
           onOpenSourcedModal={() => setShowSourcedItemModal(true)}
           processDueSale={processDueSale}

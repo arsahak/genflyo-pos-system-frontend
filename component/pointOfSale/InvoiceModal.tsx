@@ -516,39 +516,43 @@ export const InvoiceModal = ({
 
             {/* Totals */}
             <div className="space-y-1 text-[10px] font-medium">
-              <div className="flex justify-between">
-                <span className="font-bold">{t("subtotal")}</span>
-                <span className="font-mono font-bold">
-                  {formatCurrency(lastInvoice.subtotal)}
-                </span>
-              </div>
-              
-              {lastInvoice.itemDiscounts > 0 && (
-                <div className="flex justify-between">
-                  <span className="font-bold">{t("itemDiscounts")}</span>
-                  <span className="font-mono font-bold">
-                    -{formatCurrency(lastInvoice.itemDiscounts)}
-                  </span>
-                </div>
-              )}
-              
-              {lastInvoice.membershipDiscount > 0 && (
-                <div className="flex justify-between">
-                  <span className="font-bold">{t("memberDiscount")}</span>
-                  <span className="font-mono font-bold">
-                    -{formatCurrency(lastInvoice.membershipDiscount)}
-                  </span>
-                </div>
-              )}
-              
-              <div className="border-t-2 border-black my-2 pt-2"></div>
+              {showCashChangeOnInvoice && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="font-bold">{t("subtotal")}</span>
+                    <span className="font-mono font-bold">
+                      {formatCurrency(lastInvoice.subtotal)}
+                    </span>
+                  </div>
 
-              <div className="flex justify-between items-center text-[12px]">
-                <span className="font-black uppercase">{t("total")}</span>
-                <span className="font-black font-mono text-[14px]">
-                  {formatCurrency(lastInvoice.grandTotal)}
-                </span>
-              </div>
+                  {lastInvoice.itemDiscounts > 0 && (
+                    <div className="flex justify-between">
+                      <span className="font-bold">{t("itemDiscounts")}</span>
+                      <span className="font-mono font-bold">
+                        -{formatCurrency(lastInvoice.itemDiscounts)}
+                      </span>
+                    </div>
+                  )}
+
+                  {lastInvoice.membershipDiscount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="font-bold">{t("memberDiscount")}</span>
+                      <span className="font-mono font-bold">
+                        -{formatCurrency(lastInvoice.membershipDiscount)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="border-t-2 border-black my-2 pt-2"></div>
+
+                  <div className="flex justify-between items-center text-[12px]">
+                    <span className="font-black uppercase">{t("total")}</span>
+                    <span className="font-black font-mono text-[14px]">
+                      {formatCurrency(lastInvoice.grandTotal)}
+                    </span>
+                  </div>
+                </>
+              )}
               
               {/* Payment Details */}
               <div className="mt-2 pt-2 border-t-2 border-dashed border-gray-700 text-[9px] space-y-0.5 font-medium">
