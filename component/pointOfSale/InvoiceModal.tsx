@@ -407,13 +407,13 @@ export const InvoiceModal = ({
             }}
           >
             {/* Header - Logo and company info */}
-            <div className="text-center mb-4">
+            <div className="text-center mb-2">
               {/* Logo - Optimized for thermal printer */}
-              <div className="flex justify-center mb-3">
+              <div className="flex justify-center mb-1">
                 <img
                   src="/invoicelogo.png"
                   alt="Logo"
-                  className="w-14 h-14 object-contain"
+                  className="w-9 h-9 object-contain"
                   style={{
                     imageRendering: '-webkit-optimize-contrast',
                     filter: 'grayscale(100%) contrast(1.3) brightness(0.9)'
@@ -421,8 +421,8 @@ export const InvoiceModal = ({
                 />
               </div>
 
-              {/* Company Name - BOLD and LARGE */}
-              <h3 className="font-black text-base uppercase tracking-wider border-b-2 border-black pb-2 mb-2">
+              {/* Company Name */}
+              <h3 className="font-black text-sm uppercase tracking-wider border-b border-black pb-1 mb-1">
                 {storeName}
               </h3>
 
@@ -516,15 +516,16 @@ export const InvoiceModal = ({
 
             {/* Totals */}
             <div className="space-y-1 text-[10px] font-medium">
+              {/* Subtotal - always visible, even when cash change is hidden */}
+              <div className="flex justify-between">
+                <span className="font-bold">{t("subtotal")}</span>
+                <span className="font-mono font-bold">
+                  {formatCurrency(lastInvoice.subtotal)}
+                </span>
+              </div>
+
               {showCashChangeOnInvoice && (
                 <>
-                  <div className="flex justify-between">
-                    <span className="font-bold">{t("subtotal")}</span>
-                    <span className="font-mono font-bold">
-                      {formatCurrency(lastInvoice.subtotal)}
-                    </span>
-                  </div>
-
                   {lastInvoice.itemDiscounts > 0 && (
                     <div className="flex justify-between">
                       <span className="font-bold">{t("itemDiscounts")}</span>
@@ -578,17 +579,17 @@ export const InvoiceModal = ({
                        <span className="font-bold">{t("paymentMethod")}:</span>
                        <span className="uppercase font-black">{lastInvoice.paymentMethod}</span>
                      </div>
+                     {lastInvoice.paymentMethod === 'cash' && (
+                       <div className="flex justify-between">
+                         <span className="font-bold">{t("cashReceived")}:</span>
+                         <span className="font-mono font-black">{formatCurrency(lastInvoice.receivedAmount)}</span>
+                       </div>
+                     )}
                      {lastInvoice.paymentMethod === 'cash' && showCashChangeOnInvoice && (
-                       <>
-                         <div className="flex justify-between">
-                           <span className="font-bold">{t("cashReceived")}:</span>
-                           <span className="font-mono font-black">{formatCurrency(lastInvoice.receivedAmount)}</span>
-                         </div>
-                         <div className="flex justify-between">
-                           <span className="font-bold">{t("changeDue")}:</span>
-                           <span className="font-mono font-black">{formatCurrency(lastInvoice.changeAmount)}</span>
-                         </div>
-                       </>
+                       <div className="flex justify-between">
+                         <span className="font-bold">{t("changeDue")}:</span>
+                         <span className="font-mono font-black">{formatCurrency(lastInvoice.changeAmount)}</span>
+                       </div>
                      )}
                    </>
                  )}

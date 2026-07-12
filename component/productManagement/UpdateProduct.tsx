@@ -1335,6 +1335,64 @@ export default function UpdateProduct() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Website Discount - display-only, not used in POS pricing */}
+                    <div
+                      className={`p-4 rounded-xl border ${
+                        isDarkMode
+                          ? "bg-teal-900/10 border-teal-900/30"
+                          : "bg-teal-50 border-teal-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <label
+                          className={`text-xs font-bold uppercase flex items-center gap-1.5 ${
+                            isDarkMode ? "text-teal-400" : "text-teal-700"
+                          }`}
+                        >
+                          <MdPercent /> Website Discount
+                        </label>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded border uppercase ${
+                            isDarkMode
+                              ? "bg-gray-800 border-gray-700 text-gray-400"
+                              : "bg-white border-slate-200 text-slate-500"
+                          }`}
+                        >
+                          Website only
+                        </span>
+                      </div>
+                      <div className="relative max-w-[200px]">
+                        <input
+                          type="number"
+                          name="discountPercent"
+                          value={formData.discountPercent}
+                          onChange={handleChange}
+                          min="0"
+                          max="100"
+                          className={`w-full h-10 pl-3 pr-8 rounded-lg border focus:ring-2 focus:ring-teal-500 ${
+                            isDarkMode
+                              ? "bg-gray-800 border-gray-700 text-white"
+                              : "bg-white border-slate-300 text-slate-900"
+                          }`}
+                          placeholder="0"
+                        />
+                        <MdPercent
+                          className={`absolute right-3 top-3 ${
+                            isDarkMode ? "text-gray-500" : "text-slate-400"
+                          }`}
+                          size={14}
+                        />
+                      </div>
+                      <p
+                        className={`mt-2 text-xs ${
+                          isDarkMode ? "text-teal-400/70" : "text-teal-700/70"
+                        }`}
+                      >
+                        Shows a discount badge and strikethrough price on the
+                        public website. Does not affect POS checkout pricing.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </section>

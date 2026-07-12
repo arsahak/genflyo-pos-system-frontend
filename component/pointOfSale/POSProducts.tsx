@@ -16,6 +16,26 @@ import {
 } from "react-icons/md";
 import { Product } from "./types";
 
+function getPriceInfo(product: Product) {
+  const hasDiscount =
+    (!!product.discountPrice && product.discountPrice < product.price) ||
+    (!!product.discountPercentage && product.discountPercentage > 0);
+
+  if (!hasDiscount) {
+    return { hasDiscount: false as const, finalPrice: product.price };
+  }
+
+  const finalPrice =
+    product.discountPrice ??
+    product.price - (product.price * (product.discountPercentage ?? 0)) / 100;
+
+  const percentOff =
+    product.discountPercentage ??
+    Math.round(((product.price - finalPrice) / product.price) * 100);
+
+  return { hasDiscount: true as const, finalPrice, percentOff };
+}
+
 interface POSProductsProps {
   isDarkMode: boolean;
   searchQuery: string;
@@ -285,7 +305,9 @@ export const POSProducts = ({
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-            {filteredProducts.map((product) => (
+            {filteredProducts.map((product) => {
+              const priceInfo = getPriceInfo(product);
+              return (
               <div
                 key={product.id}
                 onClick={() => addToCart(product)}
@@ -336,14 +358,19 @@ export const POSProducts = ({
                     </span>
                   </div>
 
-                  {/* RX Badge */}
-                  {product.isPrescription && (
-                    <div className="absolute top-2 right-2">
+                  {/* Discount + RX Badges */}
+                  <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                    {priceInfo.hasDiscount && (
+                      <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-red-600 text-white shadow-sm">
+                        -{priceInfo.percentOff}%
+                      </span>
+                    )}
+                    {product.isPrescription && (
                       <span className="w-6 h-6 flex items-center justify-center rounded-full bg-red-50 text-red-600 border border-red-100 shadow-sm text-xs font-bold font-serif">
                         Rx
                       </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   {/* Shelf Badge */}
                   {product.shelf && (
@@ -390,17 +417,25 @@ export const POSProducts = ({
                   </div>
 
                   <div className="mt-auto flex items-center justify-between">
-                    <span
-                      className={`text-lg font-bold ${
-                        isDarkMode ? "text-indigo-400" : "text-indigo-600"
-                      }`}
-                    >
-                      {formatCurrency(product.price)}
-                    </span>
+                    <div>
+                      <span
+                        className={`text-lg font-bold ${
+                          isDarkMode ? "text-indigo-400" : "text-indigo-600"
+                        }`}
+                      >
+                        {formatCurrency(priceInfo.finalPrice)}
+                      </span>
+                      {priceInfo.hasDiscount && (
+                        <div className="text-[10px] text-gray-400 line-through">
+                          {formatCurrency(product.price)}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

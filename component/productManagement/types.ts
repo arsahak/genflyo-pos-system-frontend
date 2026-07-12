@@ -9,6 +9,8 @@ export interface Product {
   brand?: string;
   price: number;
   cost?: number;
+  discountPrice?: number;
+  discountPercentage?: number;
   stock: number;
   minStock?: number;
   reorderLevel?: number;

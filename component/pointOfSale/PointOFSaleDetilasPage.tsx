@@ -215,6 +215,8 @@ const PointOFSaleDetilasPage = () => {
             name: p.name,
             price: p.price || 0,
             cost: p.cost,
+            discountPrice: p.discountPrice,
+            discountPercentage: p.discountPercentage,
             category: p.category || "General",
             stock: p.stock || 0,
             sku: p.sku || "",

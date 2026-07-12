@@ -2,6 +2,26 @@ import Link from "next/link";
 import { MdDelete, MdEdit, MdInventory, MdNavigateBefore, MdNavigateNext, MdWarning } from "react-icons/md";
 import { Pagination, Product } from "../types";
 
+function getPriceInfo(product: Product) {
+  const hasDiscount =
+    (!!product.discountPrice && product.discountPrice < product.price) ||
+    (!!product.discountPercentage && product.discountPercentage > 0);
+
+  if (!hasDiscount) {
+    return { hasDiscount: false as const, finalPrice: product.price };
+  }
+
+  const finalPrice =
+    product.discountPrice ??
+    product.price - (product.price * (product.discountPercentage ?? 0)) / 100;
+
+  const percentOff =
+    product.discountPercentage ??
+    Math.round(((product.price - finalPrice) / product.price) * 100);
+
+  return { hasDiscount: true as const, finalPrice, percentOff };
+}
+
 interface ProductTableProps {
   isDarkMode: boolean;
   loading: boolean;
@@ -68,18 +88,20 @@ export const ProductTable = ({
             </tr>
           </thead>
           <tbody className={`divide-y ${isDarkMode ? "divide-gray-700" : "divide-gray-100"}`}>
-            {products.map((product) => (
-              <tr 
-                key={product._id} 
+            {products.map((product) => {
+              const priceInfo = getPriceInfo(product);
+              return (
+              <tr
+                key={product._id}
                 className={`group transition-colors ${
-                  isDarkMode 
-                    ? "hover:bg-gray-700/50" 
+                  isDarkMode
+                    ? "hover:bg-gray-700/50"
                     : "hover:bg-indigo-50/30"
                 }`}
               >
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 ${
+                    <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden shrink-0 ${
                       isDarkMode ? "bg-gray-700" : "bg-slate-100"
                     }`}>
                       {product.mainImage?.url ? (
@@ -90,6 +112,11 @@ export const ProductTable = ({
                         />
                       ) : (
                         <MdInventory className={isDarkMode ? "text-gray-500" : "text-gray-400"} size={20} />
+                      )}
+                      {priceInfo.hasDiscount && (
+                        <span className="absolute top-0 left-0 bg-red-600 text-white text-[8px] font-bold px-1 rounded-br-md">
+                          -{priceInfo.percentOff}%
+                        </span>
                       )}
                     </div>
                     <div>
@@ -102,11 +129,11 @@ export const ProductTable = ({
                     </div>
                   </div>
                 </td>
-                
+
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium ${
-                    isDarkMode 
-                      ? "bg-gray-700 text-gray-300 border border-gray-600" 
+                    isDarkMode
+                      ? "bg-gray-700 text-gray-300 border border-gray-600"
                       : "bg-gray-100 text-gray-600 border border-gray-200"
                   }`}>
                     {product.category}
@@ -114,9 +141,25 @@ export const ProductTable = ({
                 </td>
 
                 <td className="px-6 py-4">
-                  <div className={`font-bold font-mono ${isDarkMode ? "text-indigo-400" : "text-indigo-600"}`}>
-                    ৳{product.price.toFixed(2)}
-                  </div>
+                  {priceInfo.hasDiscount ? (
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold font-mono ${isDarkMode ? "text-green-400" : "text-green-600"}`}>
+                        ৳{priceInfo.finalPrice.toFixed(2)}
+                      </span>
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-red-100 text-red-700 border border-red-200 shrink-0">
+                        -{priceInfo.percentOff}%
+                      </span>
+                    </div>
+                  ) : (
+                    <div className={`font-bold font-mono ${isDarkMode ? "text-indigo-400" : "text-indigo-600"}`}>
+                      ৳{product.price.toFixed(2)}
+                    </div>
+                  )}
+                  {priceInfo.hasDiscount && (
+                    <div className={`text-xs line-through ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                      ৳{product.price.toFixed(2)}
+                    </div>
+                  )}
                   {product.cost && (
                     <div className="text-xs text-gray-400">
                       Cost: ৳{product.cost.toFixed(2)}
@@ -199,7 +242,8 @@ export const ProductTable = ({
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
